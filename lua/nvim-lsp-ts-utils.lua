@@ -41,7 +41,8 @@ M.rename_file = function()
     local modified = vim.fn.getbufvar(bufnr, "&modified")
     if (modified) then vim.cmd("noa w") end
 
-    u.move_file(source, target)
+    local _, err = u.move_file(source, target)
+    if (err) then error(err) end
 
     vim.cmd("e " .. target)
     vim.cmd(bufnr .. "bwipeout!")
