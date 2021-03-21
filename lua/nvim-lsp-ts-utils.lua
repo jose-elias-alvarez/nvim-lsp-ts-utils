@@ -12,6 +12,19 @@ M.organize_imports = function()
     vim.lsp.buf.execute_command(params)
 end
 
+M.fix_current = function()
+    local params = lsp.util.make_range_params()
+    params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
+
+    local responses = lsp.buf_request_sync(0, "textDocument/codeAction", params)
+    if not responses or not responses[1] or not responses[1].result[1] then
+        return
+    end
+
+    local result = responses[1].result[1]
+    lsp.buf.execute_command(result)
+end
+
 M.rename_file = function()
     local filetype = vim.bo.filetype
     if not u.filetype_is_valid(filetype) then error("Invalid filetype!") end
@@ -46,19 +59,6 @@ M.rename_file = function()
 
     vim.cmd("e " .. target)
     vim.cmd(bufnr .. "bwipeout!")
-end
-
-M.fix_current = function()
-    local params = lsp.util.make_range_params()
-    params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
-
-    local responses = lsp.buf_request_sync(0, "textDocument/codeAction", params)
-    if not responses or not responses[1] or not responses[1].result[1] then
-        return
-    end
-
-    local result = responses[1].result[1]
-    lsp.buf.execute_command(result)
 end
 
 M.setup =
