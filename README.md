@@ -33,10 +33,6 @@ threads and random dotfile repos.
   One of my most missed features from VS Code / coc.nvim. Enter a new path
   (based on the current file's path) and watch the magic happen.
 
-  This is the most extensive of the current functions, and I've tested it
-  informally, but I may have missed some edge cases. Let me know in an issue /
-  PR if you run into any problems.
-
 ## Setup
 
 Install using your favorite plugin manager and add to your
@@ -71,16 +67,41 @@ Or you can add whichever functions you're interested in directly to your config.
 
 ## Limitations
 
-coc-tsserver can handle most VS Code features because it interfaces directly
+coc-tsserver can replicate most VS Code features because it interfaces directly
 with `tsserver`. We don't have the same luxury with
 `typescript-language-server`, so implementing features depends on upstream
 adoption (an area I hope to work on, too).
 
+I'm also looking into how Treesitter can help cover some of the gaps.
+
+## Tests
+
+I've covered the current functions with LSP integration tests using
+[plenary.nvim](https://github.com/nvim-lua/plenary.nvim). Run them with
+`./test.sh`. Requires a working Neovim TypeScript LSP setup, naturally.
+
 ## Goals
 
-- [ ] Watch project files and update imports on change. Theoretically possible
-      with something like [Watchman](https://facebook.github.io/watchman/), but
-      way beyond my current Lua abilities.
-- [x] ~~Write tests.~~
+- [ ] Add TypeScript / .tsx text objects.
+
+I'd like to include Treesitter-based text objects, like
+[nvim-treesitter-textobjects](https://github.com/nvim-treesitter/nvim-treesitter-textobjects),
+and am looking into the topic.
+
+- [ ] Watch project files and update imports on change.
+
+Theoretically possible
+with something like [Watchman](https://facebook.github.io/watchman/), but
+way beyond my current Lua abilities.
+
+- [ ] Add an "add all missing imports" function, like VS Code's
+      `source.addMissingImports`.
+
+Trickier than expected, and unless it's possible to reliably get _only_ relevant
+code actions, probably not worth it.
+
 - [ ] ~~Make sure everything works on Linux (it should)~~ and on Windows (it
       shouldn't).
+
+I have no idea what `os.execute` will do on Windows, but `LspRenameFile` uses
+`mv`, which (as far as I know) won't work.
