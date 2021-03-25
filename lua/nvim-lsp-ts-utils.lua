@@ -17,12 +17,14 @@ M.fix_current = function()
     params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
 
     local responses = lsp.buf_request_sync(0, "textDocument/codeAction", params)
-    if not responses or not responses[1] or not responses[1].result[1] then
-        return
+    if not responses then return end
+    for _, response in ipairs(responses) do
+        for _, result in pairs(response) do
+            for _, action in pairs(result) do
+                lsp.buf.execute_command(action)
+            end
+        end
     end
-
-    local result = responses[1].result[1]
-    lsp.buf.execute_command(result)
 end
 
 M.rename_file = function()
