@@ -81,6 +81,6 @@ adoption (an area I hope to work on, too).
 - [ ] Watch project files and update imports on change. Theoretically possible
       with something like [Watchman](https://facebook.github.io/watchman/), but
       way beyond my current Lua abilities.
-- [ ] Write tests.
-- [ ] Make sure everything works on Linux (it should) and on Windows (it
+- [x] ~~Write tests.~~
+- [ ] ~~Make sure everything works on Linux (it should)~~ and on Windows (it
       shouldn't).
