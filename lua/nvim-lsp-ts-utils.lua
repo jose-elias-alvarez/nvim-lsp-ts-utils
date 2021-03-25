@@ -27,17 +27,22 @@ M.fix_current = function()
     end
 end
 
-M.rename_file = function()
+M.rename_file = function(target)
     local filetype = vim.bo.filetype
     if not u.filetype_is_valid(filetype) then error("Invalid filetype!") end
 
     local bufnr = vim.fn.bufnr("%")
     local source = vim.api.nvim_buf_get_name(0)
-    local status, target = pcall(vim.fn.input, "New path: ", source)
-    if not status or target == "" or target == source then return end
+
+    local status
+    if not target then
+        status, target = pcall(vim.fn.input, "New path: ", source)
+        if not status or target == "" or target == source then return end
+    end
 
     local exists = u.file_exists(target)
-    if (exists) then
+
+    if exists then
         local confirm = vim.fn.confirm("File exists! Overwrite?", "&Yes\n&No")
         if confirm ~= 1 then return end
     end
@@ -54,7 +59,7 @@ M.rename_file = function()
     lsp.buf.execute_command(params)
 
     local modified = vim.fn.getbufvar(bufnr, "&modified")
-    if (modified) then vim.cmd("noa w") end
+    if (modified) then vim.cmd("silent noa w") end
 
     local _, err = u.move_file(source, target)
     if (err) then error(err) end
