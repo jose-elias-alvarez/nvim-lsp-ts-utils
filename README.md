@@ -104,8 +104,8 @@ I've covered the current functions with LSP integration tests using
   [Watchman](https://facebook.github.io/watchman/), but way beyond my current
   Lua abilities.
 
-- [ ] ~~Make sure everything works on Linux (it should)~~ and on Windows (it
-      shouldn't).
+- [x] ~~Make sure everything works on Linux (it should) and on Windows (it
+      shouldn't).~~
 
-  I have no idea what `os.execute` will do on Windows, but `LspRenameFile` uses
-  `mv`, which (as far as I know) won't work.
+  ~~I have no idea what `os.execute` will do on Windows, but `LspRenameFile` uses
+  `mv`, which (as far as I know) won't work.~~
