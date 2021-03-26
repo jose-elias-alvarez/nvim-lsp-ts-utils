@@ -11,7 +11,7 @@ end
 M.list_contains = list_contains
 
 M.move_file = function(path1, path2)
-    local ok = os.execute("mv '" .. path1 .. "' '" .. path2 .. "'")
+    local ok = vim.loop.fs_rename(path1, path2)
 
     if not ok then
         return false, "failed to move " .. path1 .. " to " .. path2
