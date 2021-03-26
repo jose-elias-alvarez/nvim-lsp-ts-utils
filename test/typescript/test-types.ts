@@ -2,7 +2,7 @@ export interface User {
   name: string;
 }
 
-export interface Notification {
+export interface UserNotification {
   user: User;
   content: string;
 }

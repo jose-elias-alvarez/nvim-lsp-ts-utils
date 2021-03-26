@@ -1,13 +1,14 @@
-local list_contains = function(list, x)
-    for _, v in pairs(list) do if v == x then return true end end
-    return false
-end
-
 local valid_filetypes = {
     "javascript", "javascriptreact", "typescript", "typescriptreact"
 }
 
 local M = {}
+
+local list_contains = function(list, x)
+    for _, v in pairs(list) do if v == x then return true end end
+    return false
+end
+M.list_contains = list_contains
 
 M.move_file = function(path1, path2)
     local ok = os.execute("mv '" .. path1 .. "' '" .. path2 .. "'")

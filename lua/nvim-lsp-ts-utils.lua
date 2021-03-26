@@ -4,13 +4,14 @@ local u = require("nvim-lsp-ts-utils.utils")
 
 local M = {}
 
-M.organize_imports = function()
+local organize_imports = function()
     local params = {
         command = "_typescript.organizeImports",
         arguments = {vim.api.nvim_buf_get_name(0)}
     }
     vim.lsp.buf.execute_command(params)
 end
+M.organize_imports = organize_imports
 
 M.fix_current = function()
     local params = lsp.util.make_range_params()
@@ -66,6 +67,51 @@ M.rename_file = function(target)
 
     vim.cmd("e " .. target)
     vim.cmd(bufnr .. "bwipeout!")
+end
+
+local push_import_edits = function(action, edits, text)
+    if action.command ~= "_typescript.applyWorkspaceEdit" then return end
+    if not ((string.match(action.title, "Add") and
+        string.match(action.title, "existing import")) or
+        string.match(action.title, "Import")) then return end
+
+    local arguments = action.arguments
+    if not arguments or not arguments[1] then return end
+
+    local changes = arguments[1].documentChanges
+    if not changes or not changes[1] then return end
+
+    for _, edit in ipairs(changes[1].edits) do
+        if not u.list_contains(text, edit.newText) then
+            table.insert(edits, edit)
+            table.insert(text, edit.newText)
+        end
+    end
+end
+
+M.import_all = function()
+    local diagnostics = vim.lsp.diagnostic.get(0)
+    if not diagnostics or vim.tbl_isempty(diagnostics) then return end
+    local edits = {}
+    local text = {}
+    for _, entry in pairs(diagnostics) do
+        local params = lsp.util.make_range_params()
+        params.range = entry.range
+        params.context = {diagnostics = {entry}}
+
+        local responses = lsp.buf_request_sync(0, "textDocument/codeAction",
+                                               params)
+        if not responses then return end
+        for _, response in ipairs(responses) do
+            for _, result in pairs(response) do
+                for _, action in pairs(result) do
+                    push_import_edits(action, edits, text)
+                end
+            end
+        end
+    end
+    lsp.util.apply_text_edits(edits, 0)
+    organize_imports()
 end
 
 M.setup =

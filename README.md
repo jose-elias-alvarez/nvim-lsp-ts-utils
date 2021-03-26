@@ -33,6 +33,14 @@ threads and random dotfile repos.
   One of my most missed features from VS Code / coc.nvim. Enter a new path
   (based on the current file's path) and watch the magic happen.
 
+- Import all missing imports (exposed as `:LspImportAll`)
+
+  This one's dirty. As far as I can tell, there's no way to reliably filter code
+  actions, so the function matches against the action's title to determine
+  whether it's an import action, then runs `:LspOrganize` afterwards to merge
+  imports from the same source. I hope to improve the code, but for now, it
+  works.
+
 ## Setup
 
 Install using your favorite plugin manager and add to your
@@ -51,6 +59,7 @@ nvim_lsp.tsserver.setup {
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":LspOrganize<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":LspFixCurrent<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":LspRenameFile<CR>", {silent = true})
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":LspImportAll<CR>", {silent = true})
     end
 }
 ```
@@ -62,6 +71,7 @@ the Lua functions directly:
 - Organize imports: `:lua require'nvim-lsp-ts-utils'.organize_imports()`
 - Fix current: `:lua require'nvim-lsp-ts-utils'.fix_current()`
 - Rename file: `:lua require'nvim-lsp-ts-utils'.rename_file()`
+- Import all: `:lua require'nvim-lsp-ts-utils'.import_all()`
 
 Or you can add whichever functions you're interested in directly to your config.
 
@@ -84,24 +94,18 @@ I've covered the current functions with LSP integration tests using
 
 - [ ] Add TypeScript / .tsx text objects.
 
-I'd like to include Treesitter-based text objects, like
-[nvim-treesitter-textobjects](https://github.com/nvim-treesitter/nvim-treesitter-textobjects),
-and am looking into the topic.
+  I'd like to include Treesitter-based text objects, like
+  [nvim-treesitter-textobjects](https://github.com/nvim-treesitter/nvim-treesitter-textobjects),
+  and am looking into the topic.
 
 - [ ] Watch project files and update imports on change.
 
-Theoretically possible
-with something like [Watchman](https://facebook.github.io/watchman/), but
-way beyond my current Lua abilities.
-
-- [ ] Add an "add all missing imports" function, like VS Code's
-      `source.addMissingImports`.
-
-Trickier than expected, and unless it's possible to reliably get _only_ relevant
-code actions, probably not worth it.
+  Theoretically possible with something like
+  [Watchman](https://facebook.github.io/watchman/), but way beyond my current
+  Lua abilities.
 
 - [ ] ~~Make sure everything works on Linux (it should)~~ and on Windows (it
       shouldn't).
 
-I have no idea what `os.execute` will do on Windows, but `LspRenameFile` uses
-`mv`, which (as far as I know) won't work.
+  I have no idea what `os.execute` will do on Windows, but `LspRenameFile` uses
+  `mv`, which (as far as I know) won't work.
