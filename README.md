@@ -16,28 +16,28 @@ threads and random dotfile repos.
 
 ## Features
 
-- Organize imports (exposed as `:LspOrganize`)
+- Organize imports (exposed as `:TSLspOrganize`)
 
   I've seen different implementations floating around, but the version included
   here calls the specific command from `typescript-language-server`, which is
   faster and more reliable (and doesn't mess with the rest of the document).
 
-- Fix current (exposed as `:LspFixCurrent`)
+- Fix current (exposed as `:TSLspFixCurrent`)
 
   A simple way to apply the first available code action to the current line
   without confirmation. Faster than calling `vim.lsp.buf.code_action()` when
   you already know what you want to do.
 
-- Rename file and update imports (exposed as `:LspRenameFile`)
+- Rename file and update imports (exposed as `:TSLspRenameFile`)
 
   One of my most missed features from VS Code / coc.nvim. Enter a new path
   (based on the current file's path) and watch the magic happen.
 
-- Import all missing imports (exposed as `:LspImportAll`)
+- Import all missing imports (exposed as `:TSLspImportAll`)
 
   This one's dirty. As far as I can tell, there's no way to reliably filter code
   actions, so the function matches against the action's title to determine
-  whether it's an import action, then runs `:LspOrganize` afterwards to merge
+  whether it's an import action, then runs `:TSLspOrganize` afterwards to merge
   imports from the same source. I hope to improve the code, but for now, it
   works.
 
@@ -56,10 +56,10 @@ nvim_lsp.tsserver.setup {
         require("nvim-lsp-ts-utils").setup {}
 
         -- no default maps, so you may want to define some here
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":LspOrganize<CR>", {silent = true})
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":LspFixCurrent<CR>", {silent = true})
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":LspRenameFile<CR>", {silent = true})
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":LspImportAll<CR>", {silent = true})
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", {silent = true})
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":TSLspFixCurrent<CR>", {silent = true})
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", {silent = true})
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", {silent = true})
     end
 }
 ```
@@ -103,9 +103,3 @@ I've covered the current functions with LSP integration tests using
   Theoretically possible with something like
   [Watchman](https://facebook.github.io/watchman/), but way beyond my current
   Lua abilities.
-
-- [x] ~~Make sure everything works on Linux (it should) and on Windows (it
-      shouldn't).~~
-
-  ~~I have no idea what `os.execute` will do on Windows, but `LspRenameFile` uses
-  `mv`, which (as far as I know) won't work.~~

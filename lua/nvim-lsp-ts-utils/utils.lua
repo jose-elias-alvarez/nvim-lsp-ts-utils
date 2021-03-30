@@ -34,4 +34,8 @@ M.filetype_is_valid = function(filetype)
     return list_contains(valid_filetypes, filetype)
 end
 
+M.echo_warning = function(message)
+    vim.cmd("echohl WarningMsg | echo '" .. message .. "' | echohl None")
+end
+
 return M
