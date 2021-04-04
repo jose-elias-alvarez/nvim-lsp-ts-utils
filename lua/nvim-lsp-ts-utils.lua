@@ -17,8 +17,12 @@ M.fix_current = function()
     local params = lsp.util.make_range_params()
     params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
 
-    local responses = lsp.buf_request_sync(0, "textDocument/codeAction", params)
-    if not responses then return end
+    local responses = lsp.buf_request_sync(0, "textDocument/codeAction", params,
+                                           500)
+    if not responses then
+        print("No code actions available")
+        return
+    end
     for _, response in ipairs(responses) do
         for _, result in pairs(response) do
             for _, action in pairs(result) do
@@ -91,7 +95,11 @@ end
 
 M.import_all = function()
     local diagnostics = vim.lsp.diagnostic.get(0)
-    if not diagnostics or vim.tbl_isempty(diagnostics) then return end
+    if not diagnostics or vim.tbl_isempty(diagnostics) then
+        print("No code actions available")
+        return
+    end
+
     local edits = {}
     local text = {}
     for _, entry in pairs(diagnostics) do
@@ -100,7 +108,7 @@ M.import_all = function()
         params.context = {diagnostics = {entry}}
 
         local responses = lsp.buf_request_sync(0, "textDocument/codeAction",
-                                               params)
+                                               params, 500)
         if not responses then return end
         for _, response in ipairs(responses) do
             for _, result in pairs(response) do
@@ -109,6 +117,11 @@ M.import_all = function()
                 end
             end
         end
+    end
+
+    if vim.tbl_isempty(edits) then
+        print("No code actions available")
+        return
     end
     lsp.util.apply_text_edits(edits, 0)
     organize_imports()
