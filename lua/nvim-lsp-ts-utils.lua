@@ -16,7 +16,6 @@ local organize_imports = function()
 end
 M.organize_imports = organize_imports
 
-M.fix_current = function()
 local organize_imports_sync = function()
     lsp.buf_request_sync(0, "workspace/executeCommand", get_organize_params(),
                          500)
@@ -38,6 +37,19 @@ M.organize_imports_sync = organize_imports_sync
             end
         end
     end
+M.fix_current = function()
+    local params = lsp.util.make_range_params()
+    params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
+
+    lsp.buf_request(0, "textDocument/codeAction", params,
+                    function(_, _, responses)
+        if not responses or not responses[1] then
+            print("No code actions available")
+            return
+        end
+
+        lsp.buf.execute_command(responses[1])
+    end)
 end
 
 M.rename_file = function(target)
