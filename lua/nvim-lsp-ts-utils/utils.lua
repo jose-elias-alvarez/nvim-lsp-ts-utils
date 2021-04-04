@@ -21,7 +21,7 @@ M.move_file = function(path1, path2)
 end
 
 M.file_exists = function(path)
-    local file = io.open(path)
+    local file = vim.loop.fs_open(path, "r", 438)
 
     if not file then
         return false
