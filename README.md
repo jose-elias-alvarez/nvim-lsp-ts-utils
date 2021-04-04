@@ -105,6 +105,7 @@ I've covered the current functions with LSP integration tests using
 
 - [ ] Watch project files and update imports on change.
 
-  Theoretically possible with something like
-  [Watchman](https://facebook.github.io/watchman/), but way beyond my current
-  Lua abilities.
+  I've prototyped this using plenary jobs and
+  [Watchman](https://facebook.github.io/watchman/). I'm waiting for
+  @oberblastmeister's [async await jobs PR](https://github.com/nvim-lua/plenary.nvim/pull/101) to
+  get merged, which should make working with Watchman a lot easier.
