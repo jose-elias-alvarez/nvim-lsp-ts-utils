@@ -1,6 +1,7 @@
 local lsp = vim.lsp
 local define_commands = require("nvim-lsp-ts-utils.define-commands")
 local u = require("nvim-lsp-ts-utils.utils")
+local plenary_exists, a = pcall(require, "plenary.async_lib")
 
 local M = {}
 
@@ -21,22 +22,111 @@ local organize_imports_sync = function()
                          500)
 end
 M.organize_imports_sync = organize_imports_sync
-    local params = lsp.util.make_range_params()
-    params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
 
-    local responses = lsp.buf_request_sync(0, "textDocument/codeAction", params,
-                                           500)
-    if not responses then
+local get_diagnostics = function()
+    local diagnostics = vim.lsp.diagnostic.get(0)
+    -- return nil on empty table to avoid double-checking
+    return vim.tbl_isempty(diagnostics) and nil or diagnostics
+end
+
+local get_import_params = function(entry)
+    local params = lsp.util.make_range_params()
+    params.range = entry.range
+    params.context = {diagnostics = {entry}}
+
+    return params
+end
+
+local push_import_edits = function(action, edits, text)
+    -- keep only edits
+    if action.command ~= "_typescript.applyWorkspaceEdit" then return end
+    -- keep only actions that look like imports
+    if not ((string.match(action.title, "Add") and
+        string.match(action.title, "existing import")) or
+        string.match(action.title, "Import")) then return end
+
+    local arguments = action.arguments
+    if not arguments or not arguments[1] then return end
+
+    local changes = arguments[1].documentChanges
+    if not changes or not changes[1] then return end
+
+    for _, edit in ipairs(changes[1].edits) do
+        -- avoid running edits that result in identical text twice
+        if not u.list_contains(text, edit.newText) then
+            table.insert(edits, edit)
+            table.insert(text, edit.newText)
+        end
+    end
+end
+
+local apply_edits = function(edits)
+    if vim.tbl_isempty(edits) then
         print("No code actions available")
         return
     end
-    for _, response in ipairs(responses) do
-        for _, result in pairs(response) do
-            for _, action in pairs(result) do
-                lsp.buf.execute_command(action)
+    lsp.util.apply_text_edits(edits, 0)
+    -- organize imports afterwards to merge separate import statements from the same file
+    organize_imports()
+end
+
+local import_all_sync = function()
+    local diagnostics = get_diagnostics()
+    if not diagnostics then
+        print("No code actions available")
+        return
+    end
+
+    local get_edits = function()
+        local edits = {}
+        local text = {}
+        for _, entry in pairs(diagnostics) do
+            local responses = lsp.buf_request_sync(0, "textDocument/codeAction",
+                                                   get_import_params(entry), 500)
+            if not responses then return end
+            for _, response in ipairs(responses) do
+                for _, result in pairs(response) do
+                    for _, action in pairs(result) do
+                        push_import_edits(action, edits, text)
+                    end
+                end
             end
         end
+        return edits
     end
+    apply_edits(get_edits())
+end
+-- export for testing (and in the unlikely case someone prefers to use it)
+M.import_all_sync = import_all_sync
+
+local import_all = function()
+    local diagnostics = get_diagnostics()
+    if not diagnostics then
+        print("No code actions available")
+        return
+    end
+
+    local get_edits = a.async(function()
+        local edits = {}
+        local text = {}
+        local futures = {}
+        for _, entry in pairs(diagnostics) do
+            table.insert(futures, a.future(
+                             function()
+                    local _, _, responses =
+                        a.await(a.lsp.buf_request(0, "textDocument/codeAction",
+                                                  get_import_params(entry)))
+                    for _, response in ipairs(responses) do
+                        push_import_edits(response, edits, text)
+                    end
+                end))
+        end
+        a.await_all(futures)
+        return edits
+    end)
+    a.run(get_edits(), apply_edits)
+end
+
 M.fix_current = function()
     local params = lsp.util.make_range_params()
     params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
@@ -93,58 +183,12 @@ M.rename_file = function(target)
     vim.cmd(bufnr .. "bwipeout!")
 end
 
-local push_import_edits = function(action, edits, text)
-    if action.command ~= "_typescript.applyWorkspaceEdit" then return end
-    if not ((string.match(action.title, "Add") and
-        string.match(action.title, "existing import")) or
-        string.match(action.title, "Import")) then return end
-
-    local arguments = action.arguments
-    if not arguments or not arguments[1] then return end
-
-    local changes = arguments[1].documentChanges
-    if not changes or not changes[1] then return end
-
-    for _, edit in ipairs(changes[1].edits) do
-        if not u.list_contains(text, edit.newText) then
-            table.insert(edits, edit)
-            table.insert(text, edit.newText)
-        end
-    end
-end
-
 M.import_all = function()
-    local diagnostics = vim.lsp.diagnostic.get(0)
-    if not diagnostics or vim.tbl_isempty(diagnostics) then
-        print("No code actions available")
-        return
+    if plenary_exists then
+        import_all()
+    else
+        import_all_sync()
     end
-
-    local edits = {}
-    local text = {}
-    for _, entry in pairs(diagnostics) do
-        local params = lsp.util.make_range_params()
-        params.range = entry.range
-        params.context = {diagnostics = {entry}}
-
-        local responses = lsp.buf_request_sync(0, "textDocument/codeAction",
-                                               params, 500)
-        if not responses then return end
-        for _, response in ipairs(responses) do
-            for _, result in pairs(response) do
-                for _, action in pairs(result) do
-                    push_import_edits(action, edits, text)
-                end
-            end
-        end
-    end
-
-    if vim.tbl_isempty(edits) then
-        print("No code actions available")
-        return
-    end
-    lsp.util.apply_text_edits(edits, 0)
-    organize_imports()
 end
 
 M.setup =

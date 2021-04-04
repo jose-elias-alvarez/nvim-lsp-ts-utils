@@ -38,11 +38,13 @@ threads and random dotfile repos.
 
 - Import all missing imports (exposed as `:TSLspImportAll`)
 
-  This one's dirty. As far as I can tell, there's no way to reliably filter code
-  actions, so the function matches against the action's title to determine
-  whether it's an import action, then runs `:TSLspOrganize` afterwards to merge
-  imports from the same source. I hope to improve the code, but for now, it
-  works.
+  Gets all code actions, then matches against the action's title to
+  (imperfectly) determine whether it's an import action. Also runs
+  `:TSLspOrganize` afterwards to merge imports from the same source.
+
+  If you have [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
+  installed, the function will run asynchronously, which provides a big
+  performance and reliability boost. If not, it'll run slower and may time out.
 
 ## Setup
 
