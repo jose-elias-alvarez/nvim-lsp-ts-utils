@@ -22,6 +22,9 @@ threads and random dotfile repos.
   here calls the specific command from `typescript-language-server`, which is
   faster and more reliable (and doesn't mess with the rest of the document).
 
+  Async by default, but a sync variant is available and exposed as
+  `:TSLspOrganizeSync` (useful for running on save).
+
 - Fix current (exposed as `:TSLspFixCurrent`)
 
   A simple way to apply the first available code action to the current line

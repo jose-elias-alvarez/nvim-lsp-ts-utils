@@ -4,16 +4,24 @@ local u = require("nvim-lsp-ts-utils.utils")
 
 local M = {}
 
-local organize_imports = function()
-    local params = {
+local get_organize_params = function()
+    return {
         command = "_typescript.organizeImports",
         arguments = {vim.api.nvim_buf_get_name(0)}
     }
-    vim.lsp.buf.execute_command(params)
+end
+
+local organize_imports = function()
+    lsp.buf.execute_command(get_organize_params())
 end
 M.organize_imports = organize_imports
 
 M.fix_current = function()
+local organize_imports_sync = function()
+    lsp.buf_request_sync(0, "workspace/executeCommand", get_organize_params(),
+                         500)
+end
+M.organize_imports_sync = organize_imports_sync
     local params = lsp.util.make_range_params()
     params.context = {diagnostics = vim.lsp.diagnostic.get_line_diagnostics()}
 
