@@ -151,7 +151,7 @@ M.rename_file = function(target)
 
     local status
     if not target then
-        status, target = pcall(vim.fn.input, "New path: ", source)
+        status, target = pcall(vim.fn.input, "New path: ", source, "file")
         if not status or target == "" or target == source then return end
     end
 
