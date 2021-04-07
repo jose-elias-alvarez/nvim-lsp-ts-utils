@@ -37,7 +37,7 @@ local get_import_params = function(entry)
     return params
 end
 
-local push_import_edits = function(action, edits, text)
+local push_import_edits = function(action, edits, imports)
     -- keep only edits
     if action.command ~= "_typescript.applyWorkspaceEdit" then return end
     -- keep only actions that look like imports
@@ -51,12 +51,14 @@ local push_import_edits = function(action, edits, text)
     local changes = arguments[1].documentChanges
     if not changes or not changes[1] then return end
 
-    for _, edit in ipairs(changes[1].edits) do
-        -- avoid running edits that result in identical text twice
-        if not u.list_contains(text, edit.newText) then
+    -- capture variable name, which should be surrounded by single quotes
+    local import = string.match(action.title, "%b''")
+    -- avoid importing same variable twice
+    if import and not u.list_contains(imports, import) then
+        for _, edit in ipairs(changes[1].edits) do
             table.insert(edits, edit)
-            table.insert(text, edit.newText)
         end
+        table.insert(imports, import)
     end
 end
 
@@ -79,7 +81,7 @@ local import_all_sync = function()
 
     local get_edits = function()
         local edits = {}
-        local text = {}
+        local titles = {}
         for _, entry in pairs(diagnostics) do
             local responses = lsp.buf_request_sync(0, "textDocument/codeAction",
                                                    get_import_params(entry), 500)
@@ -87,7 +89,7 @@ local import_all_sync = function()
             for _, response in ipairs(responses) do
                 for _, result in pairs(response) do
                     for _, action in pairs(result) do
-                        push_import_edits(action, edits, text)
+                        push_import_edits(action, edits, titles)
                     end
                 end
             end
@@ -108,7 +110,7 @@ local import_all = function()
 
     local get_edits = a.async(function()
         local edits = {}
-        local text = {}
+        local titles = {}
         local futures = {}
         for _, entry in pairs(diagnostics) do
             table.insert(futures, a.future(
@@ -117,7 +119,7 @@ local import_all = function()
                         a.await(a.lsp.buf_request(0, "textDocument/codeAction",
                                                   get_import_params(entry)))
                     for _, response in ipairs(responses) do
-                        push_import_edits(response, edits, text)
+                        push_import_edits(response, edits, titles)
                     end
                 end))
         end
