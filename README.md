@@ -46,6 +46,15 @@ threads and random dotfile repos.
   installed, the function will run asynchronously, which provides a big
   performance and reliability boost. If not, it'll run slower and may time out.
 
+- Import on completion
+
+  Adds missing imports on completion confirm (`<C-y>`) when using the built-in
+  LSP `omnifunc` (which is itself enabled by setting `vim.bo.omnifunc = "v:lua.vim.lsp.omnifunc"` somewhere in your LSP config). Enable by setting
+  `enable_import_on_completion` to `true` inside `setup` (see below).
+
+  Runs asynchronously and reliably. Probably behaves strangely with completion plugins that aren't
+  [MUcomplete](https://github.com/lifepillar/vim-mucomplete), but let me know!
+
 ## Setup
 
 Install using your favorite plugin manager and add to your
@@ -58,7 +67,11 @@ local nvim_lsp = require("lspconfig")
 
 nvim_lsp.tsserver.setup {
     on_attach = function(client, bufnr)
-        require("nvim-lsp-ts-utils").setup {}
+        require("nvim-lsp-ts-utils").setup {
+            -- defaults
+            disable_commands = false,
+            enable_import_on_completion = false
+        }
 
         -- no default maps, so you may want to define some here
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", {silent = true})
@@ -91,7 +104,7 @@ I'm also looking into how Treesitter can help cover some of the gaps.
 
 ## Tests
 
-I've covered the current functions with LSP integration tests using
+I've covered most of the current functions with LSP integration tests using
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim). Run them with
 `./test.sh`. Requires a working Neovim TypeScript LSP setup, naturally.
 

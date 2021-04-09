@@ -193,7 +193,34 @@ M.import_all = function()
     end
 end
 
-M.setup =
-    function(opts) if not opts.disable_commands then define_commands() end end
+local enable_import_on_completion = function()
+    vim.api.nvim_exec([[
+    augroup TSLspImportOnCompletion
+        autocmd!
+        autocmd CompleteDone * lua require'nvim-lsp-ts-utils'.import_on_completion()
+    augroup END
+    ]], false)
+end
+
+M.import_on_completion = function()
+    local completed_item = vim.v.completed_item
+    if not (completed_item and completed_item.user_data and
+        completed_item.user_data.nvim and completed_item.user_data.nvim.lsp and
+        completed_item.user_data.nvim.lsp.completion_item) then return end
+
+    local item = completed_item.user_data.nvim.lsp.completion_item
+    local bufnr = vim.api.nvim_get_current_buf()
+    lsp.buf_request(bufnr, "completionItem/resolve", item,
+                    function(_, _, result)
+        if result and result.additionalTextEdits then
+            lsp.util.apply_text_edits(result.additionalTextEdits, bufnr)
+        end
+    end)
+end
+
+M.setup = function(opts)
+    if not opts.disable_commands then define_commands() end
+    if opts.enable_import_on_completion then enable_import_on_completion() end
+end
 
 return M
