@@ -1,16 +1,17 @@
 local lsp = vim.lsp
 local plenary_exists, a = pcall(require, "plenary.async_lib")
 
-local o = require("nvim-lsp-ts-utils.options")
-local define_commands = require("nvim-lsp-ts-utils.define-commands")
-local u = require("nvim-lsp-ts-utils.utils")
+local basename = "nvim-lsp-ts-utils."
+local o = require(basename .. "options")
+local define_commands = require(basename .. "define-commands")
+local u = require(basename .. "utils")
 
 local M = {}
 
 local get_organize_params = function()
     return {
         command = "_typescript.organizeImports",
-        arguments = {vim.api.nvim_buf_get_name(0)}
+        arguments = {u.get_bufname()}
     }
 end
 
@@ -28,7 +29,7 @@ M.organize_imports_sync = organize_imports_sync
 local get_diagnostics = function()
     local diagnostics = vim.lsp.diagnostic.get(0)
     -- return nil on empty table to avoid double-checking
-    return vim.tbl_isempty(diagnostics) and nil or diagnostics
+    return u.isempty(diagnostics) and nil or diagnostics
 end
 
 local get_import_params = function(entry)
@@ -56,7 +57,7 @@ local push_import_edits = function(action, edits, imports)
     -- capture variable name, which should be surrounded by single quotes
     local import = string.match(action.title, "%b''")
     -- avoid importing same variable twice
-    if import and not u.list_contains(imports, import) then
+    if import and not u.contains(imports, import) then
         for _, edit in ipairs(changes[1].edits) do
             table.insert(edits, edit)
         end
@@ -65,7 +66,7 @@ local push_import_edits = function(action, edits, imports)
 end
 
 local apply_edits = function(edits)
-    if vim.tbl_isempty(edits) then
+    if u.isempty(edits) then
         print("No code actions available")
         return
     end
@@ -147,11 +148,14 @@ M.fix_current = function()
 end
 
 M.rename_file = function(target)
-    local filetype = vim.bo.filetype
-    if not u.filetype_is_valid(filetype) then error("Invalid filetype!") end
+    local ft_ok, ft_err = pcall(u.check_filetype)
+    if not ft_ok then
+        error(ft_err)
+        return
+    end
 
     local bufnr = vim.fn.bufnr("%")
-    local source = vim.api.nvim_buf_get_name(0)
+    local source = u.get_bufname()
 
     local status
     if not target then

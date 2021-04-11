@@ -4,11 +4,15 @@ local valid_filetypes = {
 
 local M = {}
 
-local list_contains = function(list, x)
+M.loop = vim.loop
+M.schedule = vim.schedule_wrap
+M.isempty = vim.tbl_isempty
+
+local contains = function(list, x)
     for _, v in pairs(list) do if v == x then return true end end
     return false
 end
-M.list_contains = list_contains
+M.contains = contains
 
 M.move_file = function(path1, path2)
     local ok = vim.loop.fs_rename(path1, path2)
@@ -30,12 +34,21 @@ M.file_exists = function(path)
     end
 end
 
-M.filetype_is_valid = function(filetype)
-    return list_contains(valid_filetypes, filetype)
+local filetype_is_valid = function(filetype)
+    return contains(valid_filetypes, filetype)
+end
+M.check_filetype = function()
+    local filetype = vim.bo.filetype
+    if not filetype_is_valid(filetype) then error("invalid filetype") end
 end
 
 M.echo_warning = function(message)
     vim.cmd("echohl WarningMsg | echo '" .. message .. "' | echohl None")
+end
+
+M.get_bufname = function(bufnr)
+    if bufnr == nil then bufnr = 0 end
+    return vim.api.nvim_buf_get_name(bufnr)
 end
 
 return M
