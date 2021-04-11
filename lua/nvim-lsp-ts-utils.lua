@@ -1,7 +1,9 @@
 local lsp = vim.lsp
+local plenary_exists, a = pcall(require, "plenary.async_lib")
+
+local o = require("nvim-lsp-ts-utils.options")
 local define_commands = require("nvim-lsp-ts-utils.define-commands")
 local u = require("nvim-lsp-ts-utils.utils")
-local plenary_exists, a = pcall(require, "plenary.async_lib")
 
 local M = {}
 
@@ -202,6 +204,7 @@ local enable_import_on_completion = function()
     ]], false)
 end
 
+local last_imported = ""
 M.import_on_completion = function()
     local completed_item = vim.v.completed_item
     if not (completed_item and completed_item.user_data and
@@ -209,18 +212,23 @@ M.import_on_completion = function()
         completed_item.user_data.nvim.lsp.completion_item) then return end
 
     local item = completed_item.user_data.nvim.lsp.completion_item
-    local bufnr = vim.api.nvim_get_current_buf()
-    lsp.buf_request(bufnr, "completionItem/resolve", item,
-                    function(_, _, result)
+    if last_imported == item.label then return end
+
+    lsp.buf_request(0, "completionItem/resolve", item, function(_, _, result)
         if result and result.additionalTextEdits then
-            lsp.util.apply_text_edits(result.additionalTextEdits, bufnr)
+            lsp.util.apply_text_edits(result.additionalTextEdits, 0)
+
+            last_imported = item.label
+            vim.defer_fn(function() last_imported = "" end,
+                         o.get().import_on_completion_timeout)
         end
     end)
 end
 
-M.setup = function(opts)
-    if not opts.disable_commands then define_commands() end
-    if opts.enable_import_on_completion then enable_import_on_completion() end
+M.setup = function(user_options)
+    o.set(user_options)
+    if not o.get().disable_commands then define_commands() end
+    if o.get().enable_import_on_completion then enable_import_on_completion() end
 end
 
 return M

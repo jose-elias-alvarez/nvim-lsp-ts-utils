@@ -52,6 +52,12 @@ threads and random dotfile repos.
   LSP `omnifunc` (which is itself enabled by setting `vim.bo.omnifunc = "v:lua.vim.lsp.omnifunc"` somewhere in your LSP config). Enable by setting
   `enable_import_on_completion` to `true` inside `setup` (see below).
 
+  Omnifunc users may want to bind `.` in insert mode to `.<C-x><C-o>`, but this
+  can trigger imports twice. The plugin sets a timeout to avoid importing the
+  same item twice in a short span of time, which you can change by setting
+  `import_on_completion_timeout` in your setup function (`0` disables this
+  behavior).
+
   Runs asynchronously and reliably. Probably behaves strangely with completion plugins that aren't
   [MUcomplete](https://github.com/lifepillar/vim-mucomplete), but let me know!
 
@@ -71,6 +77,7 @@ nvim_lsp.tsserver.setup {
             -- defaults
             disable_commands = false,
             enable_import_on_completion = false
+	    import_on_completion_timeout = 5000
         }
 
         -- no default maps, so you may want to define some here
