@@ -1,6 +1,6 @@
-local ts_utils = require("nvim-lsp-ts-utils")
+local import_all = require("nvim-lsp-ts-utils.import-all")
 
-describe("import_all_sync", function()
+describe("import_all (sync)", function()
     after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
     it("should import both missing types", function()
@@ -8,14 +8,14 @@ describe("import_all_sync", function()
         vim.wait(1000)
 
         vim.lsp.diagnostic.goto_prev()
-        ts_utils.import_all_sync()
+        import_all(true)
         vim.wait(500)
 
         assert.equals(vim.fn.search("{ User, UserNotification }", "nw"), 1)
     end)
 end)
 
-describe("import_all", function()
+describe("import all (async)", function()
     after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
     it("should import both missing types", function()
@@ -23,7 +23,7 @@ describe("import_all", function()
         vim.wait(1000)
 
         vim.lsp.diagnostic.goto_prev()
-        ts_utils.import_all()
+        import_all()
         vim.wait(500)
 
         assert.equals(vim.fn.search("{ User, UserNotification }", "nw"), 1)
