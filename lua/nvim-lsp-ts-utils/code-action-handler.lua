@@ -3,6 +3,8 @@ local json = require("json")
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
 
+local M = {}
+
 -- same as built-in codeAction handler
 local select_code_action = function(actions)
     if actions == nil or u.isempty(actions) then
@@ -164,7 +166,7 @@ local parse_eslint_messages = function(messages, actions)
     end
 end
 
-local code_action_handler = function(_, _, actions)
+local handle_actions = function(actions, callback)
     local ft_ok, ft_err = pcall(u.check_filetype)
     if not ft_ok then
         error(ft_err)
@@ -190,7 +192,7 @@ local code_action_handler = function(_, _, actions)
                 parse_eslint_messages(messages, actions)
             end
 
-            select_code_action(actions)
+            callback(actions)
         end
     end)
 
@@ -212,5 +214,9 @@ local code_action_handler = function(_, _, actions)
     u.loop.read_start(stdout, handle_output)
     u.loop.read_start(stderr, handle_output)
 end
+M.custom = handle_actions
 
-return code_action_handler
+M.default =
+    function(_, _, actions) handle_actions(actions, select_code_action) end
+
+return M

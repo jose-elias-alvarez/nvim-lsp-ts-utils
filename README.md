@@ -66,6 +66,8 @@ lot of love. This is an attempt to rectify that, if only slightly.
   Uses `eslint` by default, but I highly, highly recommend installing
   [eslint_d](https://github.com/mantoni/eslint_d.js) and setting `eslint_binary = eslint_d` in your `setup` (see below.)
 
+  Can integrate with `:TSLspFixCurrent` by setting `eslint_fix_current = true`.
+
 ## Setup
 
 Install using your favorite plugin manager and add to your
@@ -88,7 +90,8 @@ nvim_lsp.tsserver.setup {
             disable_commands = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
-            eslint_bin = "eslint" -- use eslint_d for a huge speed boost
+            eslint_bin = "eslint" -- use eslint_d for a huge speed boost,
+	    eslint_fix_current = false
         }
 
         -- no default maps, so you may want to define some here

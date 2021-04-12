@@ -15,7 +15,7 @@ M.fix_current = fix_current
 
 M.rename_file = rename_file
 
-M.code_action_handler = code_action_handler
+M.code_action_handler = code_action_handler.default
 
 M.import_on_completion = import_on_completion.handle
 

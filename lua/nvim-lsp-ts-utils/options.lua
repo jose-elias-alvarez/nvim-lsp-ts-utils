@@ -2,7 +2,8 @@ local options = {
     disable_commands = false,
     enable_import_on_completion = false,
     import_on_completion_timeout = 5000,
-    eslint_bin = "eslint"
+    eslint_bin = "eslint",
+    eslint_fix_current = false
 }
 
 local M = {}
