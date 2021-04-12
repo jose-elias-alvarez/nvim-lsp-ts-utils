@@ -9,11 +9,6 @@ VS Code and [coc-tsserver](https://github.com/neoclide/coc-tsserver) are great
 for TypeScript, so great that other LSP implementations don't give TypeScript a
 lot of love. This is an attempt to rectify that, if only slightly.
 
-These are simple Lua functions that you could write yourself and include
-directly in your config. I put them together to save time digging through source
-code and centralize information that would otherwise remain buried in Reddit
-threads and random dotfile repos.
-
 ## Features
 
 - Organize imports (exposed as `:TSLspOrganize`)
@@ -61,23 +56,39 @@ threads and random dotfile repos.
   Runs asynchronously and reliably. Probably behaves strangely with completion plugins that aren't
   [MUcomplete](https://github.com/lifepillar/vim-mucomplete), but let me know!
 
+- ESLint code actions (experimental)
+
+  Parses ESLint JSON output for the current file and converts possible fixes
+  into code actions, just like [the VS Code
+  plugin](https://github.com/Microsoft/vscode-eslint). Experimental! Feedback
+  and contributions greatly appreciated.
+
+  Uses `eslint` by default, but I highly, highly recommend installing
+  [eslint_d](https://github.com/mantoni/eslint_d.js) and setting `eslint_binary = eslint_d` in your `setup` (see below.)
+
 ## Setup
 
 Install using your favorite plugin manager and add to your
 [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) `tsserver.setup` function.
 
-A minimal example:
+An example showing the available options:
 
 ```lua
 local nvim_lsp = require("lspconfig")
 
 nvim_lsp.tsserver.setup {
-    on_attach = function(client, bufnr)
+    on_attach = function(_, bufnr)
+        local ts_utils = require("nvim-lsp-ts-utils")
+
+        -- replace default codeAction handler to inject ESLint actions
+        vim.lsp.handlers["textDocument/codeAction"] = ts_utils.code_action_handler
+
         require("nvim-lsp-ts-utils").setup {
             -- defaults
             disable_commands = false,
-            enable_import_on_completion = false
-	    import_on_completion_timeout = 5000
+            enable_import_on_completion = false,
+            import_on_completion_timeout = 5000,
+            eslint_bin = "eslint" -- use eslint_d for a huge speed boost
         }
 
         -- no default maps, so you may want to define some here
