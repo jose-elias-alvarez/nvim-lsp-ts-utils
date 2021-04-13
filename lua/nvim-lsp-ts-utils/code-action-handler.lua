@@ -5,6 +5,14 @@ local o = require("nvim-lsp-ts-utils.options")
 
 local M = {}
 
+local buffer_to_string = function()
+    local content = vim.api.nvim_buf_get_lines(0, 0,
+                                               vim.api.nvim_buf_line_count(0),
+                                               false)
+
+    return table.concat(content, "\n")
+end
+
 -- same as built-in codeAction handler
 local select_code_action = function(actions)
     if actions == nil or u.isempty(actions) then
@@ -177,16 +185,25 @@ local handle_actions = function(actions, callback)
         return
     end
 
-    local handle_output = u.schedule(function(err, data)
+    local handle_stderr = function(err)
         if err then
-            error("eslint output error: ", err)
+            error("stderr: " .. err)
+            return
+        end
+    end
+
+    local data = ""
+    local handle_stdout = u.schedule(function(err, chunk)
+        if err then
+            error("stdout error: " .. err)
             return
         end
 
-        if data then
+        if chunk then data = data .. chunk end
+        if not chunk then
             local ok, decoded = pcall(json.decode, data)
             if not ok then
-                error("failed to parse eslint json output")
+                error("failed to parse eslint json output: ", decoded)
                 return
             end
 
@@ -209,13 +226,10 @@ local handle_actions = function(actions, callback)
         stdio = {stdin, stdout, stderr}
     })
 
-    u.loop.read_start(stdout, handle_output)
-    u.loop.read_start(stderr, handle_output)
+    u.loop.read_start(stdout, handle_stdout)
+    u.loop.read_start(stderr, handle_stderr)
 
-    -- remove initial newline to keep line numbers in sync
-    local content = string.sub(vim.api.nvim_exec("w !tee", true), 2)
-    u.loop.write(stdin, content)
-
+    u.loop.write(stdin, buffer_to_string())
     u.loop.shutdown(stdin, function() u.loop.close(handle) end)
 end
 M.custom = handle_actions
