@@ -3,7 +3,10 @@ local o = require("nvim-lsp-ts-utils.options")
 local code_action_handler = require("nvim-lsp-ts-utils.code-action-handler")
 
 local exec_first = function(actions)
-    if not actions or not actions[1] then return end
+    if not actions or not actions[1] then
+        print("No code actions available")
+        return
+    end
 
     local first = actions[1]
     lsp.buf.execute_command(type(first.command) == "table" and first.command or

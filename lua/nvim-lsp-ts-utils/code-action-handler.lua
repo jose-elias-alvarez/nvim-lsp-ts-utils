@@ -9,11 +9,10 @@ local buffer_to_string = function()
     local content = vim.api.nvim_buf_get_lines(0, 0,
                                                vim.api.nvim_buf_line_count(0),
                                                false)
-
     return table.concat(content, "\n")
 end
 
--- same as built-in codeAction handler
+-- copy of default vim.lsp.handlers["textDocument/codeAction"]
 local select_code_action = function(actions)
     if actions == nil or u.isempty(actions) then
         print("No code actions available")
@@ -180,42 +179,40 @@ end
 
 local handle_actions = function(actions, callback)
     local ft_ok, ft_err = pcall(u.check_filetype)
-    if not ft_ok then
-        error(ft_err)
-        return
+    if not ft_ok then error(ft_err) end
+
+    local output = ""
+    local handle_output = function()
+        local ok, parsed = pcall(json.decode, output)
+        if not ok then
+            if string.match(output, "Error: No ESLint configuration found") then
+                u.echo_warning(
+                    "failed to get ESLint code actions: no ESLint configuration found")
+            else
+                u.echo_warning("failed to parse eslint json output: " .. parsed)
+            end
+        end
+
+        if parsed[1] and not u.isempty(parsed[1]) and parsed[1].messages and
+            not u.isempty(parsed[1].messages) then
+            local messages = parsed[1].messages
+            parse_eslint_messages(messages, actions)
+        end
+
+        -- run callback even if ESLint output parsing fails to ensure code actions are always available
+        callback(actions)
     end
+
+    local handle_stdout = u.schedule(function(err, chunk)
+        if err then error("stdout error: " .. err) end
+
+        if chunk then output = output .. chunk end
+        if not chunk then handle_output() end
+    end)
 
     local handle_stderr = function(err)
-        if err then
-            error("stderr: " .. err)
-            return
-        end
+        if err then error("stderr: " .. err) end
     end
-
-    local data = ""
-    local handle_stdout = u.schedule(function(err, chunk)
-        if err then
-            error("stdout error: " .. err)
-            return
-        end
-
-        if chunk then data = data .. chunk end
-        if not chunk then
-            local ok, decoded = pcall(json.decode, data)
-            if not ok then
-                error("failed to parse eslint json output: ", decoded)
-                return
-            end
-
-            if decoded[1] and not u.isempty(decoded[1]) and decoded[1].messages and
-                not u.isempty(decoded[1].messages) then
-                local messages = decoded[1].messages
-                parse_eslint_messages(messages, actions)
-            end
-
-            callback(actions)
-        end
-    end)
 
     local stdin = u.loop.new_pipe()
     local stdout = u.loop.new_pipe(false)

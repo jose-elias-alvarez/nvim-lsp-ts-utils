@@ -81,10 +81,7 @@ local sync = function()
 end
 
 local async = function()
-    if not plenary_exists then
-        error("failed to load plenary.nvim")
-        return
-    end
+    if not plenary_exists then error("failed to load plenary.nvim") end
 
     local diagnostics = get_diagnostics()
     if not diagnostics then

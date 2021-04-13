@@ -3,10 +3,7 @@ local u = require("nvim-lsp-ts-utils.utils")
 
 local rename_file = function(target)
     local ft_ok, ft_err = pcall(u.check_filetype)
-    if not ft_ok then
-        error(ft_err)
-        return
-    end
+    if not ft_ok then error(ft_err) end
 
     local bufnr = vim.fn.bufnr("%")
     local source = u.get_bufname()
