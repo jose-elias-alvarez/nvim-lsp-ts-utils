@@ -196,23 +196,23 @@ local handle_actions = function(actions, callback)
         end
     end)
 
+    local stdin = u.loop.new_pipe()
     local stdout = u.loop.new_pipe(false)
     local stderr = u.loop.new_pipe(false)
 
-    local handle
-    handle = u.loop.spawn(o.get().eslint_bin, {
-        args = {"-f", "json", u.get_bufname()},
-        stdio = {stdout, stderr}
-    }, function()
-        stdout:read_stop()
-        stderr:read_stop()
-        stdout:close()
-        stderr:close()
-        handle:close()
-    end)
+    local handle = u.loop.spawn(o.get().eslint_bin, {
+        args = {"-f", "json", "--stdin", "--stdin-filename", u.get_bufname()},
+        stdio = {stdin, stdout, stderr}
+    })
 
     u.loop.read_start(stdout, handle_output)
     u.loop.read_start(stderr, handle_output)
+
+    -- remove initial newline to keep line numbers in sync
+    local content = string.sub(vim.api.nvim_exec("w !tee", true), 2)
+    u.loop.write(stdin, content)
+
+    u.loop.shutdown(stdin, function() u.loop.close(handle) end)
 end
 M.custom = handle_actions
 
