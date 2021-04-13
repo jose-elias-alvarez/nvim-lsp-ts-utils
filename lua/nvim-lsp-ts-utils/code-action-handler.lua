@@ -68,8 +68,11 @@ local create_code_action_from_fix = function(problem, range, text_document,
 end
 
 local create_disable_code_actions = function(problem, current_line,
-                                             text_document, actions)
+                                             text_document, actions, rules)
     local rule_id = problem.ruleId
+    if (u.contains(rules, rule_id)) then return end
+    table.insert(rules, rule_id)
+
     local line_title = "Disable ESLint rule " .. problem.ruleId ..
                            " for this line"
     local line_new_text = "// eslint-disable-next-line " .. rule_id .. "\n"
@@ -144,6 +147,7 @@ local parse_eslint_messages = function(messages, actions)
     local text_document = vim.lsp.util.make_text_document_params()
     local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
 
+    local rules = {}
     for _, problem in ipairs(messages) do
         if problem_is_fixable(problem, current_line) then
             if problem.suggestions then
@@ -160,7 +164,7 @@ local parse_eslint_messages = function(messages, actions)
             end
             if problem.ruleId then
                 create_disable_code_actions(problem, current_line,
-                                            text_document, actions)
+                                            text_document, actions, rules)
             end
         end
     end
