@@ -76,7 +76,7 @@ nvim_lsp.tsserver.setup {
         require("nvim-lsp-ts-utils").setup {
             -- defaults
             disable_commands = false,
-            enable_import_on_completion = false
+            enable_import_on_completion = false,
 	    import_on_completion_timeout = 5000
         }
 
