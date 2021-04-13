@@ -1,14 +1,87 @@
 local ts_utils = require("nvim-lsp-ts-utils")
-
+local import_all = require("nvim-lsp-ts-utils.import-all")
 local pwd = vim.api.nvim_exec("pwd", true)
 local base_path = "test/typescript/"
-
 local get_file_content = function()
     local end_line = tonumber(vim.api.nvim_exec("echo line('$')", true))
     return vim.api.nvim_buf_get_lines(0, 0, end_line, false)
 end
+describe("fix_current", function()
+    after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
-local setup = function()
+    it("should import missing type", function()
+        vim.cmd("e test/typescript/fix-current.ts")
+        vim.wait(1000)
+
+        vim.lsp.diagnostic.goto_prev()
+        ts_utils.fix_current()
+        vim.wait(500)
+
+        assert.equals(vim.fn.search("{ User }", "nw"), 1)
+    end)
+end)
+
+describe("import_all (sync)", function()
+    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+
+    it("should import both missing types", function()
+        vim.cmd("e test/typescript/import-all.ts")
+        vim.wait(1000)
+
+        vim.lsp.diagnostic.goto_prev()
+        import_all(true)
+        vim.wait(500)
+
+        assert.equals(vim.fn.search("{ User, UserNotification }", "nw"), 1)
+    end)
+end)
+
+describe("import all (async)", function()
+    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+
+    it("should import both missing types", function()
+        vim.cmd("e test/typescript/import-all.ts")
+        vim.wait(1000)
+
+        vim.lsp.diagnostic.goto_prev()
+        import_all()
+        vim.wait(500)
+
+        assert.equals(vim.fn.search("{ User, UserNotification }", "nw"), 1)
+    end)
+end)
+
+describe("organize_imports", function()
+    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+
+    it("should remove unused import", function()
+        vim.cmd("e test/typescript/organize-imports.ts")
+        vim.wait(1000)
+
+        ts_utils.organize_imports()
+        vim.wait(500)
+
+        assert.equals(vim.fn.search("Notification", "nw"), 0)
+        assert.equals(vim.fn.search("User", "nw"), 1)
+    end)
+end)
+
+describe("organize_imports_sync", function()
+    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+
+    it("should remove unused import", function()
+        vim.cmd("e test/typescript/organize-imports.ts")
+        vim.wait(1000)
+
+        ts_utils.organize_imports_sync()
+        vim.wait(500)
+
+        assert.equals(vim.fn.search("Notification", "nw"), 0)
+        assert.equals(vim.fn.search("User", "nw"), 1)
+    end)
+end)
+
+local rename_file_setup = function()
     local copy_test_file = function(original, target)
         os.execute(
             "cp " .. pwd .. "/test/typescript/" .. original .. " " .. pwd ..
@@ -20,7 +93,7 @@ local setup = function()
     copy_test_file("existing-file.orig.ts", "existing-file.ts")
 end
 
-local breakdown = function()
+local rename_file_breakdown = function()
     vim.cmd("bufdo! bwipeout!")
     local delete_test_file = function(target)
         os.execute("rm " .. pwd .. "/test/typescript/" .. target ..
@@ -34,8 +107,8 @@ local breakdown = function()
 end
 
 describe("rename_file", function()
-    before_each(function() setup() end)
-    after_each(function() breakdown() end)
+    before_each(function() rename_file_setup() end)
+    after_each(function() rename_file_breakdown() end)
     it("should throw error on invalid filetype", function()
         vim.cmd("e " .. base_path .. "invalid_file.txt")
 
@@ -59,7 +132,7 @@ describe("rename_file", function()
     end)
 
     it("should update imports in linked file", function()
-        setup()
+        rename_file_setup()
         vim.cmd("e " .. base_path .. "file-to-be-moved.ts")
         vim.wait(1000)
 
@@ -72,7 +145,7 @@ describe("rename_file", function()
     end)
 
     it("should overwrite existing file", function()
-        setup()
+        rename_file_setup()
         vim.cmd("e " .. base_path .. "existing-file.ts")
         local original_content = get_file_content()
 
