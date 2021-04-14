@@ -135,7 +135,7 @@ local parse_eslint_messages = function(messages, actions)
                 push_fix_code_action(problem, get_fix_range(problem),
                                      text_document, actions)
             end
-            if problem.ruleId then
+            if problem.ruleId and o.get().eslint_enable_disable_comments then
                 push_disable_code_actions(problem, current_line, text_document,
                                           actions, rules)
             end
