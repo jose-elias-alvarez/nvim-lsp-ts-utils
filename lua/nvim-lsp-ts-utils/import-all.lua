@@ -1,13 +1,14 @@
-local lsp = vim.lsp
 local plenary_exists, a = pcall(require, "plenary.async_lib")
 local u = require("nvim-lsp-ts-utils.utils")
-
 local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
+
+local lsp = vim.lsp
+local isempty = vim.tbl_isempty
 
 local get_diagnostics = function()
     local diagnostics = vim.lsp.diagnostic.get(0)
     -- return nil on empty table to avoid double-checking
-    return u.isempty(diagnostics) and nil or diagnostics
+    return isempty(diagnostics) and nil or diagnostics
 end
 
 local get_import_params = function(entry)
@@ -44,8 +45,8 @@ local push_import_edits = function(action, edits, imports)
 end
 
 local apply_edits = function(edits)
-    if u.isempty(edits) then
-        print("No code actions available")
+    if isempty(edits) then
+        u.print_no_actions_message()
         return
     end
     lsp.util.apply_text_edits(edits, 0)
@@ -56,7 +57,7 @@ end
 local sync = function()
     local diagnostics = get_diagnostics()
     if not diagnostics then
-        print("No code actions available")
+        u.print_no_actions_message()
         return
     end
 
@@ -85,7 +86,7 @@ local async = function()
 
     local diagnostics = get_diagnostics()
     if not diagnostics then
-        print("No code actions available")
+        u.print_no_actions_message()
         return
     end
 

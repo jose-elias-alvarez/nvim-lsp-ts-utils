@@ -1,5 +1,5 @@
-local lsp = vim.lsp
 local u = require("nvim-lsp-ts-utils.utils")
+local lsp = vim.lsp
 
 local rename_file = function(target)
     local ft_ok, ft_err = pcall(u.check_filetype)

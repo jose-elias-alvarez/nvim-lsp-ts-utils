@@ -1,5 +1,5 @@
-local lsp = vim.lsp
 local o = require("nvim-lsp-ts-utils.options")
+local lsp = vim.lsp
 
 local M = {}
 M.enable = function()

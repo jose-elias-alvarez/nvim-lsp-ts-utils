@@ -1,5 +1,5 @@
-local lsp = vim.lsp
 local u = require("nvim-lsp-ts-utils.utils")
+local lsp = vim.lsp
 
 local M = {}
 local get_organize_params = function()

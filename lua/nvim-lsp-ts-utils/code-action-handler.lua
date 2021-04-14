@@ -1,45 +1,13 @@
 local json = require("json")
-
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
+local default_handler = require("lsp.code-action-handler")
+
+local loop = vim.loop
+local schedule = vim.schedule_wrap
+local isempty = vim.tbl_isempty
 
 local M = {}
-
-local buffer_to_string = function()
-    local content = vim.api.nvim_buf_get_lines(0, 0,
-                                               vim.api.nvim_buf_line_count(0),
-                                               false)
-    return table.concat(content, "\n")
-end
-
--- copy of default vim.lsp.handlers["textDocument/codeAction"]
-local select_code_action = function(actions)
-    if actions == nil or u.isempty(actions) then
-        print("No code actions available")
-        return
-    end
-
-    local option_strings = {"Code Actions:"}
-    for i, action in ipairs(actions) do
-        local title = action.title:gsub("\r\n", "\\r\\n")
-        title = title:gsub("\n", "\\n")
-        table.insert(option_strings, string.format("%d. %s", i, title))
-    end
-
-    local choice = vim.fn.inputlist(option_strings)
-    if choice < 1 or choice > #actions then return end
-    local action_chosen = actions[choice]
-    if action_chosen.edit or type(action_chosen.command) == "table" then
-        if action_chosen.edit then
-            vim.lsp.util.apply_workspace_edit(action_chosen.edit)
-        end
-        if type(action_chosen.command) == "table" then
-            vim.lsp.buf.execute_command(action_chosen.command)
-        end
-    else
-        vim.lsp.buf.execute_command(action_chosen)
-    end
-end
 
 local create_edit_action = function(title, new_text, range, text_document)
     return {
@@ -58,24 +26,23 @@ local create_edit_action = function(title, new_text, range, text_document)
     }
 end
 
-local create_code_action_from_suggestion =
-    function(suggestion, range, text_document, actions)
-        local title = suggestion.desc
-        local new_text = suggestion.fix.text
-        table.insert(actions,
-                     create_edit_action(title, new_text, range, text_document))
-    end
-
-local create_code_action_from_fix = function(problem, range, text_document,
+local push_suggestion_code_action = function(suggestion, range, text_document,
                                              actions)
+    local title = suggestion.desc
+    local new_text = suggestion.fix.text
+    table.insert(actions,
+                 create_edit_action(title, new_text, range, text_document))
+end
+
+local push_fix_code_action = function(problem, range, text_document, actions)
     local title = "Apply suggested fix for ESLint rule " .. problem.ruleId
     local new_text = problem.fix.text
     table.insert(actions,
                  create_edit_action(title, new_text, range, text_document))
 end
 
-local create_disable_code_actions = function(problem, current_line,
-                                             text_document, actions, rules)
+local push_disable_code_actions = function(problem, current_line, text_document,
+                                           actions, rules)
     local rule_id = problem.ruleId
     if (u.contains(rules, rule_id)) then return end
     table.insert(rules, rule_id)
@@ -159,19 +126,18 @@ local parse_eslint_messages = function(messages, actions)
         if problem_is_fixable(problem, current_line) then
             if problem.suggestions then
                 for _, suggestion in ipairs(problem.suggestions) do
-                    create_code_action_from_suggestion(suggestion,
-                                                       get_suggestion_range(
-                                                           problem),
-                                                       text_document, actions)
+                    push_suggestion_code_action(suggestion,
+                                                get_suggestion_range(problem),
+                                                text_document, actions)
                 end
             end
             if problem.fix then
-                create_code_action_from_fix(problem, get_fix_range(problem),
-                                            text_document, actions)
+                push_fix_code_action(problem, get_fix_range(problem),
+                                     text_document, actions)
             end
             if problem.ruleId then
-                create_disable_code_actions(problem, current_line,
-                                            text_document, actions, rules)
+                push_disable_code_actions(problem, current_line, text_document,
+                                          actions, rules)
             end
         end
     end
@@ -193,8 +159,8 @@ local handle_actions = function(actions, callback)
             end
         end
 
-        if parsed[1] and not u.isempty(parsed[1]) and parsed[1].messages and
-            not u.isempty(parsed[1].messages) then
+        if parsed[1] and not isempty(parsed[1]) and parsed[1].messages and
+            not isempty(parsed[1].messages) then
             local messages = parsed[1].messages
             parse_eslint_messages(messages, actions)
         end
@@ -203,7 +169,7 @@ local handle_actions = function(actions, callback)
         callback(actions)
     end
 
-    local handle_stdout = u.schedule(function(err, chunk)
+    local handle_stdout = schedule(function(err, chunk)
         if err then error("stdout error: " .. err) end
 
         if chunk then output = output .. chunk end
@@ -214,24 +180,23 @@ local handle_actions = function(actions, callback)
         if err then error("stderr: " .. err) end
     end
 
-    local stdin = u.loop.new_pipe()
-    local stdout = u.loop.new_pipe(false)
-    local stderr = u.loop.new_pipe(false)
+    local stdin = loop.new_pipe()
+    local stdout = loop.new_pipe(false)
+    local stderr = loop.new_pipe(false)
 
-    local handle = u.loop.spawn(o.get().eslint_bin, {
+    local handle = loop.spawn(o.get().eslint_bin, {
         args = {"-f", "json", "--stdin", "--stdin-filename", u.get_bufname()},
         stdio = {stdin, stdout, stderr}
     })
 
-    u.loop.read_start(stdout, handle_stdout)
-    u.loop.read_start(stderr, handle_stderr)
+    loop.read_start(stdout, handle_stdout)
+    loop.read_start(stderr, handle_stderr)
 
-    u.loop.write(stdin, buffer_to_string())
-    u.loop.shutdown(stdin, function() u.loop.close(handle) end)
+    loop.write(stdin, u.buffer_to_string())
+    loop.shutdown(stdin, function() loop.close(handle) end)
 end
 M.custom = handle_actions
 
-M.default =
-    function(_, _, actions) handle_actions(actions, select_code_action) end
+M.default = function(_, _, actions) handle_actions(actions, default_handler) end
 
 return M
