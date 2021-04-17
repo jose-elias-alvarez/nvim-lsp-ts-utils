@@ -38,7 +38,7 @@ M.check_filetype = function()
 end
 
 M.echo_warning = function(message)
-    vim.cmd("echohl WarningMsg | echo '" .. message .. "' | echohl None")
+    vim.api.nvim_echo({{message, "WarningMsg"}, {"\n"}}, true, {})
 end
 
 M.get_bufname = function(bufnr)
