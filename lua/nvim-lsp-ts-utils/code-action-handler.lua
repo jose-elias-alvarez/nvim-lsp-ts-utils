@@ -151,7 +151,7 @@ local handle_actions = function(actions, callback)
     local handle_output = function()
         local ok, parsed = pcall(json.decode, output)
         if not ok then
-            if string.match(output, "Error: No ESLint configuration found") then
+            if string.match(output, "No ESLint configuration found") then
                 u.echo_warning(
                     "failed to get ESLint code actions: no ESLint configuration found")
             else
@@ -180,20 +180,20 @@ local handle_actions = function(actions, callback)
         if err then error("stderr: " .. err) end
     end
 
-    local stdin = loop.new_pipe()
+    local stdin = loop.new_pipe(true)
     local stdout = loop.new_pipe(false)
     local stderr = loop.new_pipe(false)
 
     local handle = loop.spawn(o.get().eslint_bin, {
         args = {"-f", "json", "--stdin", "--stdin-filename", u.get_bufname()},
         stdio = {stdin, stdout, stderr}
-    })
+    }, function() end)
 
     loop.read_start(stdout, handle_stdout)
     loop.read_start(stderr, handle_stderr)
 
     loop.write(stdin, u.buffer_to_string())
-    loop.shutdown(stdin, function() loop.close(handle) end)
+    loop.shutdown(stdin, function() if handle then loop.close(handle) end end)
 end
 M.custom = handle_actions
 
