@@ -69,6 +69,11 @@ lot of love. This is an attempt to rectify that, bit by bit.
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
 
+  See [this
+  snippet](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/ESLint-code-actions-in-telescope.nvim)
+  for integration with
+  [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim).
+
 ## Setup
 
 Install using your favorite plugin manager and add to your
