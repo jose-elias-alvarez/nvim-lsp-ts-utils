@@ -26,13 +26,13 @@ describe("fix_current", function()
 end)
 
 describe("handle-actions", function()
-    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+    o.set({eslint_fix_current = true})
+    after_each(function()
+        vim.cmd("bufdo! bwipeout!")
+        o.set({})
+    end)
 
-    it("should apply fix when vim.lsp.buf_request is overriden", function()
-        o.set({
-            request_handlers = {vim.lsp.buf_request, vim.lsp.buf_request_sync}
-        })
-        vim.lsp.buf_request = ts_utils.buf_request
+    it("should fix eslint rule", function()
         vim.cmd("e test/typescript/code-action-handler.js")
         vim.wait(500)
         vim.cmd("2")

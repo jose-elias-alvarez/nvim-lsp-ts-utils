@@ -38,8 +38,7 @@ M.check_filetype = function()
 end
 
 M.echo_warning = function(message)
-    vim.api.nvim_echo(
-        {{"nvim-lsp-ts-utils: " .. message, "WarningMsg"}, {"\n"}}, true, {})
+    vim.api.nvim_echo({{message, "WarningMsg"}, {"\n"}}, true, {})
 end
 
 M.get_bufname = function(bufnr)

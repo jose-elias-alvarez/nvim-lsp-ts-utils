@@ -57,19 +57,22 @@ lot of love. This is an attempt to rectify that, bit by bit.
   plugin](https://github.com/Microsoft/vscode-eslint). Experimental! Feedback
   and contributions greatly appreciated.
 
-  Works with Neovim's built-in code action handler as well as plugins like
-  [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) and
-  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim). See the setup section
-  below for instructions.
-
   Supports the following settings:
 
   - `eslint_binary`: sets the binary used to get ESLint output. Uses `eslint` by
     default for compatibility, but I highly, highly recommend using
     [eslint_d](https://github.com/mantoni/eslint_d.js).
 
+  - `eslint_fix_current`: enables ESLint code actions for `:TSLspFixCurrent`. Set
+    to `false` by default.
+
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
+
+  See [this
+  snippet](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/ESLint-code-actions-in-telescope.nvim)
+  for integration with
+  [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim).
 
 ## Setup
 
@@ -85,14 +88,17 @@ nvim_lsp.tsserver.setup {
     on_attach = function(_, bufnr)
         local ts_utils = require("nvim-lsp-ts-utils")
 
+        -- replace default codeAction handler to inject ESLint actions
+        vim.lsp.handlers["textDocument/codeAction"] = ts_utils.code_action_handler
+
         require("nvim-lsp-ts-utils").setup {
             -- defaults
             disable_commands = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
             eslint_bin = "eslint", -- use eslint_d if possible!
-            eslint_enable_disable_comments = true,
-            request_handlers = {}
+            eslint_fix_current = false,
+            eslint_enable_disable_comments = true
         }
 
         -- no default maps, so you may want to define some here
@@ -102,18 +108,6 @@ nvim_lsp.tsserver.setup {
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", {silent = true})
     end
 }
-```
-
-To enable ESLint code actions, use the following settings:
-
-```lua
-ts_utils.setup {
-    -- pass alongside other settings
-    request_handlers = {vim.lsp.buf_request, vim.lsp.buf_request_sync}
-}
-
-vim.lsp.buf_request_sync = ts_utils.buf_request_sync
-vim.lsp.buf_request = ts_utils.buf_request
 ```
 
 By default, the plugin will define Vim commands for convenience. You can

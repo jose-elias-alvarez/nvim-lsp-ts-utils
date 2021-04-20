@@ -1,6 +1,7 @@
 local json = require("json")
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
+local default_handler = require("lsp.code-action-handler")
 
 local loop = vim.loop
 local schedule = vim.schedule_wrap
@@ -194,51 +195,8 @@ local handle_actions = function(actions, callback)
     loop.write(stdin, u.buffer_to_string())
     loop.shutdown(stdin, function() if handle then loop.close(handle) end end)
 end
+M.custom = handle_actions
 
-M.buf_request_sync = function(bufnr, method, params, timeout_ms)
-    local buf_request_sync = o.get().request_handlers[2]
-    if not buf_request_sync then
-        error("buf_request_sync handler not passed into setup function")
-    end
-
-    if method ~= "textDocument/codeAction" then
-        return buf_request_sync(bufnr, method, params, timeout_ms)
-    end
-
-    local actions, err = buf_request_sync(bufnr, method, params, timeout_ms)
-    local injected
-    handle_actions(actions,
-                   function(eslint_actions) injected = eslint_actions end)
-    -- simulate synchronous behavior using the same logic as buf_request_sync
-    vim.wait(timeout_ms or 100, function() return injected ~= nil end, 10)
-    return injected, err
-end
-
-M.buf_request = function(bufnr, method, params, handler)
-    local buf_request = o.get().request_handlers[1]
-    if not buf_request then
-        error("buf_request handler not passed into setup function")
-    end
-
-    handler = handler or vim.lsp.handlers[method]
-    if method ~= "textDocument/codeAction" then
-        return buf_request(bufnr, method, params, handler)
-    end
-
-    local inject_handler = function(err, _, actions, client_id, _, config)
-        handle_actions(actions, function(injected)
-            handler(err, method, injected, client_id, bufnr, config)
-        end)
-    end
-    return buf_request(bufnr, method, params, inject_handler)
-end
-
-M.default = function()
-    u.echo_warning("code_action_handler has been removed (see readme)")
-end
-
-M.custom = function()
-    u.echo_warning("code_action_handler has been removed (see readme)")
-end
+M.default = function(_, _, actions) handle_actions(actions, default_handler) end
 
 return M

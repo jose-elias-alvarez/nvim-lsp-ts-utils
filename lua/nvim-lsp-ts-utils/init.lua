@@ -17,8 +17,6 @@ M.rename_file = rename_file
 
 M.code_action_handler = code_action_handler.default
 M.custom_action_handler = code_action_handler.custom
-M.buf_request_sync = code_action_handler.buf_request_sync
-M.buf_request = code_action_handler.buf_request
 
 M.import_on_completion = import_on_completion.handle
 
