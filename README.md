@@ -92,7 +92,6 @@ nvim_lsp.tsserver.setup {
             import_on_completion_timeout = 5000,
             eslint_bin = "eslint", -- use eslint_d if possible!
             eslint_enable_disable_comments = true,
-            request_handlers = {}
         }
 
         -- no default maps, so you may want to define some here
@@ -107,11 +106,11 @@ nvim_lsp.tsserver.setup {
 To enable ESLint code actions, use the following settings:
 
 ```lua
-ts_utils.setup {
-    -- pass alongside other settings
-    request_handlers = {vim.lsp.buf_request, vim.lsp.buf_request_sync}
+require("nvim-lsp-ts-utils").setup {
+    -- your options go here
 }
 
+-- must come after setup!
 vim.lsp.buf_request_sync = ts_utils.buf_request_sync
 vim.lsp.buf_request = ts_utils.buf_request
 ```

@@ -5,6 +5,8 @@ local o = require("nvim-lsp-ts-utils.options")
 local loop = vim.loop
 local schedule = vim.schedule_wrap
 local isempty = vim.tbl_isempty
+local buf_request = vim.deepcopy(vim.lsp.buf_request)
+local buf_request_sync = vim.deepcopy(vim.lsp.buf_request_sync)
 
 local M = {}
 
@@ -196,11 +198,6 @@ local handle_actions = function(actions, callback)
 end
 
 M.buf_request_sync = function(bufnr, method, params, timeout_ms)
-    local buf_request_sync = o.get().request_handlers[2]
-    if not buf_request_sync then
-        error("buf_request_sync handler not passed into setup function")
-    end
-
     if method ~= "textDocument/codeAction" then
         return buf_request_sync(bufnr, method, params, timeout_ms)
     end
@@ -215,11 +212,6 @@ M.buf_request_sync = function(bufnr, method, params, timeout_ms)
 end
 
 M.buf_request = function(bufnr, method, params, handler)
-    local buf_request = o.get().request_handlers[1]
-    if not buf_request then
-        error("buf_request handler not passed into setup function")
-    end
-
     handler = handler or vim.lsp.handlers[method]
     if method ~= "textDocument/codeAction" then
         return buf_request(bufnr, method, params, handler)
