@@ -225,12 +225,4 @@ M.buf_request = function(bufnr, method, params, handler)
     return buf_request(bufnr, method, params, inject_handler)
 end
 
-M.default = function()
-    u.echo_warning("code_action_handler has been removed (see readme)")
-end
-
-M.custom = function()
-    u.echo_warning("code_action_handler has been removed (see readme)")
-end
-
 return M

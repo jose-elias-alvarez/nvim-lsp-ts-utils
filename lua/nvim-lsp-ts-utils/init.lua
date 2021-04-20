@@ -1,5 +1,7 @@
 local o = require("nvim-lsp-ts-utils.options")
-local code_action_handler = require("nvim-lsp-ts-utils.code-action-handler")
+local u = require("nvim-lsp-ts-utils.utils")
+
+local request_handlers = require("nvim-lsp-ts-utils.request-handlers")
 local define_commands = require("nvim-lsp-ts-utils.define-commands")
 local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
 local import_all = require("nvim-lsp-ts-utils.import-all")
@@ -15,10 +17,15 @@ M.fix_current = fix_current
 
 M.rename_file = rename_file
 
-M.code_action_handler = code_action_handler.default
-M.custom_action_handler = code_action_handler.custom
-M.buf_request_sync = code_action_handler.buf_request_sync
-M.buf_request = code_action_handler.buf_request
+M.code_action_handler = function()
+    u.echo_warning("code_action_handler has been removed (see readme)")
+end
+M.custom_action_handler = function()
+    u.echo_warning("custom_action_handler has been removed (see readme)")
+end
+
+M.buf_request_sync = request_handlers.buf_request_sync
+M.buf_request = request_handlers.buf_request
 
 M.import_on_completion = import_on_completion.handle
 
