@@ -5,8 +5,7 @@ local pwd = vim.api.nvim_exec("pwd", true)
 local base_path = "test/typescript/"
 
 local get_file_content = function()
-    local end_line = tonumber(vim.api.nvim_exec("echo line('$')", true))
-    return vim.api.nvim_buf_get_lines(0, 0, end_line, false)
+    return vim.api.nvim_buf_get_lines(0, 0, -1, false)
 end
 
 describe("fix_current", function()
