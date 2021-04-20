@@ -1,6 +1,5 @@
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
-local o = require("nvim-lsp-ts-utils.options")
 
 local pwd = vim.api.nvim_exec("pwd", true)
 local base_path = "test/typescript/"
@@ -29,9 +28,6 @@ describe("handle-actions", function()
     after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
     it("should apply fix when vim.lsp.buf_request is overriden", function()
-        o.set({
-            request_handlers = {vim.lsp.buf_request, vim.lsp.buf_request_sync}
-        })
         vim.lsp.buf_request = ts_utils.buf_request
         vim.cmd("e test/typescript/code-action-handler.js")
         vim.wait(500)
