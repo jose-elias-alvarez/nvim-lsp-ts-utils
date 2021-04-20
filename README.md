@@ -64,9 +64,14 @@ lot of love. This is an attempt to rectify that, bit by bit.
 
   Supports the following settings:
 
-  - `eslint_binary`: sets the binary used to get ESLint output. Uses `eslint` by
+  - `eslint_binary`: sets the binary used to get ESLint output.
+
+    Uses `eslint` by
     default for compatibility, but I highly, highly recommend using
-    [eslint_d](https://github.com/mantoni/eslint_d.js).
+    [eslint_d](https://github.com/mantoni/eslint_d.js), which is so fast that
+    the overhead it adds is imperceptible. `eslint` will add a noticeable delay
+    to each code action, so I don't recommend using it unless you have no other
+    choice.
 
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
@@ -85,7 +90,7 @@ nvim_lsp.tsserver.setup {
     on_attach = function(_, bufnr)
         local ts_utils = require("nvim-lsp-ts-utils")
 
-        require("nvim-lsp-ts-utils").setup {
+        ts_utils.setup {
             -- defaults
             disable_commands = false,
             enable_import_on_completion = false,
@@ -106,7 +111,8 @@ nvim_lsp.tsserver.setup {
 To enable ESLint code actions, use the following settings:
 
 ```lua
-require("nvim-lsp-ts-utils").setup {
+local ts_utils = require("nvim-lsp-ts-utils")
+ts_utils.setup {
     -- your options go here
 }
 
