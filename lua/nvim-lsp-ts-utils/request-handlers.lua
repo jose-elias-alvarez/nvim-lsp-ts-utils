@@ -153,9 +153,8 @@ local handle_actions = function(actions, callback)
         if err then return end
         local ok, parsed = pcall(json.decode, output)
         if not ok then
-            if string.match(output, "No ESLint configuration found") then
-                u.echo_warning(
-                    "failed to get ESLint code actions: no ESLint configuration found")
+            if string.match(output, "Error") then
+                u.echo_warning("ESLint error: " .. output)
             else
                 u.echo_warning("failed to parse eslint json output: " .. parsed)
             end
