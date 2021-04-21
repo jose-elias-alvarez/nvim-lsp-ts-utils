@@ -50,17 +50,53 @@ lot of love. This is an attempt to rectify that, bit by bit.
   of time, which you can change by setting `import_on_completion_timeout` in
   your setup function (`0` disables this behavior).
 
-- ESLint code actions (experimental)
+- Formatting via [Prettier](https://github.com/prettier/prettier)
 
-  Parses ESLint JSON output for the current file and converts possible fixes
-  into code actions, like [the VS Code
-  plugin](https://github.com/Microsoft/vscode-eslint). Experimental! Feedback
-  and contributions greatly appreciated.
+  A lightweight and low-config alternative to formatting via
+  [diagnostic-languageserver](https://github.com/iamcco/diagnostic-languageserver)
+  or [efm-langserver](https://github.com/mattn/efm-langserver).
 
+  Supports the following settings:
+
+  - `enable_formatting`: enables formatting. Set to `false` by default, since I
+    imagine most TypeScript developers are already using another solution.
+
+    Note that you must also override `vim.lsp.buf_request` for formatting to
+    work (see below).
+
+  - `formatter`: sets the executable used for formatting. Set to `prettier` by
+    default, and (probably) doesn't work with anything else right now, but
+    feedback / PRs are welcome.
+
+  - `format_on_save`: a quick way to enable formatting on save for `tsserver`
+    filetypes. Set to `false` by default.
+
+  - `no_save_after_format`: by default, the plugin will save the file after
+    formatting, which works well with `format_on_save`. Set this to `false` to
+    disable this behavior.
+
+  - `keep_final_newline`: set to `false` by default, to match what happens
+    when you run `!prettier --write %`.
+
+  The plugin also exposes the formatter for non-LSP use. For example, to enable
+  formatting on save for a non-`tsserver` filetype, use the following snippet:
+
+  ```vim
+  " add to ftplugin/filetype-goes-here.vim
+  lua require'nvim-lsp-ts-utils'.format_on_save()
+  ```
+
+  Note that the implementation will disable other LSP formatters. If you want to
+  run more than one formatter at once, please use diagnostic-languageserver or
+  efm-langserver.
+
+- ESLint code actions
+
+  Parses ESLint JSON output for the current file, converts fixes into code
+  actions, and adds actions to disable rules for the current line or file.
   Works with Neovim's built-in code action handler as well as plugins like
   [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) and
-  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim). See the setup section
-  below for instructions.
+  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim).
 
   Supports the following settings:
 
@@ -92,11 +128,18 @@ nvim_lsp.tsserver.setup {
 
         ts_utils.setup {
             -- defaults
-            disable_commands = false,
-            enable_import_on_completion = false,
-            import_on_completion_timeout = 5000,
-            eslint_bin = "eslint", -- use eslint_d if possible!
-            eslint_enable_disable_comments = true,
+	    disable_commands = false,
+	    enable_import_on_completion = false,
+	    import_on_completion_timeout = 5000,
+	    -- eslint
+	    eslint_bin = "eslint",
+	    eslint_enable_disable_comments = true,
+	    -- formatting
+	    enable_formatting = false,
+	    formatter = "prettier",
+	    format_on_save = false,
+	    no_save_after_format = false,
+	    keep_final_newline = false
         }
 
         -- no default maps, so you may want to define some here
@@ -108,7 +151,8 @@ nvim_lsp.tsserver.setup {
 }
 ```
 
-To enable ESLint code actions, use the following settings:
+You must also override Neovim's default `buf_request` method for ESLint actions
+and formatting to work:
 
 ```lua
 local ts_utils = require("nvim-lsp-ts-utils")
@@ -117,7 +161,6 @@ ts_utils.setup {
 }
 
 -- must come after setup!
-vim.lsp.buf_request_sync = ts_utils.buf_request_sync
 vim.lsp.buf_request = ts_utils.buf_request
 ```
 
@@ -155,6 +198,12 @@ complete ignorance about `runtimepath` and `packpath`. Sorry!
   output, the plugin should be able to handle them in the same way it handles
   ESLint. I'm a little concerned about speed and handling output from more than
   one linter, so I'd appreciate input from users of these linters.
+
+- [ ] Support for other formatters
+
+  I haven't tried [eslint_d_slim](https://github.com/mikew/prettier_d_slim), but
+  it seems like a natural fit. I'm also open to supporting any other formatters
+  if there's demand.
 
 - [ ] Watch project files and update imports on change.
 

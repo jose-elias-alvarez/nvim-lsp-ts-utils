@@ -9,6 +9,7 @@ local define_commands = function()
         "command! TSLspFixCurrent lua require'nvim-lsp-ts-utils'.fix_current()")
     vim.cmd(
         "command! TSLspImportAll lua require'nvim-lsp-ts-utils'.import_all()")
+    vim.cmd("command! TSLspFormat lua require'nvim-lsp-ts-utils'.format()")
 end
 
 return define_commands

@@ -1,5 +1,10 @@
+local o = require("nvim-lsp-ts-utils.options")
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
+
+ts_utils.setup({no_save_after_format = true})
+
+vim.lsp.buf_request = ts_utils.buf_request
 
 local pwd = vim.api.nvim_exec("pwd", true)
 local base_path = "test/typescript/"
@@ -23,12 +28,14 @@ describe("fix_current", function()
     end)
 end)
 
-describe("handle-actions", function()
-    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+describe("request-handlers", function()
+    after_each(function()
+        vim.cmd("bufdo! bwipeout!")
+        o.set({enable_formatting = false})
+    end)
 
-    it("should apply fix when vim.lsp.buf_request is overriden", function()
-        vim.lsp.buf_request = ts_utils.buf_request
-        vim.cmd("e test/typescript/request-handlers.js")
+    it("should apply eslint fix", function()
+        vim.cmd("e test/typescript/eslint-code-fix.js")
         vim.wait(500)
         vim.cmd("2")
 
@@ -36,6 +43,34 @@ describe("handle-actions", function()
         vim.wait(500)
 
         assert.equals(vim.fn.search("===", "nwp"), 1)
+    end)
+
+    it("should format file on buf.formatting()", function()
+        local formatted_line = [[import { User } from './test-types';]]
+        o.set({enable_formatting = true})
+
+        vim.cmd("e test/typescript/format.ts")
+        vim.wait(500)
+        assert.is_not.equals(get_file_content()[1], formatted_line)
+
+        vim.lsp.buf.formatting()
+        vim.wait(500)
+
+        assert.equals(get_file_content()[1], formatted_line)
+    end)
+
+    it("should format file on buf.formatting_sync()", function()
+        local formatted_line = [[import { User } from './test-types';]]
+        o.set({enable_formatting = true})
+
+        vim.cmd("e test/typescript/format.ts")
+        vim.wait(500)
+        assert.is_not.equals(get_file_content()[1], formatted_line)
+
+        vim.lsp.buf.formatting_sync()
+        vim.wait(500)
+
+        assert.equals(get_file_content()[1], formatted_line)
     end)
 end)
 

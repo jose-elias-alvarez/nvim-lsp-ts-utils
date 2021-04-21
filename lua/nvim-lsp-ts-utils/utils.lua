@@ -48,7 +48,15 @@ M.file = {
     end
 }
 
-M.table = {contains = contains}
+M.table = {
+    contains = contains,
+
+    len = function(table)
+        local count = 0
+        for _ in pairs(table) do count = count + 1 end
+        return count
+    end
+}
 
 M.buffer = {
     name = function(bufnr)
@@ -69,6 +77,12 @@ M.string = {
         for line in string.gmatch(str, "([^\n]*)\n?") do
             table.insert(split, line)
         end
+
+        -- prettier supposedly adds a final newline no matter what,
+        -- but keeping it is inconsistent w/ !prettier --write %
+        if not o.get().keep_final_newline then
+            table.remove(split, M.table.len(split))
+        end
         return split
     end
 }
@@ -76,16 +90,21 @@ M.string = {
 M.loop = {
     buf_to_stdin = function(cmd, args, handle_output)
         local output = ""
+        local stderr_output
 
         local handle_stdout = schedule(function(err, chunk)
             if err then error("stdout error: " .. err) end
 
             if chunk then output = output .. chunk end
-            if not chunk then handle_output(output) end
+            if not chunk then handle_output(stderr_output, output) end
         end)
 
-        local handle_stderr = function(err)
-            if err then error("stderr: " .. err) end
+        local handle_stderr = function(err, chunk)
+            if err then stderr_output = err end
+            -- this is fine as long as we don't care what's in stderr_output
+            if not stderr_output and chunk ~= "" then
+                stderr_output = chunk
+            end
         end
 
         local stdin = loop.new_pipe(true)

@@ -172,18 +172,41 @@ local handle_actions = function(actions, callback)
     end)
 end
 
+local format = function(bufnr)
+    if not bufnr then bufnr = api.nvim_get_current_buf() end
+
+    u.loop.buf_to_stdin(o.get().formatter,
+                        {"--stdin-filepath", u.buffer.name(bufnr)},
+                        function(err, output)
+        if err or not output then return end
+        api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
+                               u.string.split_at_newline(output))
+        if not o.get().no_save_after_format then
+            vim.cmd("noautocmd :update")
+        end
+    end)
+end
+M.format = format
+
 M.buf_request = function(bufnr, method, params, handler)
-    handler = handler or vim.lsp.handlers[method]
-    if method ~= "textDocument/codeAction" then
-        return buf_request(bufnr, method, params, handler)
+    handler = handler or lsp.handlers[method]
+
+    if method == "textDocument/codeAction" then
+        local inject_handler = function(err, _, actions, client_id, _, config)
+            handle_actions(actions, function(injected)
+                handler(err, method, injected, client_id, bufnr, config)
+            end)
+        end
+        return buf_request(bufnr, method, params, inject_handler)
     end
 
-    local inject_handler = function(err, _, actions, client_id, _, config)
-        handle_actions(actions, function(injected)
-            handler(err, method, injected, client_id, bufnr, config)
-        end)
+    if method == "textDocument/formatting" and o.get().enable_formatting then
+        format(bufnr)
+        -- return empty values for client_request_ids and _cancel_all_requests
+        return {}, function() end
     end
-    return buf_request(bufnr, method, params, inject_handler)
+
+    return buf_request(bufnr, method, params, handler)
 end
 
 return M

@@ -2,8 +2,15 @@ local options = {
     disable_commands = false,
     enable_import_on_completion = false,
     import_on_completion_timeout = 5000,
+    -- eslint
     eslint_bin = "eslint",
-    eslint_enable_disable_comments = true
+    eslint_enable_disable_comments = true,
+    -- formatting
+    enable_formatting = false,
+    formatter = "prettier",
+    format_on_save = false,
+    no_save_after_format = false,
+    keep_final_newline = false
 }
 
 local M = {}
