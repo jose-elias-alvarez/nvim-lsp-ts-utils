@@ -192,7 +192,7 @@ M.buf_request = function(bufnr, method, params, handler)
 
     if method == "textDocument/codeAction" then
         local inject_handler = function(err, _, actions, client_id, _, config)
-            handle_actions(actions, function(injected)
+            handle_actions(actions or {}, function(injected)
                 handler(err, method, injected, client_id, bufnr, config)
             end)
         end
