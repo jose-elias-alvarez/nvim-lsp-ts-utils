@@ -4,6 +4,8 @@ local options = {
     import_on_completion_timeout = 5000,
     -- eslint
     eslint_bin = "eslint",
+    eslint_enable_diagnostics = false,
+    eslint_diagnostics_debounce = 1000,
     eslint_enable_disable_comments = true,
     -- formatting
     enable_formatting = false,

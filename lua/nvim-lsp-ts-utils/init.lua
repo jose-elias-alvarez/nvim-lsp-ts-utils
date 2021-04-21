@@ -18,6 +18,8 @@ M.rename_file = rename_file
 
 M.buf_request = request_handlers.buf_request
 M.format = request_handlers.format
+M.diagnostics = request_handlers.diagnostics
+M.diagnostics_on_change = request_handlers.diagnostics_on_change
 
 M.import_on_completion = import_on_completion.handle
 
@@ -46,10 +48,14 @@ end
 
 M.setup = function(user_options)
     o.set(user_options)
+
     if not o.get().disable_commands then define_commands() end
     if o.get().enable_import_on_completion then import_on_completion.enable() end
     if o.get().enable_formatting and o.get().format_on_save then
         M.format_on_save()
+    end
+    if o.get().eslint_enable_diagnostics then
+        request_handlers.enable_diagnostics()
     end
 end
 

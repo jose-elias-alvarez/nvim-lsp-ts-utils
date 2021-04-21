@@ -45,6 +45,17 @@ describe("request-handlers", function()
         assert.equals(vim.fn.search("===", "nwp"), 1)
     end)
 
+    it("should show eslint diagnostics", function()
+        vim.cmd("e test/typescript/eslint-code-fix.js")
+        ts_utils.diagnostics()
+        vim.wait(500)
+        assert.equals(vim.api.nvim_win_get_cursor(0)[1], 1)
+
+        vim.lsp.diagnostic.goto_next()
+
+        assert.equals(vim.api.nvim_win_get_cursor(0)[1], 2)
+    end)
+
     it("should format file on buf.formatting()", function()
         local formatted_line = [[import { User } from './test-types';]]
         o.set({enable_formatting = true})

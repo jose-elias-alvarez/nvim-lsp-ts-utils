@@ -68,6 +68,11 @@ M.buffer = {
         if bufnr == nil then bufnr = 0 end
         local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
         return table.concat(content, "\n")
+    end,
+
+    line = function(line, bufnr)
+        return api.nvim_buf_get_lines(bufnr and bufnr or 0, line - 1, line,
+                                      false)[1]
     end
 }
 

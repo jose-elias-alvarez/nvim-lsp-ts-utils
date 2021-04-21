@@ -50,11 +50,50 @@ lot of love. This is an attempt to rectify that, bit by bit.
   of time, which you can change by setting `import_on_completion_timeout` in
   your setup function (`0` disables this behavior).
 
-- Formatting via [Prettier](https://github.com/prettier/prettier)
+- ESLint diagnostics
 
-  A lightweight and low-config alternative to formatting via
+  A lightweight and low-config alternative to
   [diagnostic-languageserver](https://github.com/iamcco/diagnostic-languageserver)
   or [efm-langserver](https://github.com/mattn/efm-langserver).
+
+  Supports the following settings:
+
+  - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
+    buffer on `tsserver` attach. Set to `false` by default.
+
+  - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin gets
+    ESLint diagnostic on text change. This variable modifies the amount of time
+    between diagnostic refreshes. Set to `1000` (ms) by default.
+
+  - `eslint_binary`: sets the binary used to get ESLint output.
+
+    Uses `eslint` by
+    default for compatibility, but I highly, highly recommend using
+    [eslint_d](https://github.com/mantoni/eslint_d.js), which will get
+    diagnostics instantly, even when working on large files.
+
+- ESLint code actions
+
+  Parses ESLint JSON output for the current file, converts fixes into code
+  actions, and adds actions to disable rules for the current line or file.
+  Works with Neovim's built-in code action handler as well as plugins like
+  [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) and
+  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim).
+
+  Supports the following settings:
+
+  - `eslint_binary`: uses the same executable as ESLint diagnostics.
+
+    Note that `eslint` will add a noticeable delay
+    to each code action, so I recommend using `eslint_d` if at all possible.
+
+  - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
+    violated rule for the current line / file. Set to `true` by default.
+
+- Formatting via [Prettier](https://github.com/prettier/prettier)
+
+  Another simple, out-of-the-box alternative to setting up a full diagnostic
+  language server.
 
   Supports the following settings:
 
@@ -87,30 +126,8 @@ lot of love. This is an attempt to rectify that, bit by bit.
   ```
 
   Note that the implementation will disable other LSP formatters. If you want to
-  run more than one formatter at once, please use diagnostic-languageserver or
-  efm-langserver.
-
-- ESLint code actions
-
-  Parses ESLint JSON output for the current file, converts fixes into code
-  actions, and adds actions to disable rules for the current line or file.
-  Works with Neovim's built-in code action handler as well as plugins like
-  [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) and
-  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim).
-
-  Supports the following settings:
-
-  - `eslint_binary`: sets the binary used to get ESLint output.
-
-    Uses `eslint` by
-    default for compatibility, but I highly, highly recommend using
-    [eslint_d](https://github.com/mantoni/eslint_d.js), which is so fast that
-    the overhead it adds is imperceptible. `eslint` will add a noticeable delay
-    to each code action, so I don't recommend using it unless you have no other
-    choice.
-
-  - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
-    violated rule for the current line / file. Set to `true` by default.
+  run more than one formatter at once, please use `diagnostic-languageserver` or
+  `efm-langserver`.
 
 ## Setup
 
@@ -133,6 +150,8 @@ nvim_lsp.tsserver.setup {
 	    import_on_completion_timeout = 5000,
 	    -- eslint
 	    eslint_bin = "eslint",
+	    eslint_enable_diagnostics = false,
+	    eslint_diagnostics_debounce = 1000,
 	    eslint_enable_disable_comments = true,
 	    -- formatting
 	    enable_formatting = false,

@@ -69,15 +69,14 @@ local push_disable_code_actions = function(problem, current_line, text_document,
                                              text_document))
 end
 
-local problem_is_fixable = function(problem, current_line)
+local problem_is_fixable = function(problem, col)
     if not problem or problem.line == nil or problem.column == nil then
         return false
     end
     if problem.endLine ~= nil then
-        return problem.line - 1 <= current_line and problem.endLine - 1 >=
-                   current_line
+        return problem.line - 1 <= col and problem.endLine - 1 >= col
     end
-    if problem.fix ~= nil then return problem.line - 1 == current_line end
+    if problem.fix ~= nil then return problem.line - 1 == col end
     return false
 end
 
@@ -93,11 +92,11 @@ local convert_offset = function(line, start_offset, end_offset)
     return start_char, end_char
 end
 
-local get_suggestion_range = function(problem)
-    local start_line = problem.line - 1
-    local start_char = problem.column - 1
-    local end_line = problem.endLine - 1
-    local end_char = problem.endColumn - 1
+local get_diagnostic_range = function(diagnostic)
+    local start_line = diagnostic.line > 0 and diagnostic.line - 1 or 0
+    local start_char = diagnostic.column > 0 and diagnostic.column - 1 or 0
+    local end_line = diagnostic.endLine and diagnostic.endLine - 1 or 0
+    local end_char = diagnostic.endColumn and diagnostic.endColumn - 1 or 0
 
     return {
         start = {line = start_line, character = start_char},
@@ -119,55 +118,60 @@ end
 
 local parse_eslint_messages = function(messages, actions)
     local text_document = lsp.util.make_text_document_params()
-    local current_line = api.nvim_win_get_cursor(0)[1] - 1
+    local row = api.nvim_win_get_cursor(0)[1] - 1
 
     local rules = {}
     for _, problem in ipairs(messages) do
-        if problem_is_fixable(problem, current_line) then
-            if problem.suggestions then
-                for _, suggestion in ipairs(problem.suggestions) do
-                    push_suggestion_code_action(suggestion,
-                                                get_suggestion_range(problem),
-                                                text_document, actions)
-                end
+        if not problem_is_fixable(problem, row) then break end
+
+        if problem.suggestions then
+            for _, suggestion in ipairs(problem.suggestions) do
+                push_suggestion_code_action(suggestion,
+                                            get_diagnostic_range(problem),
+                                            text_document, actions)
             end
-            if problem.fix then
-                push_fix_code_action(problem, get_fix_range(problem),
-                                     text_document, actions)
-            end
-            if problem.ruleId and o.get().eslint_enable_disable_comments then
-                push_disable_code_actions(problem, current_line, text_document,
-                                          actions, rules)
-            end
+        end
+        if problem.fix then
+            push_fix_code_action(problem, get_fix_range(problem), text_document,
+                                 actions)
+        end
+        if problem.ruleId and o.get().eslint_enable_disable_comments then
+            push_disable_code_actions(problem, row, text_document, actions,
+                                      rules)
         end
     end
 end
 
-local handle_actions = function(actions, callback)
+local handle_eslint_actions = function(parsed, actions, callback)
+    if not parsed then return end
+
+    if parsed[1] and not isempty(parsed[1]) and parsed[1].messages and
+        not isempty(parsed[1].messages) then
+        local messages = parsed[1].messages
+        parse_eslint_messages(messages, actions)
+    end
+
+    callback(actions)
+end
+
+local eslint_handler = function(bufnr, handler)
     local ft_ok, ft_err = pcall(u.file.is_tsserver_ft)
     if not ft_ok then error(ft_err) end
 
     u.loop.buf_to_stdin(o.get().eslint_bin, {
-        "-f", "json", "--stdin", "--stdin-filename", u.buffer.name()
+        "-f", "json", "--stdin", "--stdin-filename", u.buffer.name(bufnr)
     }, function(err, output)
         if err then return end
+
         local ok, parsed = pcall(json.decode, output)
         if not ok then
             if string.match(output, "Error") then
                 u.echo_warning("ESLint error: " .. output)
             else
-                u.echo_warning("failed to parse eslint json output: " .. parsed)
+                u.echo_warning("Failed to parse eslint json output: " .. parsed)
             end
         end
-
-        if parsed[1] and not isempty(parsed[1]) and parsed[1].messages and
-            not isempty(parsed[1].messages) then
-            local messages = parsed[1].messages
-            parse_eslint_messages(messages, actions)
-        end
-
-        -- run callback even if ESLint output parsing fails to ensure code actions are always available
-        callback(actions)
+        handler(parsed)
     end)
 end
 
@@ -192,8 +196,10 @@ M.buf_request = function(bufnr, method, params, handler)
 
     if method == "textDocument/codeAction" then
         local inject_handler = function(err, _, actions, client_id, _, config)
-            handle_actions(actions or {}, function(injected)
-                handler(err, method, injected, client_id, bufnr, config)
+            eslint_handler(bufnr, function(parsed)
+                handle_eslint_actions(parsed, actions or {}, function(injected)
+                    handler(err, method, injected, client_id, bufnr, config)
+                end)
             end)
         end
         return buf_request(bufnr, method, params, inject_handler)
@@ -206,6 +212,67 @@ M.buf_request = function(bufnr, method, params, handler)
     end
 
     return buf_request(bufnr, method, params, handler)
+end
+
+local create_diagnostic = function(message)
+    return {
+        message = message.ruleId and message.message .. " [" .. message.ruleId ..
+            "]" or message.message,
+        range = get_diagnostic_range(message),
+        severity = message.severity,
+        source = "eslint"
+    }
+end
+
+local handle_eslint_diagnostics = function(bufnr, parsed)
+    if not parsed or not parsed[1] or not parsed[1].messages then return end
+
+    local params = {diagnostics = {}, uri = vim.uri_from_bufnr(bufnr)}
+    local messages = parsed[1].messages
+    for _, message in ipairs(messages) do
+        table.insert(params.diagnostics, create_diagnostic(message))
+    end
+
+    -- use fake client_id to avoid interference w/ actual LSP clients and enable caching
+    lsp.handlers["textDocument/publishDiagnostics"](nil, nil, params, 9999, nil,
+                                                    {})
+end
+
+local get_diagnostics = function(bufnr)
+    if not bufnr then bufnr = api.nvim_get_current_buf() end
+
+    eslint_handler(bufnr, function(parsed)
+        handle_eslint_diagnostics(bufnr, parsed)
+    end)
+end
+
+M.diagnostics = get_diagnostics
+
+local debouncing = false
+M.diagnostics_on_change = function()
+    local bufnr = api.nvim_get_current_buf()
+    if debouncing then return end
+    get_diagnostics(bufnr)
+
+    debouncing = true
+    vim.defer_fn(function() debouncing = false end,
+                 o.get().eslint_diagnostics_debounce)
+end
+
+M.enable_diagnostics = function(bufnr)
+    if not bufnr then bufnr = api.nvim_get_current_buf() end
+
+    -- try to imitate textDocument/didChange behavior
+    api.nvim_exec([[
+    augroup TSLspDiagnostics
+        autocmd! * <buffer>
+        autocmd InsertLeave,TextChanged <buffer> lua require'nvim-lsp-ts-utils'.diagnostics()
+        autocmd TextChangedI <buffer> lua require'nvim-lsp-ts-utils'.diagnostics_on_change()
+    augroup END
+    ]], true)
+
+    -- trigger on lsp attach to get initial diagnostics
+    get_diagnostics(bufnr)
 end
 
 return M
