@@ -1,8 +1,9 @@
-set rtp+=.
-set rtp+=../plenary.nvim/
 set hidden
 set noswapfile
 
-lua require'lspconfig'.tsserver.setup {}
-
-runtime! plugin/plenary.vim
+lua << EOF
+require'lspconfig'.tsserver.setup {on_attach = function(client)
+        client.resolved_capabilities.document_formatting = false
+    end
+}
+EOF
