@@ -9,6 +9,11 @@ VS Code and [coc-tsserver](https://github.com/neoclide/coc-tsserver) are great
 for TypeScript, so great that other LSP implementations don't give TypeScript a
 lot of love. This is an attempt to rectify that, bit by bit.
 
+This plugin is **in beta status**. It has basic (and expanding) test coverage,
+and I use almost 100% of what's in it every day at work, but since we're dealing
+with changing APIs and unpredictable environments, bugs are inevitable. If
+something doesn't work, please let me know!
+
 ## Features
 
 - Organize imports (exposed as `:TSLspOrganize`)
