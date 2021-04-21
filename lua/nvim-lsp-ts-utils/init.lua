@@ -23,8 +23,10 @@ end
 M.custom_action_handler = function()
     u.echo_warning("custom_action_handler has been removed (see readme)")
 end
+M.buf_request_sync = function()
+    u.echo_warning("buf_request_sync handler has been removed (see readme)")
+end
 
-M.buf_request_sync = request_handlers.buf_request_sync
 M.buf_request = request_handlers.buf_request
 
 M.import_on_completion = import_on_completion.handle

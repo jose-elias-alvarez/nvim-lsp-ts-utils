@@ -6,7 +6,6 @@ local api = vim.api
 local lsp = vim.lsp
 local isempty = vim.tbl_isempty
 local buf_request = vim.deepcopy(lsp.buf_request)
-local buf_request_sync = vim.deepcopy(lsp.buf_request_sync)
 
 local M = {}
 
@@ -150,7 +149,8 @@ local handle_actions = function(actions, callback)
 
     u.loop.buf_to_stdin(o.get().eslint_bin, {
         "-f", "json", "--stdin", "--stdin-filename", u.buffer.name()
-    }, function(output)
+    }, function(err, output)
+        if err then return end
         local ok, parsed = pcall(json.decode, output)
         if not ok then
             if string.match(output, "No ESLint configuration found") then
@@ -170,20 +170,6 @@ local handle_actions = function(actions, callback)
         -- run callback even if ESLint output parsing fails to ensure code actions are always available
         callback(actions)
     end)
-end
-
-M.buf_request_sync = function(bufnr, method, params, timeout_ms)
-    if method ~= "textDocument/codeAction" then
-        return buf_request_sync(bufnr, method, params, timeout_ms)
-    end
-
-    local actions, err = buf_request_sync(bufnr, method, params, timeout_ms)
-    local injected
-    handle_actions(actions,
-                   function(eslint_actions) injected = eslint_actions end)
-    -- simulate synchronous behavior using the same logic as buf_request_sync
-    vim.wait(timeout_ms or 100, function() return injected ~= nil end, 10)
-    return injected, err
 end
 
 M.buf_request = function(bufnr, method, params, handler)
