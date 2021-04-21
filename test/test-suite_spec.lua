@@ -28,7 +28,7 @@ describe("handle-actions", function()
 
     it("should apply fix when vim.lsp.buf_request is overriden", function()
         vim.lsp.buf_request = ts_utils.buf_request
-        vim.cmd("e test/typescript/code-action-handler.js")
+        vim.cmd("e test/typescript/request-handlers.js")
         vim.wait(500)
         vim.cmd("2")
 

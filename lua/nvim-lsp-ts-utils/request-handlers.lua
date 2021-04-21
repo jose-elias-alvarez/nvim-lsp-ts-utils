@@ -2,11 +2,11 @@ local json = require("json")
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
 
-local loop = vim.loop
-local schedule = vim.schedule_wrap
+local api = vim.api
+local lsp = vim.lsp
 local isempty = vim.tbl_isempty
-local buf_request = vim.deepcopy(vim.lsp.buf_request)
-local buf_request_sync = vim.deepcopy(vim.lsp.buf_request_sync)
+local buf_request = vim.deepcopy(lsp.buf_request)
+local buf_request_sync = vim.deepcopy(lsp.buf_request_sync)
 
 local M = {}
 
@@ -45,7 +45,7 @@ end
 local push_disable_code_actions = function(problem, current_line, text_document,
                                            actions, rules)
     local rule_id = problem.ruleId
-    if (u.contains(rules, rule_id)) then return end
+    if (u.table.contains(rules, rule_id)) then return end
     table.insert(rules, rule_id)
 
     local line_title = "Disable ESLint rule " .. problem.ruleId ..
@@ -84,7 +84,7 @@ end
 
 local convert_offset = function(line, start_offset, end_offset)
     local start_char, end_char
-    local line_offset = vim.api.nvim_buf_get_offset(0, line)
+    local line_offset = api.nvim_buf_get_offset(0, line)
     local line_end_char = string.len(vim.fn.getline(line + 1))
     for j = 0, line_end_char do
         local char_offset = line_offset + j
@@ -119,8 +119,8 @@ local get_fix_range = function(problem)
 end
 
 local parse_eslint_messages = function(messages, actions)
-    local text_document = vim.lsp.util.make_text_document_params()
-    local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
+    local text_document = lsp.util.make_text_document_params()
+    local current_line = api.nvim_win_get_cursor(0)[1] - 1
 
     local rules = {}
     for _, problem in ipairs(messages) do
@@ -145,11 +145,12 @@ local parse_eslint_messages = function(messages, actions)
 end
 
 local handle_actions = function(actions, callback)
-    local ft_ok, ft_err = pcall(u.check_filetype)
+    local ft_ok, ft_err = pcall(u.file.is_tsserver_ft)
     if not ft_ok then error(ft_err) end
 
-    local output = ""
-    local handle_output = function()
+    u.loop.buf_to_stdin(o.get().eslint_bin, {
+        "-f", "json", "--stdin", "--stdin-filename", u.buffer.name()
+    }, function(output)
         local ok, parsed = pcall(json.decode, output)
         if not ok then
             if string.match(output, "No ESLint configuration found") then
@@ -168,33 +169,7 @@ local handle_actions = function(actions, callback)
 
         -- run callback even if ESLint output parsing fails to ensure code actions are always available
         callback(actions)
-    end
-
-    local handle_stdout = schedule(function(err, chunk)
-        if err then error("stdout error: " .. err) end
-
-        if chunk then output = output .. chunk end
-        if not chunk then handle_output() end
     end)
-
-    local handle_stderr = function(err)
-        if err then error("stderr: " .. err) end
-    end
-
-    local stdin = loop.new_pipe(true)
-    local stdout = loop.new_pipe(false)
-    local stderr = loop.new_pipe(false)
-
-    local handle = loop.spawn(o.get().eslint_bin, {
-        args = {"-f", "json", "--stdin", "--stdin-filename", u.get_bufname()},
-        stdio = {stdin, stdout, stderr}
-    }, function() end)
-
-    loop.read_start(stdout, handle_stdout)
-    loop.read_start(stderr, handle_stderr)
-
-    loop.write(stdin, u.buffer_to_string())
-    loop.shutdown(stdin, function() if handle then loop.close(handle) end end)
 end
 
 M.buf_request_sync = function(bufnr, method, params, timeout_ms)

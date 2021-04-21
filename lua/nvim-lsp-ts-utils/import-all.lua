@@ -36,7 +36,7 @@ local push_import_edits = function(action, edits, imports)
     -- capture variable name, which should be surrounded by single quotes
     local import = string.match(action.title, "%b''")
     -- avoid importing same variable twice
-    if import and not u.contains(imports, import) then
+    if import and not u.table.contains(imports, import) then
         for _, edit in ipairs(changes[1].edits) do
             table.insert(edits, edit)
         end
