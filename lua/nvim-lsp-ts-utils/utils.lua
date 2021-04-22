@@ -4,7 +4,7 @@ local tsserver_fts = {
     "javascript", "javascriptreact", "typescript", "typescriptreact"
 }
 
-local loop = vim.loop
+local uv = vim.loop
 local api = vim.api
 local schedule = vim.schedule_wrap
 
@@ -13,6 +13,10 @@ local contains = function(list, candidate)
         if element == candidate then return true end
     end
     return false
+end
+
+local close_handle = function(handle)
+    if handle and not handle:is_closing() then handle:close() end
 end
 
 local M = {}
@@ -26,7 +30,7 @@ M.print_no_actions_message = function() print("No code actions available") end
 
 M.file = {
     mv = function(source, target)
-        local ok = loop.fs_rename(source, target)
+        local ok = uv.fs_rename(source, target)
         if not ok then
             return false, "failed to move " .. source .. " to " .. target
         end
@@ -35,7 +39,7 @@ M.file = {
     end,
 
     exists = function(path)
-        local file = loop.fs_open(path, "r", 438)
+        local file = uv.fs_open(path, "r", 438)
         if not file then return false end
 
         return true
@@ -93,40 +97,43 @@ M.string = {
 }
 
 M.loop = {
-    buf_to_stdin = function(cmd, args, handle_output)
-        local output = ""
-        local stderr_output
+    buf_to_stdin = function(cmd, args, handler)
+        local output, stderr_output = "", ""
 
         local handle_stdout = schedule(function(err, chunk)
             if err then error("stdout error: " .. err) end
 
             if chunk then output = output .. chunk end
-            if not chunk then handle_output(stderr_output, output) end
+            if not chunk then
+                handler(stderr_output ~= "" and stderr_output or nil, output)
+            end
         end)
 
         local handle_stderr = function(err, chunk)
-            if err then stderr_output = err end
-            -- this is fine as long as we don't care what's in stderr_output
-            if not stderr_output and chunk ~= "" then
-                stderr_output = chunk
-            end
+            if err then error("stderr error: " .. err) end
+            if chunk then stderr_output = stderr_output .. chunk end
         end
 
-        local stdin = loop.new_pipe(true)
-        local stdout = loop.new_pipe(false)
-        local stderr = loop.new_pipe(false)
+        local stdin = uv.new_pipe(true)
+        local stdout = uv.new_pipe(false)
+        local stderr = uv.new_pipe(false)
+        local stdio = {stdin, stdout, stderr}
 
-        local handle = loop.spawn(cmd, {
-            args = args,
-            stdio = {stdin, stdout, stderr}
-        }, function() end)
+        local handle
+        handle = uv.spawn(cmd, {args = args, stdio = stdio}, function()
+            stdout:read_stop()
+            stderr:read_stop()
 
-        loop.read_start(stdout, handle_stdout)
-        loop.read_start(stderr, handle_stderr)
+            close_handle(stdin)
+            close_handle(stdout)
+            close_handle(stderr)
+            close_handle(handle)
+        end)
 
-        loop.write(stdin, M.buffer.to_string())
-        loop.shutdown(stdin,
-                      function() if handle then loop.close(handle) end end)
+        uv.read_start(stdout, handle_stdout)
+        uv.read_start(stderr, handle_stderr)
+
+        stdin:write(M.buffer.to_string(), function() stdin:close() end)
     end
 }
 
