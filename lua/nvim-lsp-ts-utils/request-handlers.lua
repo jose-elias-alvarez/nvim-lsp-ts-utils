@@ -268,8 +268,8 @@ M.enable_diagnostics = function(bufnr)
     api.nvim_exec([[
     augroup TSLspDiagnostics
         autocmd! * <buffer>
-        autocmd InsertLeave,TextChanged <buffer> lua require'nvim-lsp-ts-utils'.diagnostics()
-        autocmd TextChangedI <buffer> lua require'nvim-lsp-ts-utils'.diagnostics_on_change()
+        autocmd InsertLeave <buffer> lua require'nvim-lsp-ts-utils'.diagnostics()
+        autocmd TextChanged,TextChangedI <buffer> lua require'nvim-lsp-ts-utils'.diagnostics_on_change()
     augroup END
     ]], true)
 
