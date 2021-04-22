@@ -93,8 +93,10 @@ local convert_offset = function(line, start_offset, end_offset)
 end
 
 local get_diagnostic_range = function(diagnostic)
-    local start_line = diagnostic.line > 0 and diagnostic.line - 1 or 0
-    local start_char = diagnostic.column > 0 and diagnostic.column - 1 or 0
+    local start_line = (diagnostic.line and diagnostic.line > 0 and
+                           diagnostic.line - 1) or 0
+    local start_char = (diagnostic.column and diagnostic.column > 0 and
+                           diagnostic.column - 1) or 0
     local end_line = diagnostic.endLine and diagnostic.endLine - 1 or 0
     local end_char = diagnostic.endColumn and diagnostic.endColumn - 1 or 0
 
