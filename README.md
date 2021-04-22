@@ -66,9 +66,10 @@ something doesn't work, please let me know!
   - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
     buffer on `tsserver` attach. Set to `false` by default.
 
-  - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin gets
-    ESLint diagnostic on text change. This variable modifies the amount of time
-    between diagnostic refreshes. Set to `1000` (ms) by default.
+  - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin
+    subscribes to buffer changes and gets / refreshes ESLint diagnostics on
+    change. This variable modifies the amount of time between diagnostic
+    refreshes. Set to `250` (ms) by default.
 
   - `eslint_binary`: sets the binary used to get ESLint output.
 
@@ -156,7 +157,7 @@ nvim_lsp.tsserver.setup {
 	    -- eslint
 	    eslint_bin = "eslint",
 	    eslint_enable_diagnostics = false,
-	    eslint_diagnostics_debounce = 1000,
+	    eslint_diagnostics_debounce = 250,
 	    eslint_enable_disable_comments = true,
 	    -- formatting
 	    enable_formatting = false,

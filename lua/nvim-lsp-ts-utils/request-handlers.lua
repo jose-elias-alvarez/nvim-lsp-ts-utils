@@ -250,28 +250,21 @@ end
 
 M.diagnostics = get_diagnostics
 
-local debouncing = false
-M.diagnostics_on_change = function()
-    local bufnr = api.nvim_get_current_buf()
-    if debouncing then return end
-    get_diagnostics(bufnr)
-
-    debouncing = true
-    vim.defer_fn(function() debouncing = false end,
-                 o.get().eslint_diagnostics_debounce)
-end
-
 M.enable_diagnostics = function(bufnr)
     if not bufnr then bufnr = api.nvim_get_current_buf() end
 
-    -- try to imitate textDocument/didChange behavior
-    api.nvim_exec([[
-    augroup TSLspDiagnostics
-        autocmd! * <buffer>
-        autocmd InsertLeave <buffer> lua require'nvim-lsp-ts-utils'.diagnostics()
-        autocmd TextChanged,TextChangedI <buffer> lua require'nvim-lsp-ts-utils'.diagnostics_on_change()
-    augroup END
-    ]], true)
+    local debouncing = false
+    api.nvim_buf_attach(bufnr, false, {
+        on_lines = function()
+
+            if debouncing then return end
+            get_diagnostics(bufnr)
+
+            debouncing = true
+            vim.defer_fn(function() debouncing = false end,
+                         o.get().eslint_diagnostics_debounce)
+        end
+    })
 
     -- trigger on lsp attach to get initial diagnostics
     get_diagnostics(bufnr)

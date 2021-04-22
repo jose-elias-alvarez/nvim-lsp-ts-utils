@@ -5,7 +5,7 @@ local options = {
     -- eslint
     eslint_bin = "eslint",
     eslint_enable_diagnostics = false,
-    eslint_diagnostics_debounce = 1000,
+    eslint_diagnostics_debounce = 250,
     eslint_enable_disable_comments = true,
     -- formatting
     enable_formatting = false,
