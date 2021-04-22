@@ -17,6 +17,7 @@ describe("fix_current", function()
     after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
     it("should import missing type", function()
+        -- file declares an instance of User but does not import it from test-types.ts
         vim.cmd("e test/typescript/fix-current.ts")
         vim.wait(1000)
 
@@ -24,7 +25,8 @@ describe("fix_current", function()
         ts_utils.fix_current()
         vim.wait(500)
 
-        assert.equals(vim.fn.search("{ User }", "nw"), 1)
+        -- check that import statement has been added
+        assert.equals(vim.fn.search("import { User }", "nw"), 1)
     end)
 end)
 
@@ -35,6 +37,7 @@ describe("request-handlers", function()
     end)
 
     it("should apply eslint fix", function()
+        -- file contains ==, which is a violation of eqeqeq
         vim.cmd("e test/typescript/eslint-code-fix.js")
         vim.wait(500)
         vim.cmd("2")
@@ -42,6 +45,7 @@ describe("request-handlers", function()
         ts_utils.fix_current()
         vim.wait(500)
 
+        -- check that eslint fix has been applied, replacing == with ===
         assert.equals(vim.fn.search("===", "nwp"), 1)
     end)
 
@@ -53,21 +57,8 @@ describe("request-handlers", function()
 
         vim.lsp.diagnostic.goto_next()
 
+        -- error is on line 2, so diagnostic.goto_next should move cursor down
         assert.equals(vim.api.nvim_win_get_cursor(0)[1], 2)
-    end)
-
-    it("should format file on buf.formatting()", function()
-        local formatted_line = [[import { User } from './test-types';]]
-        o.set({enable_formatting = true})
-
-        vim.cmd("e test/typescript/format.ts")
-        vim.wait(500)
-        assert.is_not.equals(get_file_content()[1], formatted_line)
-
-        vim.lsp.buf.formatting()
-        vim.wait(500)
-
-        assert.equals(get_file_content()[1], formatted_line)
     end)
 
     it("should format file on buf.formatting_sync()", function()
@@ -83,61 +74,71 @@ describe("request-handlers", function()
 
         assert.equals(get_file_content()[1], formatted_line)
     end)
-end)
 
-describe("import_all (sync)", function()
-    after_each(function() vim.cmd("bufdo! bwipeout!") end)
+    it("should format file on buf.formatting()", function()
+        local formatted_line = [[import { User } from './test-types';]]
+        o.set({enable_formatting = true})
 
-    it("should import both missing types", function()
-        vim.cmd("e test/typescript/import-all.ts")
-        vim.wait(1000)
+        -- file has bad spacing, no semicolon, and double quotes, all of which violate prettier rules
+        vim.cmd("e test/typescript/format.ts")
+        vim.wait(500)
+        assert.is_not.equals(get_file_content()[1], formatted_line)
 
-        vim.lsp.diagnostic.goto_prev()
-        import_all(true)
+        vim.lsp.buf.formatting()
         vim.wait(500)
 
-        assert.equals(vim.fn.search("{ User, UserNotification }", "nw"), 1)
+        assert.equals(get_file_content()[1], formatted_line)
     end)
 end)
 
-describe("import all (async)", function()
+describe("import_all", function()
     after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
-    it("should import both missing types", function()
+    it("should import both missing types (sync)", function()
+        -- file contains 2 declarations for missing types
         vim.cmd("e test/typescript/import-all.ts")
         vim.wait(1000)
 
-        vim.lsp.diagnostic.goto_prev()
+        import_all(true)
+        vim.wait(500)
+
+        -- check that type import statements have been added and merged
+        assert.equals(vim.fn.search("import { User, UserNotification }", "nw"),
+                      1)
+    end)
+
+    it("should import both missing types (async)", function()
+        vim.cmd("e test/typescript/import-all.ts")
+        vim.wait(1000)
+
         import_all()
         vim.wait(500)
 
-        assert.equals(vim.fn.search("{ User, UserNotification }", "nw"), 1)
+        assert.equals(vim.fn.search("import { User, UserNotification }", "nw"),
+                      1)
     end)
 end)
 
 describe("organize_imports", function()
     after_each(function() vim.cmd("bufdo! bwipeout!") end)
 
-    it("should remove unused import", function()
+    it("should remove unused import (sync)", function()
+        -- file imports both User and Notification but only uses User
         vim.cmd("e test/typescript/organize-imports.ts")
         vim.wait(1000)
 
-        ts_utils.organize_imports()
+        ts_utils.organize_imports_sync()
         vim.wait(500)
 
         assert.equals(vim.fn.search("Notification", "nw"), 0)
         assert.equals(vim.fn.search("User", "nw"), 1)
     end)
-end)
 
-describe("organize_imports_sync", function()
-    after_each(function() vim.cmd("bufdo! bwipeout!") end)
-
-    it("should remove unused import", function()
+    it("should remove unused import (async)", function()
         vim.cmd("e test/typescript/organize-imports.ts")
         vim.wait(1000)
 
-        ts_utils.organize_imports_sync()
+        ts_utils.organize_imports()
         vim.wait(500)
 
         assert.equals(vim.fn.search("Notification", "nw"), 0)
