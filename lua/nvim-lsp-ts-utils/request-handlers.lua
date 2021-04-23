@@ -231,8 +231,8 @@ end
 
 local create_diagnostic = function(message)
     return {
-        message = message.ruleId and message.message .. " [" .. message.ruleId ..
-            "]" or message.message,
+        message = message.ruleId and message.message,
+        code = message.ruleId,
         range = get_diagnostic_range(message),
         severity = message.severity,
         source = "eslint"
