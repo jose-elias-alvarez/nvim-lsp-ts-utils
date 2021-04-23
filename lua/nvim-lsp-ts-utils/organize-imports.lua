@@ -5,7 +5,7 @@ local M = {}
 local get_organize_params = function()
     return {
         command = "_typescript.organizeImports",
-        arguments = {u.get_bufname()}
+        arguments = {u.buffer.name()}
     }
 end
 

@@ -55,17 +55,13 @@ something doesn't work, please let me know!
   of time, which you can change by setting `import_on_completion_timeout` in
   your setup function (`0` disables this behavior).
 
-- ESLint code actions (experimental)
+- ESLint code actions
 
-  Parses ESLint JSON output for the current file and converts possible fixes
-  into code actions, like [the VS Code
-  plugin](https://github.com/Microsoft/vscode-eslint). Experimental! Feedback
-  and contributions greatly appreciated.
-
+  Parses ESLint JSON output for the current file, converts fixes into code
+  actions, and adds actions to disable rules for the current line or file.
   Works with Neovim's built-in code action handler as well as plugins like
   [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) and
-  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim). See the setup section
-  below for instructions.
+  [lspsaga.nvim](https://github.com/glepnir/lspsaga.nvim).
 
   Supports the following settings:
 
@@ -73,13 +69,77 @@ something doesn't work, please let me know!
 
     Uses `eslint` by
     default for compatibility, but I highly, highly recommend using
-    [eslint_d](https://github.com/mantoni/eslint_d.js), which is so fast that
-    the overhead it adds is imperceptible. `eslint` will add a noticeable delay
-    to each code action, so I don't recommend using it unless you have no other
-    choice.
+    [eslint_d](https://github.com/mantoni/eslint_d.js). `eslint` will add a
+    noticeable delay to each code action.
+
+  - `eslint_args`: defines the arguments passed to `eslint_bin`. Messing with this
+    will probably break the integration!
 
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
+
+## Experimental Features
+
+**The following features are experimental! Bug reports and feedback are greatly appreciated.**
+
+- ESLint diagnostics
+
+  A lightweight and low-config alternative to
+  [diagnostic-languageserver](https://github.com/iamcco/diagnostic-languageserver)
+  or [efm-langserver](https://github.com/mattn/efm-langserver).
+
+  Supports the following settings:
+
+  - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
+    buffer on `tsserver` attach. Set to `false` by default.
+
+  - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin
+    subscribes to buffer changes and gets / refreshes ESLint diagnostics on
+    change. This variable modifies the amount of time between diagnostic
+    refreshes. Set to `250` (ms) by default.
+
+  - `eslint_binary` and `eslint_args`: applies the same settings as ESLint code
+    actions.
+
+- Formatting via [Prettier](https://github.com/prettier/prettier)
+
+  Another simple, out-of-the-box alternative to setting up a full diagnostic
+  language server. Uses native Neovim APIs to format files asynchronously.
+
+  Supports the following settings:
+
+  - `enable_formatting`: enables formatting. Set to `false` by default, since I
+    imagine most TypeScript developers are already using another solution.
+
+    Note that you must also override `vim.lsp.buf_request` for formatting to
+    work (see below).
+
+  - `formatter`: sets the executable used for formatting. Set to `prettier` by
+    default, and (probably) doesn't work with anything else right now, but
+    feedback / PRs are welcome.
+
+  - `formatter_args`: defines the arguments passed to `formatter`. You probably
+    don't need to change this unless you plan on using something besides
+    `prettier`.
+
+  - `format_on_save`: a quick way to enable formatting on save for `tsserver`
+    filetypes. Set to `false` by default.
+
+  - `no_save_after_format`: by default, the plugin will save the file after
+    formatting, which works well with `format_on_save`. Set this to `false` to
+    disable this behavior.
+
+  The plugin also exposes the formatter for non-LSP use. For example, to enable
+  formatting on save for a non-`tsserver` filetype, use the following snippet:
+
+  ```vim
+  " add to ftplugin/filetype-goes-here.vim
+  lua require'nvim-lsp-ts-utils'.format_on_save()
+  ```
+
+  Note that the implementation will disable other LSP formatters. If you want to
+  run more than one formatter at once, please use `diagnostic-languageserver` or
+  `efm-langserver`.
 
 ## Setup
 
@@ -95,13 +155,26 @@ nvim_lsp.tsserver.setup {
     on_attach = function(_, bufnr)
         local ts_utils = require("nvim-lsp-ts-utils")
 
+        -- defaults
         ts_utils.setup {
-            -- defaults
             disable_commands = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
-            eslint_bin = "eslint", -- use eslint_d if possible!
+            -- eslint
+            eslint_bin = "eslint",
+            eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
             eslint_enable_disable_comments = true,
+
+	    -- experimental settings!
+	    -- eslint diagnostics
+            eslint_enable_diagnostics = false,
+            eslint_diagnostics_debounce = 250,
+            -- formatting
+            enable_formatting = false,
+            formatter = "prettier",
+            formatter_args = {"--stdin-filepath", "$FILENAME"},
+            format_on_save = false,
+            no_save_after_format = false
         }
 
         -- no default maps, so you may want to define some here
@@ -113,7 +186,8 @@ nvim_lsp.tsserver.setup {
 }
 ```
 
-To enable ESLint code actions, use the following settings:
+You must also override Neovim's default `buf_request` method for ESLint actions
+and formatting to work:
 
 ```lua
 local ts_utils = require("nvim-lsp-ts-utils")
@@ -122,7 +196,6 @@ ts_utils.setup {
 }
 
 -- must come after setup!
-vim.lsp.buf_request_sync = ts_utils.buf_request_sync
 vim.lsp.buf_request = ts_utils.buf_request
 ```
 
@@ -141,6 +214,10 @@ I've covered most of the current functions with LSP integration tests using
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim), which you can run by
 running `./test.sh`.
 
+Note that the current test suite requires you to have Plenary and nvim-lspconfig
+installed via [packer.nvim](https://github.com/wbthomason/packer.nvim) due to my
+complete ignorance about `runtimepath` and `packpath`. Sorry!
+
 ## Goals
 
 - [ ] ESLint code action feature parity with [vscode-eslint](https://github.com/microsoft/vscode-eslint)
@@ -156,6 +233,12 @@ running `./test.sh`.
   output, the plugin should be able to handle them in the same way it handles
   ESLint. I'm a little concerned about speed and handling output from more than
   one linter, so I'd appreciate input from users of these linters.
+
+- [ ] Support for other formatters
+
+  I haven't tried [eslint_d_slim](https://github.com/mikew/prettier_d_slim), but
+  it seems like a natural fit. I'm also open to supporting any other formatters
+  if there's demand.
 
 - [ ] Watch project files and update imports on change.
 

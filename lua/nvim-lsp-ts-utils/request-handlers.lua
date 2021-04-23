@@ -2,13 +2,12 @@ local json = require("json")
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
 
-local loop = vim.loop
-local schedule = vim.schedule_wrap
-local isempty = vim.tbl_isempty
-local buf_request = vim.deepcopy(vim.lsp.buf_request)
-local buf_request_sync = vim.deepcopy(vim.lsp.buf_request_sync)
+local api = vim.api
+local lsp = vim.lsp
+local buf_request = vim.deepcopy(lsp.buf_request)
 
 local M = {}
+local eslint_args, formatter_args
 
 local create_edit_action = function(title, new_text, range, text_document)
     return {
@@ -45,7 +44,7 @@ end
 local push_disable_code_actions = function(problem, current_line, text_document,
                                            actions, rules)
     local rule_id = problem.ruleId
-    if (u.contains(rules, rule_id)) then return end
+    if (u.table.contains(rules, rule_id)) then return end
     table.insert(rules, rule_id)
 
     local line_title = "Disable ESLint rule " .. problem.ruleId ..
@@ -70,21 +69,20 @@ local push_disable_code_actions = function(problem, current_line, text_document,
                                              text_document))
 end
 
-local problem_is_fixable = function(problem, current_line)
+local problem_is_fixable = function(problem, col)
     if not problem or problem.line == nil or problem.column == nil then
         return false
     end
     if problem.endLine ~= nil then
-        return problem.line - 1 <= current_line and problem.endLine - 1 >=
-                   current_line
+        return problem.line - 1 <= col and problem.endLine - 1 >= col
     end
-    if problem.fix ~= nil then return problem.line - 1 == current_line end
+    if problem.fix ~= nil then return problem.line - 1 == col end
     return false
 end
 
 local convert_offset = function(line, start_offset, end_offset)
     local start_char, end_char
-    local line_offset = vim.api.nvim_buf_get_offset(0, line)
+    local line_offset = api.nvim_buf_get_offset(0, line)
     local line_end_char = string.len(vim.fn.getline(line + 1))
     for j = 0, line_end_char do
         local char_offset = line_offset + j
@@ -94,11 +92,13 @@ local convert_offset = function(line, start_offset, end_offset)
     return start_char, end_char
 end
 
-local get_suggestion_range = function(problem)
-    local start_line = problem.line - 1
-    local start_char = problem.column - 1
-    local end_line = problem.endLine - 1
-    local end_char = problem.endColumn - 1
+local get_diagnostic_range = function(diagnostic)
+    local start_line = (diagnostic.line and diagnostic.line > 0 and
+                           diagnostic.line - 1) or 0
+    local start_char = (diagnostic.column and diagnostic.column > 0 and
+                           diagnostic.column - 1) or 0
+    local end_line = diagnostic.endLine and diagnostic.endLine - 1 or 0
+    local end_char = diagnostic.endColumn and diagnostic.endColumn - 1 or 0
 
     return {
         start = {line = start_line, character = start_char},
@@ -119,109 +119,174 @@ local get_fix_range = function(problem)
 end
 
 local parse_eslint_messages = function(messages, actions)
-    local text_document = vim.lsp.util.make_text_document_params()
-    local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
+    local text_document = lsp.util.make_text_document_params()
+    local row = api.nvim_win_get_cursor(0)[1] - 1
 
     local rules = {}
     for _, problem in ipairs(messages) do
-        if problem_is_fixable(problem, current_line) then
-            if problem.suggestions then
-                for _, suggestion in ipairs(problem.suggestions) do
-                    push_suggestion_code_action(suggestion,
-                                                get_suggestion_range(problem),
-                                                text_document, actions)
-                end
+        if not problem_is_fixable(problem, row) then break end
+
+        if problem.suggestions then
+            for _, suggestion in ipairs(problem.suggestions) do
+                push_suggestion_code_action(suggestion,
+                                            get_diagnostic_range(problem),
+                                            text_document, actions)
             end
-            if problem.fix then
-                push_fix_code_action(problem, get_fix_range(problem),
-                                     text_document, actions)
-            end
-            if problem.ruleId and o.get().eslint_enable_disable_comments then
-                push_disable_code_actions(problem, current_line, text_document,
-                                          actions, rules)
-            end
+        end
+        if problem.fix then
+            push_fix_code_action(problem, get_fix_range(problem), text_document,
+                                 actions)
+        end
+        if problem.ruleId and o.get().eslint_enable_disable_comments then
+            push_disable_code_actions(problem, row, text_document, actions,
+                                      rules)
         end
     end
 end
 
-local handle_actions = function(actions, callback)
-    local ft_ok, ft_err = pcall(u.check_filetype)
+local handle_eslint_actions = function(err, parsed, actions, callback)
+    -- ensure user sees why eslint actions are unavailable
+    if err then u.echo_warning(err) end
+
+    if parsed and parsed[1] and parsed[1].messages then
+        parse_eslint_messages(parsed[1].messages, actions)
+    end
+
+    callback(actions)
+end
+
+local eslint_handler = function(bufnr, handler)
+    local ft_ok, ft_err = pcall(u.file.is_tsserver_ft)
     if not ft_ok then error(ft_err) end
 
-    local output = ""
-    local handle_output = function()
+    if not eslint_args then
+        eslint_args = u.parse_args(o.get().eslint_args, bufnr)
+    end
+
+    u.loop.buf_to_stdin(o.get().eslint_bin, eslint_args,
+                        function(stderr, output)
+        -- don't attempt to parse after stderr
+        if stderr then
+            handler(stderr, nil)
+            return
+        end
+
         local ok, parsed = pcall(json.decode, output)
+        local eslint_err
         if not ok then
             if string.match(output, "Error") then
-                u.echo_warning("ESLint error: " .. output)
+                -- ESLint CLI errors are plain strings, so return error as-is
+                eslint_err = output
             else
-                u.echo_warning("failed to parse eslint json output: " .. parsed)
+                -- if parse failed, return json.decode error output
+                eslint_err = "Failed to parse eslint json output: " .. parsed
             end
         end
 
-        if parsed[1] and not isempty(parsed[1]) and parsed[1].messages and
-            not isempty(parsed[1].messages) then
-            local messages = parsed[1].messages
-            parse_eslint_messages(messages, actions)
-        end
-
-        -- run callback even if ESLint output parsing fails to ensure code actions are always available
-        callback(actions)
-    end
-
-    local handle_stdout = schedule(function(err, chunk)
-        if err then error("stdout error: " .. err) end
-
-        if chunk then output = output .. chunk end
-        if not chunk then handle_output() end
+        handler(eslint_err, parsed)
     end)
-
-    local handle_stderr = function(err)
-        if err then error("stderr: " .. err) end
-    end
-
-    local stdin = loop.new_pipe(true)
-    local stdout = loop.new_pipe(false)
-    local stderr = loop.new_pipe(false)
-
-    local handle = loop.spawn(o.get().eslint_bin, {
-        args = {"-f", "json", "--stdin", "--stdin-filename", u.get_bufname()},
-        stdio = {stdin, stdout, stderr}
-    }, function() end)
-
-    loop.read_start(stdout, handle_stdout)
-    loop.read_start(stderr, handle_stderr)
-
-    loop.write(stdin, u.buffer_to_string())
-    loop.shutdown(stdin, function() if handle then loop.close(handle) end end)
 end
 
-M.buf_request_sync = function(bufnr, method, params, timeout_ms)
-    if method ~= "textDocument/codeAction" then
-        return buf_request_sync(bufnr, method, params, timeout_ms)
+local format = function(bufnr)
+    if not bufnr then bufnr = api.nvim_get_current_buf() end
+
+    if not formatter_args then
+        formatter_args = u.parse_args(o.get().formatter_args, bufnr)
     end
 
-    local actions, err = buf_request_sync(bufnr, method, params, timeout_ms)
-    local injected
-    handle_actions(actions,
-                   function(eslint_actions) injected = eslint_actions end)
-    -- simulate synchronous behavior using the same logic as buf_request_sync
-    vim.wait(timeout_ms or 100, function() return injected ~= nil end, 10)
-    return injected, err
+    u.loop.buf_to_stdin(o.get().formatter, formatter_args, function(err, output)
+        if err or not output then return end
+        api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
+                               u.string.split_at_newline(output))
+        if not o.get().no_save_after_format then
+            vim.cmd("noautocmd :update")
+        end
+    end)
 end
+M.format = format
 
 M.buf_request = function(bufnr, method, params, handler)
-    handler = handler or vim.lsp.handlers[method]
-    if method ~= "textDocument/codeAction" then
-        return buf_request(bufnr, method, params, handler)
+    handler = handler or lsp.handlers[method]
+
+    if method == "textDocument/codeAction" then
+        local inject_handler = function(err, _, actions, client_id, _, config)
+            eslint_handler(bufnr, function(eslint_err, parsed)
+                handle_eslint_actions(eslint_err, parsed, actions or {},
+                                      function(injected)
+                    handler(err, method, injected, client_id, bufnr, config)
+                end)
+            end)
+        end
+        return buf_request(bufnr, method, params, inject_handler)
     end
 
-    local inject_handler = function(err, _, actions, client_id, _, config)
-        handle_actions(actions or {}, function(injected)
-            handler(err, method, injected, client_id, bufnr, config)
-        end)
+    if method == "textDocument/formatting" and o.get().enable_formatting then
+        format(bufnr)
+        -- return empty values for client_request_ids and _cancel_all_requests
+        return {}, function() end
     end
-    return buf_request(bufnr, method, params, inject_handler)
+
+    return buf_request(bufnr, method, params, handler)
+end
+
+local create_diagnostic = function(message)
+    return {
+        message = message.ruleId and message.message .. " [" .. message.ruleId ..
+            "]" or message.message,
+        range = get_diagnostic_range(message),
+        severity = message.severity,
+        source = "eslint"
+    }
+end
+
+local handle_eslint_diagnostics = function(err, parsed, bufnr)
+    local params = {diagnostics = {}, uri = vim.uri_from_bufnr(bufnr)}
+
+    -- insert err as diagnostic warning
+    if err then
+        table.insert(params.diagnostics,
+                     create_diagnostic({message = err, severity = 2}))
+    end
+
+    if parsed and parsed[1] and parsed[1].messages then
+        for _, message in ipairs(parsed[1].messages) do
+            table.insert(params.diagnostics, create_diagnostic(message))
+        end
+    end
+
+    -- use fake client_id to avoid interference w/ actual LSP clients and enable caching
+    lsp.handlers["textDocument/publishDiagnostics"](nil, nil, params, 9999, nil,
+                                                    {})
+end
+
+local get_diagnostics = function(bufnr)
+    if not bufnr then bufnr = api.nvim_get_current_buf() end
+
+    eslint_handler(bufnr, function(err, parsed)
+        handle_eslint_diagnostics(err, parsed, bufnr)
+    end)
+end
+
+M.diagnostics = get_diagnostics
+
+M.enable_diagnostics = function(bufnr)
+    if not bufnr then bufnr = api.nvim_get_current_buf() end
+
+    local debouncing = false
+    api.nvim_buf_attach(bufnr, false, {
+        on_lines = function()
+            if debouncing then return end
+
+            get_diagnostics(bufnr)
+
+            debouncing = true
+            vim.defer_fn(function() debouncing = false end,
+                         o.get().eslint_diagnostics_debounce)
+        end
+    })
+
+    -- trigger on lsp attach to get initial diagnostics
+    get_diagnostics(bufnr)
 end
 
 return M
