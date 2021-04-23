@@ -137,4 +137,16 @@ M.loop = {
     end
 }
 
+M.parse_args = function(args, bufnr)
+    local parsed = {}
+    for _, arg in pairs(args) do
+        if arg == "$FILENAME" then
+            table.insert(parsed, M.buffer.name(bufnr))
+        else
+            table.insert(parsed, arg)
+        end
+    end
+    return parsed
+end
+
 return M

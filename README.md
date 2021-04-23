@@ -63,6 +63,16 @@ something doesn't work, please let me know!
 
   Supports the following settings:
 
+  - `eslint_binary`: sets the binary used to get ESLint output.
+
+    Uses `eslint` by
+    default for compatibility, but I highly, highly recommend using
+    [eslint_d](https://github.com/mantoni/eslint_d.js), which will get
+    diagnostics instantly, even when working on large files.
+
+  - `eslint_args`: defines the arguments passed to `eslint_bin`. Messing with this
+    will probably break diagnostics!
+
   - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
     buffer on `tsserver` attach. Set to `false` by default.
 
@@ -70,13 +80,6 @@ something doesn't work, please let me know!
     subscribes to buffer changes and gets / refreshes ESLint diagnostics on
     change. This variable modifies the amount of time between diagnostic
     refreshes. Set to `250` (ms) by default.
-
-  - `eslint_binary`: sets the binary used to get ESLint output.
-
-    Uses `eslint` by
-    default for compatibility, but I highly, highly recommend using
-    [eslint_d](https://github.com/mantoni/eslint_d.js), which will get
-    diagnostics instantly, even when working on large files.
 
 - ESLint code actions
 
@@ -88,10 +91,11 @@ something doesn't work, please let me know!
 
   Supports the following settings:
 
-  - `eslint_binary`: uses the same executable as ESLint diagnostics.
+  - `eslint_binary` and `eslint_args`: applies the same settings as ESLint diagnostics.
 
     Note that `eslint` will add a noticeable delay
-    to each code action, so I recommend using `eslint_d` if at all possible.
+    to each code action, so I recommend using `eslint_d` if at all possible if
+    you plan on using code actions.
 
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
@@ -112,6 +116,10 @@ something doesn't work, please let me know!
   - `formatter`: sets the executable used for formatting. Set to `prettier` by
     default, and (probably) doesn't work with anything else right now, but
     feedback / PRs are welcome.
+
+  - `formatter_args`: defines the arguments passed to `formatter`. You probably
+    don't need to change this unless you plan on using something besides
+    `prettier`.
 
   - `format_on_save`: a quick way to enable formatting on save for `tsserver`
     filetypes. Set to `false` by default.
@@ -151,20 +159,22 @@ nvim_lsp.tsserver.setup {
 
         ts_utils.setup {
             -- defaults
-	    disable_commands = false,
-	    enable_import_on_completion = false,
-	    import_on_completion_timeout = 5000,
-	    -- eslint
-	    eslint_bin = "eslint",
-	    eslint_enable_diagnostics = false,
-	    eslint_diagnostics_debounce = 250,
-	    eslint_enable_disable_comments = true,
-	    -- formatting
-	    enable_formatting = false,
-	    formatter = "prettier",
-	    format_on_save = false,
-	    no_save_after_format = false,
-	    keep_final_newline = false
+            disable_commands = false,
+            enable_import_on_completion = false,
+            import_on_completion_timeout = 5000,
+            -- eslint
+            eslint_bin = "eslint",
+            eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
+            eslint_enable_diagnostics = false,
+            eslint_diagnostics_debounce = 250,
+            eslint_enable_disable_comments = true,
+            -- formatting
+            enable_formatting = false,
+            formatter = "prettier",
+            formatter_args = {"--stdin-filepath", "$FILENAME"},
+            format_on_save = false,
+            no_save_after_format = false,
+            keep_final_newline = false
         }
 
         -- no default maps, so you may want to define some here
