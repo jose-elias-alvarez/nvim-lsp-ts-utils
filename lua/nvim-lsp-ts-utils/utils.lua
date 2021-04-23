@@ -22,8 +22,8 @@ end
 local M = {}
 
 M.echo_warning = function(message)
-    vim.api.nvim_echo(
-        {{"nvim-lsp-ts-utils: " .. message, "WarningMsg"}, {"\n"}}, true, {})
+    vim.api.nvim_echo({{"nvim-lsp-ts-utils: " .. message, "WarningMsg"}}, true,
+                      {})
 end
 
 M.print_no_actions_message = function() print("No code actions available") end

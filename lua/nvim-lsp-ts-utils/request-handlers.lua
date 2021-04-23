@@ -4,7 +4,6 @@ local o = require("nvim-lsp-ts-utils.options")
 
 local api = vim.api
 local lsp = vim.lsp
-local isempty = vim.tbl_isempty
 local buf_request = vim.deepcopy(lsp.buf_request)
 
 local M = {}
@@ -145,13 +144,12 @@ local parse_eslint_messages = function(messages, actions)
     end
 end
 
-local handle_eslint_actions = function(parsed, actions, callback)
-    if not parsed then return end
+local handle_eslint_actions = function(err, parsed, actions, callback)
+    -- ensure user sees why eslint actions are unavailable
+    if err then u.echo_warning(err) end
 
-    if parsed[1] and not isempty(parsed[1]) and parsed[1].messages and
-        not isempty(parsed[1].messages) then
-        local messages = parsed[1].messages
-        parse_eslint_messages(messages, actions)
+    if parsed and parsed[1] and parsed[1].messages then
+        parse_eslint_messages(parsed[1].messages, actions)
     end
 
     callback(actions)
@@ -165,18 +163,27 @@ local eslint_handler = function(bufnr, handler)
         eslint_args = u.parse_args(o.get().eslint_args, bufnr)
     end
 
-    u.loop.buf_to_stdin(o.get().eslint_bin, eslint_args, function(err, output)
-        if err then return end
+    u.loop.buf_to_stdin(o.get().eslint_bin, eslint_args,
+                        function(stderr, output)
+        -- don't attempt to parse after stderr
+        if stderr then
+            handler(stderr, nil)
+            return
+        end
 
         local ok, parsed = pcall(json.decode, output)
+        local eslint_err
         if not ok then
             if string.match(output, "Error") then
-                u.echo_warning("ESLint error: " .. output)
+                -- ESLint CLI errors are plain strings, so return error as-is
+                eslint_err = output
             else
-                u.echo_warning("Failed to parse eslint json output: " .. parsed)
+                -- if parse failed, return json.decode error output
+                eslint_err = "Failed to parse eslint json output: " .. parsed
             end
         end
-        handler(parsed)
+
+        handler(eslint_err, parsed)
     end)
 end
 
@@ -203,8 +210,9 @@ M.buf_request = function(bufnr, method, params, handler)
 
     if method == "textDocument/codeAction" then
         local inject_handler = function(err, _, actions, client_id, _, config)
-            eslint_handler(bufnr, function(parsed)
-                handle_eslint_actions(parsed, actions or {}, function(injected)
+            eslint_handler(bufnr, function(eslint_err, parsed)
+                handle_eslint_actions(eslint_err, parsed, actions or {},
+                                      function(injected)
                     handler(err, method, injected, client_id, bufnr, config)
                 end)
             end)
@@ -231,13 +239,19 @@ local create_diagnostic = function(message)
     }
 end
 
-local handle_eslint_diagnostics = function(bufnr, parsed)
-    if not parsed or not parsed[1] or not parsed[1].messages then return end
-
+local handle_eslint_diagnostics = function(err, parsed, bufnr)
     local params = {diagnostics = {}, uri = vim.uri_from_bufnr(bufnr)}
-    local messages = parsed[1].messages
-    for _, message in ipairs(messages) do
-        table.insert(params.diagnostics, create_diagnostic(message))
+
+    -- insert err as diagnostic warning
+    if err then
+        table.insert(params.diagnostics,
+                     create_diagnostic({message = err, severity = 2}))
+    end
+
+    if parsed and parsed[1] and parsed[1].messages then
+        for _, message in ipairs(parsed[1].messages) do
+            table.insert(params.diagnostics, create_diagnostic(message))
+        end
     end
 
     -- use fake client_id to avoid interference w/ actual LSP clients and enable caching
@@ -248,8 +262,8 @@ end
 local get_diagnostics = function(bufnr)
     if not bufnr then bufnr = api.nvim_get_current_buf() end
 
-    eslint_handler(bufnr, function(parsed)
-        handle_eslint_diagnostics(bufnr, parsed)
+    eslint_handler(bufnr, function(err, parsed)
+        handle_eslint_diagnostics(err, parsed, bufnr)
     end)
 end
 
@@ -261,8 +275,8 @@ M.enable_diagnostics = function(bufnr)
     local debouncing = false
     api.nvim_buf_attach(bufnr, false, {
         on_lines = function()
-
             if debouncing then return end
+
             get_diagnostics(bufnr)
 
             debouncing = true
