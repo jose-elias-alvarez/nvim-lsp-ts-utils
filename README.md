@@ -65,7 +65,7 @@ something doesn't work, please let me know!
 
   Supports the following settings:
 
-  - `eslint_binary`: sets the binary used to get ESLint output.
+  - `eslint_bin`: sets the binary used to get ESLint output.
 
     Uses `eslint` by
     default for compatibility, but I highly, highly recommend using
@@ -98,7 +98,7 @@ something doesn't work, please let me know!
     change. This variable modifies the amount of time between diagnostic
     refreshes. Set to `250` (ms) by default.
 
-  - `eslint_binary` and `eslint_args`: applies the same settings as ESLint code
+  - `eslint_bin` and `eslint_args`: applies the same settings as ESLint code
     actions.
 
 - Formatting via [Prettier](https://github.com/prettier/prettier)
