@@ -230,11 +230,15 @@ M.buf_request = function(bufnr, method, params, handler)
 end
 
 local create_diagnostic = function(message)
+    -- eslint severity can be:
+    -- 1: warning
+    -- 2: error
+    -- lsp severity is the opposite
     return {
-        message = message.ruleId and message.message,
+        message = message.message,
         code = message.ruleId,
         range = get_diagnostic_range(message),
-        severity = message.severity,
+        severity = message.severity == 1 and 2 or 1,
         source = "eslint"
     }
 end
