@@ -55,32 +55,6 @@ something doesn't work, please let me know!
   of time, which you can change by setting `import_on_completion_timeout` in
   your setup function (`0` disables this behavior).
 
-- ESLint diagnostics
-
-  A lightweight and low-config alternative to
-  [diagnostic-languageserver](https://github.com/iamcco/diagnostic-languageserver)
-  or [efm-langserver](https://github.com/mattn/efm-langserver).
-
-  Supports the following settings:
-
-  - `eslint_binary`: sets the binary used to get ESLint output.
-
-    Uses `eslint` by
-    default for compatibility, but I highly, highly recommend using
-    [eslint_d](https://github.com/mantoni/eslint_d.js), which will get
-    diagnostics instantly, even when working on large files.
-
-  - `eslint_args`: defines the arguments passed to `eslint_bin`. Messing with this
-    will probably break diagnostics!
-
-  - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
-    buffer on `tsserver` attach. Set to `false` by default.
-
-  - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin
-    subscribes to buffer changes and gets / refreshes ESLint diagnostics on
-    change. This variable modifies the amount of time between diagnostic
-    refreshes. Set to `250` (ms) by default.
-
 - ESLint code actions
 
   Parses ESLint JSON output for the current file, converts fixes into code
@@ -91,19 +65,46 @@ something doesn't work, please let me know!
 
   Supports the following settings:
 
-  - `eslint_binary` and `eslint_args`: applies the same settings as ESLint diagnostics.
+  - `eslint_binary`: sets the binary used to get ESLint output.
 
-    Note that `eslint` will add a noticeable delay
-    to each code action, so I recommend using `eslint_d` if at all possible if
-    you plan on using code actions.
+    Uses `eslint` by
+    default for compatibility, but I highly, highly recommend using
+    [eslint_d](https://github.com/mantoni/eslint_d.js). `eslint` will add a
+    noticeable delay to each code action.
+
+  - `eslint_args`: defines the arguments passed to `eslint_bin`. Messing with this
+    will probably break the integration!
 
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
 
+## Experimental Features
+
+**The following features are experimental! Bug reports and feedback are greatly appreciated.**
+
+- ESLint diagnostics
+
+  A lightweight and low-config alternative to
+  [diagnostic-languageserver](https://github.com/iamcco/diagnostic-languageserver)
+  or [efm-langserver](https://github.com/mattn/efm-langserver).
+
+  Supports the following settings:
+
+  - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
+    buffer on `tsserver` attach. Set to `false` by default.
+
+  - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin
+    subscribes to buffer changes and gets / refreshes ESLint diagnostics on
+    change. This variable modifies the amount of time between diagnostic
+    refreshes. Set to `250` (ms) by default.
+
+  - `eslint_binary` and `eslint_args`: applies the same settings as ESLint code
+    actions.
+
 - Formatting via [Prettier](https://github.com/prettier/prettier)
 
   Another simple, out-of-the-box alternative to setting up a full diagnostic
-  language server.
+  language server. Uses native Neovim APIs to format files asynchronously.
 
   Supports the following settings:
 
@@ -154,24 +155,26 @@ nvim_lsp.tsserver.setup {
     on_attach = function(_, bufnr)
         local ts_utils = require("nvim-lsp-ts-utils")
 
+        -- defaults
         ts_utils.setup {
-            -- defaults
             disable_commands = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
             -- eslint
             eslint_bin = "eslint",
             eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
+            eslint_enable_disable_comments = true,
+
+	    -- experimental settings!
+	    -- eslint diagnostics
             eslint_enable_diagnostics = false,
             eslint_diagnostics_debounce = 250,
-            eslint_enable_disable_comments = true,
             -- formatting
             enable_formatting = false,
             formatter = "prettier",
             formatter_args = {"--stdin-filepath", "$FILENAME"},
             format_on_save = false,
-            no_save_after_format = false,
-            keep_final_newline = false
+            no_save_after_format = false
         }
 
         -- no default maps, so you may want to define some here
