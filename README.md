@@ -128,9 +128,6 @@ something doesn't work, please let me know!
     formatting, which works well with `format_on_save`. Set this to `false` to
     disable this behavior.
 
-  - `keep_final_newline`: set to `false` by default, to match what happens
-    when you run `!prettier --write %`.
-
   The plugin also exposes the formatter for non-LSP use. For example, to enable
   formatting on save for a non-`tsserver` filetype, use the following snippet:
 

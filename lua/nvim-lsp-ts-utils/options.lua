@@ -13,8 +13,7 @@ local options = {
     formatter = "prettier",
     formatter_args = {"--stdin-filepath", "$FILENAME"},
     format_on_save = false,
-    no_save_after_format = false,
-    keep_final_newline = false
+    no_save_after_format = false
 }
 
 local M = {}

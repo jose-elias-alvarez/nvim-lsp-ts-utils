@@ -86,12 +86,8 @@ M.string = {
         for line in string.gmatch(str, "([^\n]*)\n?") do
             table.insert(split, line)
         end
-
-        -- prettier supposedly adds a final newline no matter what,
-        -- but keeping it is inconsistent w/ !prettier --write %
-        if not o.get().keep_final_newline then
-            table.remove(split, M.table.len(split))
-        end
+        -- remove final empty newline
+        table.remove(split)
         return split
     end
 }
