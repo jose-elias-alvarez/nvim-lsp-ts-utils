@@ -134,7 +134,10 @@ something doesn't work, please let me know!
 
   ```vim
   " add to ftplugin/filetype-goes-here.vim
-  lua require'nvim-lsp-ts-utils'.format_on_save()
+  augroup FormatOnSave
+      autocmd! * <buffer>
+      autocmd BufWritePost <buffer> lua require'nvim-lsp-ts-utils'.format()
+  augroup END
   ```
 
   Note that the implementation will disable other LSP formatters. If you want to

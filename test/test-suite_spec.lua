@@ -89,6 +89,21 @@ describe("request-handlers", function()
 
         assert.equals(get_file_content()[1], formatted_line)
     end)
+
+    it("should format non-tsserver file", function()
+        local formatted_line = [[I have too many spaces]]
+        o.set({enable_formatting = true})
+
+        -- file has a bunch of extra spaces
+        vim.cmd("e test/typescript/format.md")
+        vim.wait(500)
+        assert.is_not.equals(get_file_content()[1], formatted_line)
+
+        vim.lsp.buf.formatting()
+        vim.wait(500)
+
+        assert.equals(get_file_content()[1], formatted_line)
+    end)
 end)
 
 describe("import_all", function()
@@ -224,4 +239,3 @@ describe("rename_file", function()
         assert.is.Not.same(original_content, new_content)
     end)
 end)
-

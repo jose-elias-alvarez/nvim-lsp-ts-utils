@@ -182,11 +182,13 @@ local eslint_handler = function(bufnr, handler)
     end)
 end
 
-local format = function(bufnr)
+local format = function(formatter, args, bufnr)
     if not bufnr then bufnr = api.nvim_get_current_buf() end
-    local args = u.parse_args(o.get().formatter_args, bufnr)
+    local parsed_args = u.parse_args(args and args or o.get().formatter_args,
+                                     bufnr)
+    if not formatter then formatter = o.get().formatter end
 
-    u.loop.buf_to_stdin(o.get().formatter, args, function(err, output)
+    u.loop.buf_to_stdin(formatter, parsed_args, function(err, output)
         if err or not output then return end
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
                                u.string.split_at_newline(output))
@@ -213,7 +215,7 @@ M.buf_request = function(bufnr, method, params, handler)
     end
 
     if method == "textDocument/formatting" and o.get().enable_formatting then
-        format(bufnr)
+        format(nil, nil, bufnr)
         -- return empty values for client_request_ids and _cancel_all_requests
         return {}, function() end
     end

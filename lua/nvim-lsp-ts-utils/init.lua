@@ -25,6 +25,16 @@ M.import_on_completion = import_on_completion.handle
 
 M.import_all = import_all
 
+M.setup = function(user_options)
+    o.set(user_options)
+    define_commands()
+
+    if o.get().enable_import_on_completion then import_on_completion.enable() end
+    if o.get().eslint_enable_diagnostics then
+        request_handlers.enable_diagnostics()
+    end
+end
+
 M.code_action_handler = function()
     u.echo_warning("code_action_handler has been removed (see readme)")
 end
@@ -33,30 +43,6 @@ M.custom_action_handler = function()
 end
 M.buf_request_sync = function()
     u.echo_warning("buf_request_sync handler has been removed (see readme)")
-end
-
-M.format_on_save = function(formatter)
-    if formatter then o.set({formatter = formatter}) end
-
-    vim.api.nvim_exec([[
-    augroup TSLspFormatOnSave
-        autocmd! * <buffer>
-        autocmd BufWritePost <buffer> lua require'nvim-lsp-ts-utils'.format()
-    augroup END
-    ]], false)
-end
-
-M.setup = function(user_options)
-    o.set(user_options)
-
-    if not o.get().disable_commands then define_commands() end
-    if o.get().enable_import_on_completion then import_on_completion.enable() end
-    if o.get().enable_formatting and o.get().format_on_save then
-        M.format_on_save()
-    end
-    if o.get().eslint_enable_diagnostics then
-        request_handlers.enable_diagnostics()
-    end
 end
 
 return M
