@@ -71,7 +71,7 @@ M.buffer = {
     to_string = function(bufnr)
         if bufnr == nil then bufnr = 0 end
         local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-        return table.concat(content, "\n")
+        return table.concat(content, "\n") .. "\n"
     end,
 
     line = function(line, bufnr)
