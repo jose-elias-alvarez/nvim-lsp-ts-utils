@@ -115,10 +115,14 @@ something doesn't work, please let me know!
     work (see below).
 
   - `formatter`: sets the executable used for formatting. Set to `prettier` by
-    default, and (probably) doesn't work with anything else right now, but
-    feedback / PRs are welcome.
+    default.
 
-  - `formatter_args`: defines the arguments passed to `formatter`. You probably
+    See [this wiki
+    page](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Formatting-with-prettier_d_slim)
+    for instructions on using
+    [prettier_d_slim](https://github.com/mikew/prettier_d_slim).
+
+  - `formatter_args`: defines the arguments passed to `formatter`. You
     don't need to change this unless you plan on using something besides
     `prettier`.
 
@@ -236,12 +240,6 @@ complete ignorance about `runtimepath` and `packpath`. Sorry!
   output, the plugin should be able to handle them in the same way it handles
   ESLint. I'm a little concerned about speed and handling output from more than
   one linter, so I'd appreciate input from users of these linters.
-
-- [ ] Support for other formatters
-
-  I haven't tried [eslint_d_slim](https://github.com/mikew/prettier_d_slim), but
-  it seems like a natural fit. I'm also open to supporting any other formatters
-  if there's demand.
 
 - [ ] Watch project files and update imports on change.
 
