@@ -7,7 +7,6 @@ local lsp = vim.lsp
 local buf_request = vim.deepcopy(lsp.buf_request)
 
 local M = {}
-local eslint_args, formatter_args
 
 local create_edit_action = function(title, new_text, range, text_document)
     return {
@@ -158,13 +157,9 @@ end
 local eslint_handler = function(bufnr, handler)
     local ft_ok, ft_err = pcall(u.file.is_tsserver_ft)
     if not ft_ok then error(ft_err) end
+    local args = u.parse_args(o.get().eslint_args, bufnr)
 
-    if not eslint_args then
-        eslint_args = u.parse_args(o.get().eslint_args, bufnr)
-    end
-
-    u.loop.buf_to_stdin(o.get().eslint_bin, eslint_args,
-                        function(stderr, output)
+    u.loop.buf_to_stdin(o.get().eslint_bin, args, function(stderr, output)
         -- don't attempt to parse after stderr
         if stderr then
             handler(stderr, nil)
@@ -189,12 +184,9 @@ end
 
 local format = function(bufnr)
     if not bufnr then bufnr = api.nvim_get_current_buf() end
+    local args = u.parse_args(o.get().formatter_args, bufnr)
 
-    if not formatter_args then
-        formatter_args = u.parse_args(o.get().formatter_args, bufnr)
-    end
-
-    u.loop.buf_to_stdin(o.get().formatter, formatter_args, function(err, output)
+    u.loop.buf_to_stdin(o.get().formatter, args, function(err, output)
         if err or not output then return end
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
                                u.string.split_at_newline(output))
