@@ -1,5 +1,3 @@
-local o = require("nvim-lsp-ts-utils.options")
-
 local tsserver_fts = {
     "javascript", "javascriptreact", "typescript", "typescriptreact"
 }
@@ -24,6 +22,11 @@ local M = {}
 M.echo_warning = function(message)
     vim.api.nvim_echo({{"nvim-lsp-ts-utils: " .. message, "WarningMsg"}}, true,
                       {})
+end
+
+M.removed_warning = function(method)
+    M.echo_warning(method ..
+                       " has been removed! Please see the readme for instructions.")
 end
 
 M.print_no_actions_message = function() print("No code actions available") end

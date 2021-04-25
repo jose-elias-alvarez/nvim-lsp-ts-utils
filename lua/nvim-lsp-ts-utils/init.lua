@@ -16,7 +16,7 @@ M.organize_imports_sync = organize_imports.sync
 M.fix_current = fix_current
 M.rename_file = rename_file
 
-M.buf_request = request_handlers.buf_request
+M.create_request_handler = request_handlers.create_request_handler
 M.format = request_handlers.format
 M.diagnostics = request_handlers.diagnostics
 M.diagnostics_on_change = request_handlers.diagnostics_on_change
@@ -35,14 +35,11 @@ M.setup = function(user_options)
     end
 end
 
-M.code_action_handler = function()
-    u.echo_warning("code_action_handler has been removed (see readme)")
-end
-M.custom_action_handler = function()
-    u.echo_warning("custom_action_handler has been removed (see readme)")
-end
-M.buf_request_sync = function()
-    u.echo_warning("buf_request_sync handler has been removed (see readme)")
-end
+M.code_action_handler = function() u.removed_warning("code_action_handler") end
+M.custom_action_handler =
+    function() u.removed_warning("custom_action_handler") end
+M.buf_request = function() u.removed_warning("buf_request handler") end
+M.buf_request_sync =
+    function() u.removed_warning("buf_request_sync handler") end
 
 return M
