@@ -2,10 +2,6 @@ local o = require("nvim-lsp-ts-utils.options")
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
 
-ts_utils.setup({no_save_after_format = true})
-
-vim.lsp.buf_request = ts_utils.buf_request
-
 local pwd = vim.api.nvim_exec("pwd", true)
 local base_path = "test/typescript/"
 
@@ -99,7 +95,7 @@ describe("request-handlers", function()
         vim.wait(500)
         assert.is_not.equals(get_file_content()[1], formatted_line)
 
-        vim.lsp.buf.formatting()
+        ts_utils.format()
         vim.wait(500)
 
         assert.equals(get_file_content()[1], formatted_line)
