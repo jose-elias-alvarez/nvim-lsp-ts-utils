@@ -101,10 +101,19 @@ something doesn't work, please let me know!
   - `eslint_bin` and `eslint_args`: applies the same settings as ESLint code
     actions.
 
-- Formatting via [Prettier](https://github.com/prettier/prettier)
+- Formatting
 
   Another simple, out-of-the-box alternative to setting up a full diagnostic
   language server. Uses native Neovim APIs to format files asynchronously.
+
+  Currently supports [Prettier](https://github.com/prettier/prettier)
+  out-of-the-box and [prettier_d_slim](https://github.com/mikew/prettier_d_slim)
+  and [eslint_d](https://github.com/mantoni/eslint_d.js/) with additional
+  configuration. Formatting via vanilla `eslint` is not supported.
+
+  See [this wiki
+  page](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Setting-up-other-formatters)
+  for instructions on setting up other formatters.
 
   Supports the following settings:
 
@@ -116,11 +125,6 @@ something doesn't work, please let me know!
 
   - `formatter`: sets the executable used for formatting. Set to `prettier` by
     default.
-
-    See [this wiki
-    page](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Formatting-with-prettier_d_slim)
-    for instructions on using
-    [prettier_d_slim](https://github.com/mikew/prettier_d_slim).
 
   - `formatter_args`: defines the arguments passed to `formatter`. You
     don't need to change this unless you plan on using something besides
@@ -145,8 +149,9 @@ something doesn't work, please let me know!
   ```
 
   Note that the implementation will disable other LSP formatters. If you want to
-  run more than one formatter at once, please use `diagnostic-languageserver` or
-  `efm-langserver`.
+  fix the file with both ESLint and Prettier at the same time, see the
+  [wiki](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Setting-up-other-formatters)
+  for instructions on setting up `eslint_d`, which supports this.
 
 ## Setup
 
