@@ -4,7 +4,6 @@ local o = require("nvim-lsp-ts-utils.options")
 
 local api = vim.api
 local lsp = vim.lsp
-local buf_request = vim.deepcopy(lsp.buf_request)
 
 local M = {}
 
@@ -199,28 +198,31 @@ local format = function(formatter, args, bufnr)
 end
 M.format = format
 
-M.buf_request = function(bufnr, method, params, handler)
-    handler = handler or lsp.handlers[method]
+M.create_request_handler = function(original)
+    return function(method, params, handler, bufnr)
+        handler = handler or lsp.handlers[method]
 
-    if method == "textDocument/codeAction" then
-        local inject_handler = function(err, _, actions, client_id, _, config)
-            eslint_handler(bufnr, function(eslint_err, parsed)
-                handle_eslint_actions(eslint_err, parsed, actions or {},
-                                      function(injected)
-                    handler(err, method, injected, client_id, bufnr, config)
+        if method == "textDocument/codeAction" then
+            local inject_handler = function(err, _, actions, client_id, _,
+                                            config)
+                eslint_handler(bufnr, function(eslint_err, parsed)
+                    handle_eslint_actions(eslint_err, parsed, actions or {},
+                                          function(injected)
+                        handler(err, method, injected, client_id, bufnr, config)
+                    end)
                 end)
-            end)
+            end
+            return original(method, params, inject_handler, bufnr)
         end
-        return buf_request(bufnr, method, params, inject_handler)
-    end
 
-    if method == "textDocument/formatting" and o.get().enable_formatting then
-        format(nil, nil, bufnr)
-        -- return empty values for client_request_ids and _cancel_all_requests
-        return {}, function() end
-    end
+        if method == "textDocument/formatting" and o.get().enable_formatting then
+            format(nil, nil, bufnr)
+            -- return empty values for client_request_ids and _cancel_all_requests
+            return false
+        end
 
-    return buf_request(bufnr, method, params, handler)
+        return original(method, params, handler, bufnr)
+    end
 end
 
 local create_diagnostic = function(message)

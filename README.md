@@ -14,6 +14,10 @@ and I use almost 100% of what's in it every day at work, but since we're dealing
 with changing APIs and unpredictable environments, bugs are inevitable. If
 something doesn't work, please let me know!
 
+Breaking changes are also a possibility until features are completely stable, so
+please keep an eye on your plugin manager's change log when you update and look
+for a `!`, which indicates that you may have to update your config.
+
 ## Features
 
 - Organize imports (exposed as `:TSLspOrganize`)
@@ -21,7 +25,7 @@ something doesn't work, please let me know!
   Async by default, but a sync variant is available and exposed as
   `:TSLspOrganizeSync` (useful for running on save).
 
-- Fix current (exposed as `:TSLspFixCurrent`)
+- Fix current problem (exposed as `:TSLspFixCurrent`)
 
   A simple way to apply the first available code action to the current line
   without confirmation.
@@ -111,20 +115,20 @@ something doesn't work, please let me know!
   and [eslint_d](https://github.com/mantoni/eslint_d.js/) with additional
   configuration. Formatting via vanilla `eslint` is not supported.
 
-  See [this wiki
-  page](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Setting-up-other-formatters)
-  for instructions on setting up other formatters.
+  If enabled, the plugin will define a command to format the file, exposed as
+  `:TSLspFormat`.
 
   Supports the following settings:
 
   - `enable_formatting`: enables formatting. Set to `false` by default, since I
     imagine most TypeScript developers are already using another solution.
 
-    Note that you must also override `vim.lsp.buf_request` for formatting to
-    work (see below).
-
   - `formatter`: sets the executable used for formatting. Set to `prettier` by
     default.
+
+    See [this wiki
+    page](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Setting-up-other-formatters)
+    for instructions on setting up other formatters.
 
   - `formatter_args`: defines the arguments passed to `formatter`. You
     don't need to change this unless you plan on using something besides
@@ -151,7 +155,8 @@ something doesn't work, please let me know!
   Note that the implementation will disable other LSP formatters. If you want to
   fix the file with both ESLint and Prettier at the same time, see the
   [wiki](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Setting-up-other-formatters)
-  for instructions on setting up `eslint_d`, which supports this.
+  for instructions on setting up `eslint_d`, which supports running both at
+  once.
 
 ## Setup
 
@@ -194,21 +199,11 @@ nvim_lsp.tsserver.setup {
         vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":TSLspFixCurrent<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", {silent = true})
+
+        -- required for ESLint code actions and formatting to work
+        client.request = ts_utils.create_request_handler(vim.deepcopy(client.request))
     end
 }
-```
-
-You must also override Neovim's default `buf_request` method for ESLint actions
-and formatting to work:
-
-```lua
-local ts_utils = require("nvim-lsp-ts-utils")
-ts_utils.setup {
-    -- your options go here
-}
-
--- must come after setup!
-vim.lsp.buf_request = ts_utils.buf_request
 ```
 
 By default, the plugin will define Vim commands for convenience. You can
@@ -216,9 +211,13 @@ disable this by passing `disable_commands = true` into `setup` and then calling
 the Lua functions directly:
 
 - Organize imports: `:lua require'nvim-lsp-ts-utils'.organize_imports()`
-- Fix current: `:lua require'nvim-lsp-ts-utils'.fix_current()`
+- Fix current issue: `:lua require'nvim-lsp-ts-utils'.fix_current()`
 - Rename file: `:lua require'nvim-lsp-ts-utils'.rename_file()`
 - Import all: `:lua require'nvim-lsp-ts-utils'.import_all()`
+
+Once enabled, you can run formatting either by calling
+`vim.lsp.buf.formatting()` or pass the request through the plugin by calling
+`:lua require 'nvim-lsp-ts-utils'.format()`.
 
 ## Tests
 
