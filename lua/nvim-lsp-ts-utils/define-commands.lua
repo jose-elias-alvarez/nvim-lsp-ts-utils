@@ -12,8 +12,11 @@ local define_commands = function()
             "command! -buffer TSLspFixCurrent lua require'nvim-lsp-ts-utils'.fix_current()")
         vim.cmd(
             "command! -buffer TSLspImportAll lua require'nvim-lsp-ts-utils'.import_all()")
-        vim.cmd(
-            "command! -buffer TSLspFormat lua require'nvim-lsp-ts-utils'.format()")
+
+        if o.get().enable_formatting then
+            vim.cmd(
+                "command! -buffer TSLspFormat lua require'nvim-lsp-ts-utils'.format()")
+        end
     end
 
     if o.get().enable_formatting and o.get().format_on_save then
