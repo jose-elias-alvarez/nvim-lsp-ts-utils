@@ -16,6 +16,8 @@ local get_import_params = function(entry)
     local params = lsp.util.make_range_params()
     params.range = entry.range
     params.context = {diagnostics = {entry}}
+    -- caught by create_request_handler
+    params.skip_eslint = true
 
     return params
 end

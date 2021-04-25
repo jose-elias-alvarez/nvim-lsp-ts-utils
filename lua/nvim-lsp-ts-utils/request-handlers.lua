@@ -202,7 +202,8 @@ M.create_request_handler = function(original)
     return function(method, params, handler, bufnr)
         handler = handler or lsp.handlers[method]
 
-        if method == "textDocument/codeAction" then
+        -- internal methods (currently import_all) may want to skip this
+        if method == "textDocument/codeAction" and not params.skip_eslint then
             local inject_handler = function(err, _, actions, client_id, _,
                                             config)
                 eslint_handler(bufnr, function(eslint_err, parsed)
@@ -217,7 +218,7 @@ M.create_request_handler = function(original)
 
         if method == "textDocument/formatting" and o.get().enable_formatting then
             format(nil, nil, bufnr)
-            -- return empty values for client_request_ids and _cancel_all_requests
+            -- return false to prevent attempting to cancel nonexistent request
             return false
         end
 
