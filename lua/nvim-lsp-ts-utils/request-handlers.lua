@@ -198,8 +198,11 @@ local format = function(formatter, args, bufnr)
 end
 M.format = format
 
-M.create_request_handler = function(original)
-    return function(method, params, handler, bufnr)
+M.setup_client = function(client)
+    if client.ts_utils_setup_complete then return end
+
+    local original = client.request
+    client.request = function(method, params, handler, bufnr)
         handler = handler or lsp.handlers[method]
 
         -- internal methods (currently import_all) may want to skip this
@@ -224,6 +227,7 @@ M.create_request_handler = function(original)
 
         return original(method, params, handler, bufnr)
     end
+    client.ts_utils_setup_complete = true
 end
 
 local create_diagnostic = function(message)

@@ -211,14 +211,14 @@ nvim_lsp.tsserver.setup {
             signature_help_in_parens = false,
         }
 
+        -- required to enable ESLint code actions and formatting
+        ts_utils.setup_client(client)
+
         -- no default maps, so you may want to define some here
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":TSLspFixCurrent<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", {silent = true})
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", {silent = true})
-
-        -- required for ESLint code actions and formatting to work
-        client.request = ts_utils.create_request_handler(vim.deepcopy(client.request))
     end
 }
 ```

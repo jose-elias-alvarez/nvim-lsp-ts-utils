@@ -8,7 +8,7 @@ require'lspconfig'.tsserver.setup {
         ts_utils.setup {
             no_save_after_format = true
         }
-        client.request = ts_utils.create_request_handler(vim.deepcopy(client.request))
+        ts_utils.setup_client(client)
     end
 }
 EOF

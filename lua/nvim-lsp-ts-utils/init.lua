@@ -16,7 +16,7 @@ M.organize_imports_sync = organize_imports.sync
 M.fix_current = fix_current
 M.rename_file = rename_file
 
-M.create_request_handler = request_handlers.create_request_handler
+M.setup_client = request_handlers.setup_client
 M.format = request_handlers.format
 M.diagnostics = request_handlers.diagnostics
 M.diagnostics_on_change = request_handlers.diagnostics_on_change
