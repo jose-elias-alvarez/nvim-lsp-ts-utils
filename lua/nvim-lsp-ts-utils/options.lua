@@ -1,6 +1,8 @@
 local options = {
     disable_commands = false,
     enable_import_on_completion = false,
+    complete_parens = false,
+    signature_help_in_parens = false,
     import_on_completion_timeout = 5000,
     -- eslint
     eslint_bin = "eslint",
@@ -25,4 +27,3 @@ end
 M.get = function() return options end
 
 return M
-

@@ -158,6 +158,20 @@ for a `!`, which indicates that you may have to update your config.
   for instructions on setting up `eslint_d`, which supports running both at
   once.
 
+- Parentheses completion
+
+  Automatically inserts `()` after confirming completion on a function, method,
+  or constructor. Intended for use with `vim.lsp.omnifunc`.
+
+  Supports the following settings:
+
+  - `complete_parens`: enables or disables this feature. Set to `false` by
+    default.
+
+  - `signature_help_in_parens`: automatically triggers
+    `vim.lsp.buf.signature_help` after inserting `()`. Set to `false` by
+    default.
+
 ## Setup
 
 Install using your favorite plugin manager and add to your
@@ -183,7 +197,7 @@ nvim_lsp.tsserver.setup {
             eslint_enable_disable_comments = true,
 
 	    -- experimental settings!
-	    -- eslint diagnostics
+            -- eslint diagnostics
             eslint_enable_diagnostics = false,
             eslint_diagnostics_debounce = 250,
             -- formatting
@@ -191,7 +205,10 @@ nvim_lsp.tsserver.setup {
             formatter = "prettier",
             formatter_args = {"--stdin-filepath", "$FILENAME"},
             format_on_save = false,
-            no_save_after_format = false
+            no_save_after_format = false,
+            -- parentheses completion
+            complete_parens = false,
+            signature_help_in_parens = false,
         }
 
         -- no default maps, so you may want to define some here
