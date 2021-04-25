@@ -2,8 +2,19 @@ local o = require("nvim-lsp-ts-utils.options")
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
 
-local pwd = vim.api.nvim_exec("pwd", true)
-local base_path = "test/typescript/"
+local pwd = vim.api.nvim_exec("pwd", true) .. "/"
+local base_path = "test/files/"
+local full_path = pwd .. base_path
+
+local edit_test_file = function(name) vim.cmd("e " .. base_path .. name) end
+
+local copy_test_file = function(original, target)
+    os.execute("cp " .. full_path .. original .. " " .. full_path .. target)
+end
+
+local delete_test_file = function(target)
+    os.execute("rm " .. full_path .. target .. " 2> /dev/null")
+end
 
 local get_file_content = function()
     return vim.api.nvim_buf_get_lines(0, 0, -1, false)
@@ -14,7 +25,7 @@ describe("fix_current", function()
 
     it("should import missing type", function()
         -- file declares an instance of User but does not import it from test-types.ts
-        vim.cmd("e test/typescript/fix-current.ts")
+        edit_test_file("fix-current.ts")
         vim.wait(1000)
 
         vim.lsp.diagnostic.goto_prev()
@@ -34,7 +45,7 @@ describe("request-handlers", function()
 
     it("should apply eslint fix", function()
         -- file contains ==, which is a violation of eqeqeq
-        vim.cmd("e test/typescript/eslint-code-fix.js")
+        edit_test_file("eslint-code-fix.js")
         vim.wait(500)
         vim.cmd("2")
 
@@ -46,7 +57,7 @@ describe("request-handlers", function()
     end)
 
     it("should show eslint diagnostics", function()
-        vim.cmd("e test/typescript/eslint-code-fix.js")
+        edit_test_file("eslint-code-fix.js")
         ts_utils.diagnostics()
         vim.wait(500)
         assert.equals(vim.api.nvim_win_get_cursor(0)[1], 1)
@@ -61,7 +72,7 @@ describe("request-handlers", function()
         local formatted_line = [[import { User } from './test-types';]]
         o.set({enable_formatting = true})
 
-        vim.cmd("e test/typescript/format.ts")
+        edit_test_file("format.ts")
         vim.wait(500)
         assert.is_not.equals(get_file_content()[1], formatted_line)
 
@@ -76,7 +87,7 @@ describe("request-handlers", function()
         o.set({enable_formatting = true})
 
         -- file has bad spacing, no semicolon, and double quotes, all of which violate prettier rules
-        vim.cmd("e test/typescript/format.ts")
+        edit_test_file("format.ts")
         vim.wait(500)
         assert.is_not.equals(get_file_content()[1], formatted_line)
 
@@ -91,7 +102,7 @@ describe("request-handlers", function()
         o.set({enable_formatting = true})
 
         -- file has a bunch of extra spaces
-        vim.cmd("e test/typescript/format.md")
+        edit_test_file("format.md")
         vim.wait(500)
         assert.is_not.equals(get_file_content()[1], formatted_line)
 
@@ -107,7 +118,7 @@ describe("import_all", function()
 
     it("should import both missing types (sync)", function()
         -- file contains 2 declarations for missing types
-        vim.cmd("e test/typescript/import-all.ts")
+        edit_test_file("import-all.ts")
         vim.wait(1000)
 
         import_all(true)
@@ -119,7 +130,7 @@ describe("import_all", function()
     end)
 
     it("should import both missing types (async)", function()
-        vim.cmd("e test/typescript/import-all.ts")
+        edit_test_file("import-all.ts")
         vim.wait(1000)
 
         import_all()
@@ -135,7 +146,7 @@ describe("organize_imports", function()
 
     it("should remove unused import (sync)", function()
         -- file imports both User and Notification but only uses User
-        vim.cmd("e test/typescript/organize-imports.ts")
+        edit_test_file("organize-imports.ts")
         vim.wait(1000)
 
         ts_utils.organize_imports_sync()
@@ -146,7 +157,7 @@ describe("organize_imports", function()
     end)
 
     it("should remove unused import (async)", function()
-        vim.cmd("e test/typescript/organize-imports.ts")
+        edit_test_file("organize-imports.ts")
         vim.wait(1000)
 
         ts_utils.organize_imports()
@@ -158,12 +169,6 @@ describe("organize_imports", function()
 end)
 
 local rename_file_setup = function()
-    local copy_test_file = function(original, target)
-        os.execute(
-            "cp " .. pwd .. "/test/typescript/" .. original .. " " .. pwd ..
-                "/test/typescript/" .. target)
-    end
-
     copy_test_file("file-to-be-moved.orig.ts", "file-to-be-moved.ts")
     copy_test_file("linked-file.orig.ts", "linked-file.ts")
     copy_test_file("existing-file.orig.ts", "existing-file.ts")
@@ -171,10 +176,6 @@ end
 
 local rename_file_breakdown = function()
     vim.cmd("bufdo! bwipeout!")
-    local delete_test_file = function(target)
-        os.execute("rm " .. pwd .. "/test/typescript/" .. target ..
-                       " 2> /dev/null")
-    end
 
     delete_test_file("new-path.ts")
     delete_test_file("linked-file.ts")
@@ -186,7 +187,7 @@ describe("rename_file", function()
     before_each(function() rename_file_setup() end)
     after_each(function() rename_file_breakdown() end)
     it("should throw error on invalid filetype", function()
-        vim.cmd("e " .. base_path .. "invalid_file.txt")
+        edit_test_file("invalid-file.txt")
 
         vim.wait(1000)
 
@@ -194,11 +195,11 @@ describe("rename_file", function()
     end)
 
     it("should move file to specified path", function()
-        vim.cmd("e " .. base_path .. "file-to-be-moved.ts")
+        edit_test_file("file-to-be-moved.ts")
         local original_content = get_file_content()
         vim.wait(1000)
 
-        local new_path = pwd .. "/" .. base_path .. "new-path.ts"
+        local new_path = full_path .. "new-path.ts"
         ts_utils.rename_file(new_path)
         vim.wait(200)
 
@@ -209,25 +210,25 @@ describe("rename_file", function()
 
     it("should update imports in linked file", function()
         rename_file_setup()
-        vim.cmd("e " .. base_path .. "file-to-be-moved.ts")
+        edit_test_file("file-to-be-moved.ts")
         vim.wait(1000)
 
-        local new_path = pwd .. "/" .. base_path .. "new-path.ts"
+        local new_path = full_path .. "new-path.ts"
         ts_utils.rename_file(new_path)
         vim.wait(200)
 
-        vim.cmd("e " .. base_path .. "linked-file.ts")
+        edit_test_file("linked-file.ts")
         assert.equals(vim.fn.search("new-path", "nw"), 1)
     end)
 
     it("should overwrite existing file", function()
         rename_file_setup()
-        vim.cmd("e " .. base_path .. "existing-file.ts")
+        edit_test_file("existing-file.ts")
         local original_content = get_file_content()
 
-        vim.cmd("e " .. base_path .. "file-to-be-moved.ts")
+        edit_test_file("file-to-be-moved.ts")
         vim.wait(1000)
-        local new_path = pwd .. "/" .. base_path .. "existing-file.ts"
+        local new_path = full_path .. "existing-file.ts"
         ts_utils.rename_file(new_path) -- prompt will be automatically accepted, it seems
         vim.wait(200)
 

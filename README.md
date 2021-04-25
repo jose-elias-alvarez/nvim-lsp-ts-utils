@@ -240,7 +240,7 @@ Once enabled, you can run formatting either by calling
 
 I've covered most of the current functions with LSP integration tests using
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim), which you can run by
-running `./test.sh`.
+running `make test`.
 
 Note that the current test suite requires you to have Plenary and nvim-lspconfig
 installed via [packer.nvim](https://github.com/wbthomason/packer.nvim) due to my
