@@ -138,7 +138,7 @@ for a `!`, which indicates that you may have to update your config.
     filetypes. Set to `false` by default.
 
   - `no_save_after_format`: by default, the plugin will save the file after
-    formatting, which works well with `format_on_save`. Set this to `false` to
+    formatting, which works well with `format_on_save`. Set this to `true` to
     disable this behavior.
 
   The plugin also exposes the formatter for non-LSP use. For example, to enable
