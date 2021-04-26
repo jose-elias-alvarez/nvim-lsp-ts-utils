@@ -189,6 +189,7 @@ nvim_lsp.tsserver.setup {
         -- defaults
         ts_utils.setup {
             disable_commands = false,
+            debug = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
             -- eslint
@@ -235,6 +236,22 @@ the Lua functions directly:
 Once enabled, you can run formatting either by calling
 `vim.lsp.buf.formatting()` or pass the request through the plugin by calling
 `:lua require 'nvim-lsp-ts-utils'.format()`.
+
+## Troubleshooting
+
+First, please check your config and make sure it's in line with the latest
+readme.
+
+Second, please update to the latest Neovim master, as that's what the plugin is
+built and tested on.
+
+Third, if your issue is related to linting or formatting, please try setting
+`debug = true` in `setup` and inspecting the output in `:messages` to make sure
+it matches what you expect.
+
+If those options don't help, please open up an issue and provide as much
+information as possible about your error, including debug output when relevant.
+Thank you for helping the plugin grow and improve!
 
 ## Tests
 
