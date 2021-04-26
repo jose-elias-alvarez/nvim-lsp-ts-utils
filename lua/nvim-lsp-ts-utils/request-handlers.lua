@@ -142,10 +142,7 @@ local parse_eslint_messages = function(messages, actions)
     end
 end
 
-local handle_eslint_actions = function(err, parsed, actions, callback)
-    -- ensure user sees why eslint actions are unavailable
-    if err then u.echo_warning(err) end
-
+local handle_eslint_actions = function(_, parsed, actions, callback)
     if parsed and parsed[1] and parsed[1].messages then
         parse_eslint_messages(parsed[1].messages, actions)
     end
@@ -178,7 +175,7 @@ local eslint_handler = function(bufnr, handler)
                 eslint_err = output
             else
                 -- if parse failed, return json.decode error output
-                eslint_err = "Failed to parse eslint json output: " .. parsed
+                eslint_err = "Failed to parse JSON: " .. parsed
             end
         end
 

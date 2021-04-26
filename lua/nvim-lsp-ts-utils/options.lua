@@ -4,6 +4,7 @@ local options = {
     complete_parens = false,
     signature_help_in_parens = false,
     import_on_completion_timeout = 5000,
+    debug = false,
     -- eslint
     eslint_bin = "eslint",
     eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},

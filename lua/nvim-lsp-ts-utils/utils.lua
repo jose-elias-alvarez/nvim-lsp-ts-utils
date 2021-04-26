@@ -1,10 +1,12 @@
-local tsserver_fts = {
-    "javascript", "javascriptreact", "typescript", "typescriptreact"
-}
+local o = require("nvim-lsp-ts-utils.options")
 
 local uv = vim.loop
 local api = vim.api
 local schedule = vim.schedule_wrap
+
+local tsserver_fts = {
+    "javascript", "javascriptreact", "typescript", "typescriptreact"
+}
 
 local contains = function(list, candidate)
     for _, element in pairs(list) do
@@ -36,6 +38,17 @@ M.removed_warning = function(method)
     M.echo_warning(method ..
                        " has been removed! Please see the readme for instructions.")
 end
+
+local debug_log = function(target)
+    if not o.get().debug then return end
+
+    if type(target) == "table" then
+        print(vim.inspect(target))
+    else
+        print(target)
+    end
+end
+M.debug_log = debug_log
 
 M.print_no_actions_message = function() print("No code actions available") end
 
@@ -122,10 +135,17 @@ M.loop = {
 
                 -- convert empty strings to nil to make error handling easier in handlers
                 if output == "" then
+                    debug_log("command " .. cmd .. " output was empty")
                     output = nil
+                else
+                    debug_log("command " .. cmd .. " output:\n" .. output)
                 end
                 if error_output == "" then
+                    debug_log("command " .. cmd .. " error output was empty")
                     error_output = nil
+                else
+                    debug_log("command " .. cmd .. " error output:\n" ..
+                                  error_output)
                 end
                 handler(error_output, output)
             end
@@ -141,23 +161,32 @@ M.loop = {
         local stderr = uv.new_pipe(false)
         local stdio = {stdin, stdout, stderr}
 
+        debug_log("spawning command " .. cmd .. " with args:")
+        debug_log(args)
         handle = uv.spawn(cmd, {args = args, stdio = stdio},
                           function(code, signal)
             ok = code_is_ok(code, cmd)
+            debug_log("command " .. cmd .. " exited with code " .. code)
+            debug_log("exiting with signal " .. signal)
+
             stdout:read_stop()
             stderr:read_stop()
+            debug_log("stdout and stderr pipes closed")
 
             close_handle(stdin)
             close_handle(stdout)
             close_handle(stderr)
             close_handle(handle)
+            debug_log("handles closed")
         end)
 
         uv.read_start(stdout, handle_stdout)
         uv.read_start(stderr, handle_stderr)
 
+        debug_log("writing content of buffer " .. M.buffer.name() .. " to stdin")
         stdin:write(M.buffer.to_string(), function()
             stdin:close()
+            debug_log("stdin pipe closed")
         end)
     end
 }
