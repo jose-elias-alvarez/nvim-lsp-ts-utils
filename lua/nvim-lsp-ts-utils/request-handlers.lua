@@ -158,10 +158,15 @@ local eslint_handler = function(bufnr, handler)
     if not ft_ok then error(ft_err) end
     local args = u.parse_args(o.get().eslint_args, bufnr)
 
-    u.loop.buf_to_stdin(o.get().eslint_bin, args, function(stderr, output)
-        -- don't attempt to parse after stderr
-        if stderr then
-            handler(stderr, nil)
+    u.loop.buf_to_stdin(o.get().eslint_bin, args, function(error_output, output)
+        -- don't attempt to parse after error
+        if error_output then
+            handler(error_output, nil)
+            return
+        end
+        -- don't attempt to parse nil output
+        if not output then
+            handler(nil, nil)
             return
         end
 
@@ -169,7 +174,7 @@ local eslint_handler = function(bufnr, handler)
         local eslint_err
         if not ok then
             if string.match(output, "Error") then
-                -- ESLint CLI errors are plain strings, so return error as-is
+                -- ESLint CLI errors are text strings, so return error as-is
                 eslint_err = output
             else
                 -- if parse failed, return json.decode error output
@@ -187,8 +192,9 @@ local format = function(formatter, args, bufnr)
                                      bufnr)
     if not formatter then formatter = o.get().formatter end
 
-    u.loop.buf_to_stdin(formatter, parsed_args, function(err, output)
-        if err or not output then return end
+    u.loop.buf_to_stdin(formatter, parsed_args, function(error_output, output)
+        if error_output or not output then return end
+
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
                                u.string.split_at_newline(output))
         if not o.get().no_save_after_format then

@@ -17,6 +17,14 @@ local close_handle = function(handle)
     if handle and not handle:is_closing() then handle:close() end
 end
 
+local code_is_ok = function(code, cmd)
+    if code == 0 then return true end
+    -- eslint (but not eslint_d!) exits w/ 1 if linting was successful but errors exceed threshold
+    -- eslint_d error has to be caught by reading output, since it exits w/ 1 in both cases
+    if cmd == "eslint" and code == 1 then return true end
+    return false
+end
+
 local M = {}
 
 M.echo_warning = function(message)
@@ -97,20 +105,35 @@ M.string = {
 
 M.loop = {
     buf_to_stdin = function(cmd, args, handler)
-        local output, stderr_output = "", ""
+        local handle, ok
+        local output, error_output = "", ""
 
         local handle_stdout = schedule(function(err, chunk)
             if err then error("stdout error: " .. err) end
 
             if chunk then output = output .. chunk end
             if not chunk then
-                handler(stderr_output ~= "" and stderr_output or nil, output)
+                -- wait for exit code
+                vim.wait(5000, function() return ok ~= nil end, 10)
+                if not ok and error_output == "" then
+                    error_output = output
+                    output = ""
+                end
+
+                -- convert empty strings to nil to make error handling easier in handlers
+                if output == "" then
+                    output = nil
+                end
+                if error_output == "" then
+                    error_output = nil
+                end
+                handler(error_output, output)
             end
         end)
 
         local handle_stderr = function(err, chunk)
             if err then error("stderr error: " .. err) end
-            if chunk then stderr_output = stderr_output .. chunk end
+            if chunk then error_output = error_output .. chunk end
         end
 
         local stdin = uv.new_pipe(true)
@@ -118,8 +141,9 @@ M.loop = {
         local stderr = uv.new_pipe(false)
         local stdio = {stdin, stdout, stderr}
 
-        local handle
-        handle = uv.spawn(cmd, {args = args, stdio = stdio}, function()
+        handle = uv.spawn(cmd, {args = args, stdio = stdio},
+                          function(code, signal)
+            ok = code_is_ok(code, cmd)
             stdout:read_stop()
             stderr:read_stop()
 
@@ -132,7 +156,9 @@ M.loop = {
         uv.read_start(stdout, handle_stdout)
         uv.read_start(stderr, handle_stderr)
 
-        stdin:write(M.buffer.to_string(), function() stdin:close() end)
+        stdin:write(M.buffer.to_string(), function()
+            stdin:close()
+        end)
     end
 }
 
