@@ -86,21 +86,39 @@ M.table = {
     end
 }
 
+M.cursor = {
+    pos = function(winnr)
+        if not winnr then winnr = 0 end
+        local pos = api.nvim_win_get_cursor(winnr)
+        return pos[1], pos[2]
+    end,
+
+    set = function(row, col, winnr)
+        if not winnr then winnr = 0 end
+        api.nvim_win_set_cursor(winnr, {row, col})
+    end
+}
+
 M.buffer = {
     name = function(bufnr)
-        if bufnr == nil then bufnr = 0 end
+        if not bufnr then bufnr = 0 end
         return api.nvim_buf_get_name(bufnr)
     end,
 
     to_string = function(bufnr)
-        if bufnr == nil then bufnr = 0 end
+        if not bufnr then bufnr = 0 end
         local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
         return table.concat(content, "\n") .. "\n"
     end,
 
-    line = function(line, bufnr)
-        return api.nvim_buf_get_lines(bufnr and bufnr or 0, line - 1, line,
-                                      false)[1]
+    line = function(row, bufnr)
+        return
+            api.nvim_buf_get_lines(bufnr and bufnr or 0, row - 1, row, false)[1]
+    end,
+
+    insert_text = function(row, col, text, bufnr)
+        if not bufnr then bufnr = 0 end
+        api.nvim_buf_set_text(bufnr, row, col, row, col, {text})
     end
 }
 
