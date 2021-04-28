@@ -12,7 +12,7 @@ local exit_code_is_ok = function(code, cmd)
     if code == 0 then return true end
     -- eslint (but not eslint_d!) exits w/ 1 if linting was successful but errors exceed threshold
     -- eslint_d error has to be caught by reading output, since it exits w/ 1 in both cases
-    if (cmd == "eslint" or cmd == "eslint_d") and code == 1 then return true end
+    if (string.match(cmd, "eslint")) and code == 1 then return true end
     return false
 end
 
