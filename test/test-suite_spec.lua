@@ -186,6 +186,7 @@ end
 describe("rename_file", function()
     before_each(function() rename_file_setup() end)
     after_each(function() rename_file_breakdown() end)
+
     it("should throw error on invalid filetype", function()
         edit_test_file("invalid-file.txt")
 

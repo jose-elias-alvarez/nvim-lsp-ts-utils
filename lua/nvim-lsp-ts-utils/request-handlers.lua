@@ -5,6 +5,8 @@ local o = require("nvim-lsp-ts-utils.options")
 local api = vim.api
 local lsp = vim.lsp
 
+local eslint_bin, formatter_bin
+
 local M = {}
 
 local create_edit_action = function(title, new_text, range, text_document)
@@ -151,11 +153,10 @@ local handle_eslint_actions = function(_, parsed, actions, callback)
 end
 
 local eslint_handler = function(bufnr, handler)
-    local ft_ok, ft_err = pcall(u.file.is_tsserver_ft)
-    if not ft_ok then error(ft_err) end
+    if not eslint_bin then eslint_bin = u.find_bin(o.get().eslint_bin) end
     local args = u.parse_args(o.get().eslint_args, bufnr)
 
-    u.loop.buf_to_stdin(o.get().eslint_bin, args, function(error_output, output)
+    u.loop.buf_to_stdin(eslint_bin, args, function(error_output, output)
         -- don't attempt to parse after error
         if error_output then
             handler(error_output, nil)
@@ -187,9 +188,13 @@ local format = function(formatter, args, bufnr)
     if not bufnr then bufnr = api.nvim_get_current_buf() end
     local parsed_args = u.parse_args(args and args or o.get().formatter_args,
                                      bufnr)
-    if not formatter then formatter = o.get().formatter end
+    if not formatter_bin then
+        if not formatter then formatter = o.get().formatter end
+        formatter_bin = u.find_bin(formatter)
+    end
 
-    u.loop.buf_to_stdin(formatter, parsed_args, function(error_output, output)
+    u.loop.buf_to_stdin(formatter_bin, parsed_args,
+                        function(error_output, output)
         if error_output or not output then return end
 
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,

@@ -1,5 +1,7 @@
 local o = require("nvim-lsp-ts-utils.options")
 
+local lspconfig = require("lspconfig/util")
+
 local uv = vim.loop
 local api = vim.api
 local schedule = vim.schedule_wrap
@@ -7,6 +9,7 @@ local schedule = vim.schedule_wrap
 local tsserver_fts = {
     "javascript", "javascriptreact", "typescript", "typescriptreact"
 }
+local node_modules = "/node_modules/.bin"
 
 local contains = function(list, candidate)
     for _, element in pairs(list) do
@@ -76,6 +79,18 @@ M.file = {
     end
 }
 
+M.find_bin = function(cmd)
+    local local_bin = M.buffer.root() .. node_modules .. "/" .. cmd
+
+    if M.file.exists(local_bin) then
+        M.debug_log("using local executable " .. local_bin)
+        return local_bin
+    else
+        M.debug_log("using system executable " .. cmd)
+        return cmd
+    end
+end
+
 M.table = {
     contains = contains,
 
@@ -101,12 +116,12 @@ M.cursor = {
 
 M.buffer = {
     name = function(bufnr)
-        if not bufnr then bufnr = 0 end
+        if not bufnr then bufnr = api.nvim_get_current_buf() end
         return api.nvim_buf_get_name(bufnr)
     end,
 
     to_string = function(bufnr)
-        if not bufnr then bufnr = 0 end
+        if not bufnr then bufnr = api.nvim_get_current_buf() end
         local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
         return table.concat(content, "\n") .. "\n"
     end,
@@ -117,8 +132,15 @@ M.buffer = {
     end,
 
     insert_text = function(row, col, text, bufnr)
-        if not bufnr then bufnr = 0 end
+        if not bufnr then bufnr = api.nvim_get_current_buf() end
         api.nvim_buf_set_text(bufnr, row, col, row, col, {text})
+    end,
+
+    root = function(fname)
+        if not fname then fname = M.buffer.name() end
+        return lspconfig.root_pattern("tsconfig.json")(fname) or
+                   lspconfig.root_pattern("package.json", "jsconfig.json",
+                                          ".git")(fname)
     end
 }
 
