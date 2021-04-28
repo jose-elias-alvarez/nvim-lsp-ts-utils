@@ -18,6 +18,15 @@ Breaking changes are also a possibility until features are completely stable, so
 please keep an eye on your plugin manager's change log when you update and look
 for a `!`, which indicates that you may have to update your config.
 
+## Requirements
+
+The plugin requires some utilities from
+[nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), which you are
+(probably) already using to configure `typescript-language-server`.
+
+Having [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) installed will
+make some things faster, but at the moment it's not strictly required.
+
 ## Features
 
 - Organize imports (exposed as `:TSLspOrganize`)
@@ -69,7 +78,9 @@ for a `!`, which indicates that you may have to update your config.
 
   Supports the following settings:
 
-  - `eslint_bin`: sets the binary used to get ESLint output.
+  - `eslint_bin`: sets the binary used to get ESLint output. Looks for a local
+    executable in `node_modules` and falls back to a system-wide executable,
+    which must be available on your `$PATH`.
 
     Uses `eslint` by
     default for compatibility, but I highly, highly recommend using
@@ -124,7 +135,9 @@ for a `!`, which indicates that you may have to update your config.
     imagine most TypeScript developers are already using another solution.
 
   - `formatter`: sets the executable used for formatting. Set to `prettier` by
-    default.
+    default. Like `eslint_bin`, the plugin will look for a local
+    executable in `node_modules` and fall back to a system-wide executable,
+    which must be available on your `$PATH`.
 
     See [this wiki
     page](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/wiki/Setting-up-other-formatters)
