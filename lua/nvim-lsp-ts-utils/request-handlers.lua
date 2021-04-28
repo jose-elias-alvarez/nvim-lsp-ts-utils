@@ -197,6 +197,7 @@ local format = function(formatter, args, bufnr)
 
     loop.buf_to_stdin(formatter_bin, parsed_args, function(error_output, output)
         if error_output or not output then return end
+        if not api.nvim_buf_is_loaded(bufnr) then return end
 
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
                                u.string.split_at_newline(output))
