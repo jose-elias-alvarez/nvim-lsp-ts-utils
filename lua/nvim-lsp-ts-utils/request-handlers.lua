@@ -1,6 +1,8 @@
 local json = require("json")
+
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
+local loop = require("nvim-lsp-ts-utils.loop")
 
 local api = vim.api
 local lsp = vim.lsp
@@ -156,7 +158,7 @@ local eslint_handler = function(bufnr, handler)
     if not eslint_bin then eslint_bin = u.find_bin(o.get().eslint_bin) end
     local args = u.parse_args(o.get().eslint_args, bufnr)
 
-    u.loop.buf_to_stdin(eslint_bin, args, function(error_output, output)
+    loop.buf_to_stdin(eslint_bin, args, function(error_output, output)
         -- don't attempt to parse after error
         if error_output then
             handler(error_output, nil)
@@ -193,8 +195,7 @@ local format = function(formatter, args, bufnr)
         formatter_bin = u.find_bin(formatter)
     end
 
-    u.loop.buf_to_stdin(formatter_bin, parsed_args,
-                        function(error_output, output)
+    loop.buf_to_stdin(formatter_bin, parsed_args, function(error_output, output)
         if error_output or not output then return end
 
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,

@@ -171,6 +171,22 @@ make some things faster, but at the moment it's not strictly required.
   for instructions on setting up `eslint_d`, which supports running both at
   once.
 
+- Update imports on file move
+
+  Watches a given directory for file move / rename events (even from outside of
+  Neovim!) and updates imports accordingly.
+
+  Supports the following settings:
+
+  - `update_imports_on_move`: enables this feature. Set to `false` by default.
+
+  - `require_confirmation_on_move`: if `true`, prompts for confirmation before
+    updating imports. Set to `false` by default.
+
+  - `watch_dir`: sets the directory that the plugin will watch for changes,
+    relative to your root path (where `tsconfig.json` or `package.json` is
+    located). Set to `/src` by default.
+
 - Parentheses completion
 
   Automatically inserts `()` after confirming completion on a function, method,
@@ -201,10 +217,11 @@ nvim_lsp.tsserver.setup {
 
         -- defaults
         ts_utils.setup {
-            disable_commands = false,
             debug = false,
+            disable_commands = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
+
             -- eslint
             eslint_bin = "eslint",
             eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
@@ -214,15 +231,22 @@ nvim_lsp.tsserver.setup {
             -- eslint diagnostics
             eslint_enable_diagnostics = false,
             eslint_diagnostics_debounce = 250,
+
             -- formatting
             enable_formatting = false,
             formatter = "prettier",
             formatter_args = {"--stdin-filepath", "$FILENAME"},
             format_on_save = false,
             no_save_after_format = false,
+
             -- parentheses completion
             complete_parens = false,
             signature_help_in_parens = false,
+
+	    -- update imports on file move
+	    update_imports_on_move = false,
+	    require_confirmation_on_move = false,
+	    watch_dir = "/src",
         }
 
         -- required to enable ESLint code actions and formatting
@@ -291,9 +315,3 @@ complete ignorance about `runtimepath` and `packpath`. Sorry!
   output, the plugin should be able to handle them in the same way it handles
   ESLint. I'm a little concerned about speed and handling output from more than
   one linter, so I'd appreciate input from users of these linters.
-
-- [ ] Watch project files and update imports on change.
-
-  I've prototyped this using plenary jobs and
-  [Watchman](https://facebook.github.io/watchman/) and am waiting for Plenary to
-  merge async await jobs to make working with Watchman less painful.
