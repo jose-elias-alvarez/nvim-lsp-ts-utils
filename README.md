@@ -294,6 +294,7 @@ complete ignorance about `runtimepath` and `packpath`. Sorry!
 
 - [ ] Watch project files and update imports on change.
 
-  I've prototyped this using plenary jobs and
-  [Watchman](https://facebook.github.io/watchman/) and am waiting for Plenary to
-  merge async await jobs to make working with Watchman less painful.
+  An early version of this feature is available on the plugin's `develop`
+  branch, if you are brave enough to help test it. See [this
+  issue](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/issues/20) for
+  details / progress updates.
