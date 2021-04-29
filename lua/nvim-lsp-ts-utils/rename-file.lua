@@ -3,6 +3,7 @@ local u = require("nvim-lsp-ts-utils.utils")
 local s = require("nvim-lsp-ts-utils.state")
 
 local lsp = vim.lsp
+local api = vim.api
 
 local rename_file = function(source, target)
     lsp.buf.execute_command({
@@ -22,7 +23,7 @@ M.manual = function(target)
     local ft_ok, ft_err = pcall(u.file.check_ft)
     if not ft_ok then error(ft_err) end
 
-    local bufnr = vim.api.nvim_get_current_buf()
+    local bufnr = api.nvim_get_current_buf()
     local source = u.buffer.name(bufnr)
 
     local status
@@ -63,17 +64,30 @@ M.on_move = function(source, target)
     local target_bufnr = u.buffer.bufnr(target)
     if target_bufnr then vim.cmd(target_bufnr .. "bwipeout!") end
 
-    -- coc.nvim seems to use bufadd and bufload, but these won't work if the user is in a terminal buffer
-    -- vim.fn.bufadd(target)
-    -- vim.fn.bufload(target)
+    -- coc.nvim prefers using bufadd and bufload on recent vim versions,
+    -- but it seems that the target needs to be open in an active window
+    -- in order for execute_command to do anything
+    if vim.bo.buftype == "terminal" then
+        local terminal_win = api.nvim_get_current_win()
+        vim.cmd([[noa keepalt 1new +setl\ bufhidden=wipe]])
+        vim.cmd([[noa edit +setl\ bufhidden=hide ]] .. target)
+        vim.cmd([[filetype detect]])
+        rename_file(source, target)
 
-    -- edit will override whatever is in the terminal buffer, which is annoying
-    -- but it'll update imports correctly
-    vim.cmd("edit " .. target)
-    rename_file(source, target)
-
-    -- wait to do this to ensure at least one buffer is open
-    if source_bufnr then vim.cmd(source_bufnr .. "bwipeout!") end
+        -- try to prevent closing last non-floating window
+        if not source_bufnr or api.nvim_win_get_config(terminal_win).relative ~=
+            "editor" then vim.cmd([[noa close]]) end
+        if source_bufnr then vim.cmd(source_bufnr .. "bwipeout!") end
+        vim.api.nvim_set_current_win(terminal_win)
+    else
+        -- non-terminal buffers don't need any special handling, except to close and re-open
+        -- moved file(s) if they were open
+        rename_file(source, target)
+        if source_bufnr then
+            vim.cmd("e " .. target)
+            vim.cmd(source_bufnr .. "bwipeout!")
+        end
+    end
 end
 
 return M
