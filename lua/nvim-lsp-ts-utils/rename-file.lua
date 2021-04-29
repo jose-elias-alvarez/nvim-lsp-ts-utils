@@ -42,10 +42,8 @@ M.manual = function(target)
     local modified = vim.fn.getbufvar(bufnr, "&modified")
     if modified then vim.cmd("silent noautocmd w") end
 
-    -- prevent watcher callback from triggering for a reasonable time
-    s.set({manual_rename_in_progress = true})
-    vim.defer_fn(function() s.set({manual_rename_in_progress = false}) end, 5000)
-
+    -- prevent watcher callback from triggering
+    s.ignore()
     u.file.mv(source, target)
 
     vim.cmd("e " .. target)

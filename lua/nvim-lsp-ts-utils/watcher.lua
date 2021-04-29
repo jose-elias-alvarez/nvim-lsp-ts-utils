@@ -4,6 +4,8 @@ local s = require("nvim-lsp-ts-utils.state")
 local loop = require("nvim-lsp-ts-utils.loop")
 local rename_file = require("nvim-lsp-ts-utils.rename-file")
 
+local defer = vim.defer_fn
+
 local should_handle = function(filename)
     -- filters out temporary neovim files and invalid filenames
     -- also filters out directories, which need special handling
@@ -30,11 +32,8 @@ local start_watcher = function()
     u.debug_log("watching directory " .. dir)
 
     local source
-    local reset = function() source = nil end
-
     loop.watch_dir(dir, function(filename)
-        if not should_handle(filename) then return end
-        if s.get().manual_rename_in_progress then return end
+        if s.get().ignoring or not should_handle(filename) then return end
 
         local path = dir .. "/" .. filename
         if not source then
@@ -42,12 +41,15 @@ local start_watcher = function()
             -- clear source after timeout to avoid triggering on non-move events
             -- 5 ms is generous, since uv.hrtime says the gap between the 2 events
             -- should rarely exceed 1-2 ms
-            vim.defer_fn(reset, 5)
+            defer(function() source = nil end, 5)
             return
         end
 
         if should_ignore_event(source, path) then
-            reset()
+            -- try to detect when the user is writing / deleting files and ignore all events
+            -- especially relevant when running :wa after a big update
+            s.ignore()
+            source = nil
             return
         end
 
@@ -57,7 +59,7 @@ local start_watcher = function()
             u.debug_log("target: " .. path)
 
             rename_file.on_move(source, path)
-            reset()
+            source = nil
         end
     end)
 end
