@@ -61,11 +61,9 @@ M.on_move = function(source, target)
         if confirm ~= 1 then return end
     end
 
-    local source_info = vim.fn.getbufinfo(source)[1]
-    local source_bufnr = source_info and source_info.bufnr or nil
-
-    local target_info = vim.fn.getbufinfo(target)[1]
-    if target_info then vim.cmd(target_info.bufnr .. "bwipeout!") end
+    local source_bufnr = u.buffer.bufnr(source)
+    local target_bufnr = u.buffer.bufnr(target)
+    if target_bufnr then vim.cmd(target_bufnr .. "bwipeout!") end
 
     -- coc.nvim seems to use bufadd and bufload, but these won't work if the user is in a terminal buffer
     -- vim.fn.bufadd(target)

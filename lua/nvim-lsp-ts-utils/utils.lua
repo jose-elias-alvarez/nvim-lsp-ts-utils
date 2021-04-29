@@ -131,6 +131,11 @@ M.buffer = {
         return api.nvim_buf_get_name(bufnr)
     end,
 
+    bufnr = function(name)
+        local info = vim.fn.getbufinfo(name)[1]
+        return info and info.bufnr or nil
+    end,
+
     to_string = function(bufnr)
         if not bufnr then bufnr = api.nvim_get_current_buf() end
         local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
