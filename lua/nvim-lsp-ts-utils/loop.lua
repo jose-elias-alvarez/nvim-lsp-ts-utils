@@ -1,5 +1,4 @@
 local u = require("nvim-lsp-ts-utils.utils")
-local s = require("nvim-lsp-ts-utils.state")
 
 local uv = vim.loop
 local schedule = vim.schedule_wrap
@@ -90,25 +89,24 @@ M.buf_to_stdin = function(cmd, args, handler)
     end)
 end
 
-M.watch_dir = function(dir, on_event)
-    local handle = uv.new_fs_event()
+M.watch_dir = function(dir, opts)
+    local on_event = opts.on_event
+    local on_error = opts.on_error
 
-    local unwatch = function()
-        s.set({watching = false})
-        uv.fs_event_stop(handle)
-    end
+    local handle = uv.new_fs_event()
+    local unwatch = function() uv.fs_event_stop(handle) end
 
     local callback = schedule(function(err, filename, events)
         if err then
             unwatch()
+            on_error(err)
             error(err)
-        else
-            on_event(filename, events, unwatch)
         end
+
+        on_event(filename, events, unwatch)
     end)
 
     uv.fs_event_start(handle, dir, {recursive = true}, callback)
-    s.set({watching = true})
 end
 
 return M
