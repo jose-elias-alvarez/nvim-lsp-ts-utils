@@ -3,6 +3,7 @@ local s = require("nvim-lsp-ts-utils.state")
 local u = require("nvim-lsp-ts-utils.utils")
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
+local watcher = require("nvim-lsp-ts-utils.watcher")
 
 local pwd = vim.api.nvim_exec("pwd", true) .. "/"
 local base_path = "test/files/"
@@ -171,7 +172,6 @@ end)
 
 local rename_file_setup = function()
     s.reset()
-    o.set({update_imports_on_move = false, debug = false})
 
     copy_test_file("file-to-be-moved.orig.ts", "file-to-be-moved.ts")
     copy_test_file("linked-file.orig.ts", "linked-file.ts")
@@ -180,6 +180,7 @@ end
 
 local rename_file_breakdown = function()
     vim.cmd("bufdo! bwipeout!")
+    watcher.stop()
 
     delete_test_file("new-path.ts")
     delete_test_file("linked-file.ts")
@@ -240,9 +241,8 @@ describe("rename_file", function()
     end)
 
     it("should update imports in linked file on move", function()
-        o.set({update_imports_on_move = true, watch_dir = ""})
-        -- open tsserver file to start watcher
         edit_test_file("file-to-be-moved.ts")
+        watcher.start()
         vim.wait(1000)
 
         local new_path = full_path .. "new-path.ts"

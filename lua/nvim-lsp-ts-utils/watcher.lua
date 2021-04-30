@@ -21,18 +21,24 @@ local should_ignore_event = function(source, path)
     return false
 end
 
-local start_watcher = function()
+local M = {}
+local _unwatch
+M.start = function()
     if s.get().watching then return end
 
     -- don't watch when root can't be determined
     local root = u.buffer.root()
-    if not root then return end
+    if not root then
+        u.debug_log("project root could not be determined; watch aborted")
+        return
+    end
 
     local dir = root .. o.get().watch_dir
     u.debug_log("watching directory " .. dir)
 
     local source
-    loop.watch_dir(dir, function(filename)
+    loop.watch_dir(dir, function(filename, _, unwatch)
+        if not _unwatch then _unwatch = unwatch end
         if s.get().ignoring or not should_handle(filename) then return end
 
         local path = dir .. "/" .. filename
@@ -64,4 +70,17 @@ local start_watcher = function()
     end)
 end
 
-return start_watcher
+M.stop = function()
+    if _unwatch then
+        _unwatch()
+        _unwatch = nil
+        u.debug_log("watcher stopped")
+    end
+end
+
+M.restart = function()
+    M.stop()
+    defer(M.start, 100)
+end
+
+return M
