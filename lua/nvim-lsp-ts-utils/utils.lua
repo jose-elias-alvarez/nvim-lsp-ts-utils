@@ -2,8 +2,10 @@ local lspconfig = require("lspconfig/util")
 
 local o = require("nvim-lsp-ts-utils.options")
 
+local format = string.format
 local uv = vim.loop
 local api = vim.api
+local exec = api.nvim_exec
 
 local tsserver_fts = {
     "javascript", "javascriptreact", "typescript", "typescriptreact"
@@ -31,6 +33,20 @@ M.debug_log = function(target)
     else
         print(target)
     end
+end
+
+M.define_buf_command = function(name, fn)
+    vim.cmd(format("command! -buffer %s lua require'nvim-lsp-ts-utils'.%s",
+                   name, fn))
+end
+
+M.define_buf_augroup = function(name, event, fn)
+    exec(format([[
+    augroup %s
+        autocmd! * <buffer>
+        autocmd %s <buffer> lua require'nvim-lsp-ts-utils'.%s
+    augroup END
+    ]], name, event, fn), false)
 end
 
 M.print_no_actions_message = function() print("No code actions available") end

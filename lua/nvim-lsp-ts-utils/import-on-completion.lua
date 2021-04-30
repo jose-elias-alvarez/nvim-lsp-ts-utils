@@ -37,12 +37,8 @@ end
 
 local M = {}
 M.enable = function()
-    vim.api.nvim_exec([[
-    augroup TSLspImportOnCompletion
-        autocmd! * <buffer>
-        autocmd CompleteDone <buffer> lua require'nvim-lsp-ts-utils'.import_on_completion()
-    augroup END
-    ]], false)
+    u.define_buf_augroup("TSLspImportOnCompletion", "CompleteDone",
+                         "import_on_completion()")
 end
 
 local last_imported = ""
