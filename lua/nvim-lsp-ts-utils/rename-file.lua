@@ -75,6 +75,7 @@ M.on_move = function(source, target)
         rename_file(source, target)
 
         -- try to prevent closing last non-floating window
+        -- this behaves terribly if the moves multiple loaded files and needs a better solution
         if not source_bufnr or api.nvim_win_get_config(terminal_win).relative ~=
             "editor" then vim.cmd([[noa close]]) end
         if source_bufnr then vim.cmd(source_bufnr .. "bwipeout!") end
