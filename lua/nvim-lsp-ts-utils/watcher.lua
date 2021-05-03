@@ -7,18 +7,23 @@ local rename_file = require("nvim-lsp-ts-utils.rename-file")
 local defer = vim.defer_fn
 
 local should_handle = function(filename)
-    -- filters out temporary neovim files and invalid filenames
-    -- also filters out directories, which need special handling
-    return u.file.is_tsserver_filename(filename)
+    -- filters out temporary neovim files and invalid filetypes
+    return u.file.has_tsserver_extension(filename)
 end
 
-local should_ignore_event = function(source, path)
+local should_ignore_event = function(source, target)
     -- ignore rename event when a file is saved
-    if source == path then return true end
-    -- ignore rename event when a file is deleted
-    if not u.file.exists(path) then return true end
+    if source == target then return true end
 
-    return false
+    local stat = u.file.stat(target)
+    -- ignore nonexistent target
+    if not stat then return true end
+
+    local is_dir = stat.type == "directory"
+    -- if source looks like a directory, make sure target actually is a directory
+    if u.file.extension(source) == "" and not is_dir then return true end
+
+    return false, is_dir
 end
 
 local unwatch, source
@@ -29,15 +34,14 @@ local handle_event = function(dir, filename)
     if not source then
         source = path
         -- clear source after timeout to avoid triggering on non-move events
-        -- 5 ms is generous, since uv.hrtime says the gap between the 2 events
-        -- should rarely exceed 1-2 ms
         defer(function() source = nil end, 5)
         return
     end
 
-    if should_ignore_event(source, path) then
-        -- try to detect when the user is writing / deleting files and ignore all events
-        -- especially relevant when running :wa after a big update
+    local target = path
+    -- try to detect when the user is writing / deleting files and briefly ignore events
+    local should_ignore, is_dir = should_ignore_event(source, target)
+    if should_ignore then
         s.ignore()
         source = nil
         return
@@ -46,9 +50,9 @@ local handle_event = function(dir, filename)
     if source then
         u.debug_log("attempting to update imports")
         u.debug_log("source: " .. source)
-        u.debug_log("target: " .. path)
+        u.debug_log("target: " .. target)
 
-        rename_file.on_move(source, path)
+        rename_file.on_move(source, target, is_dir)
         source = nil
     end
 end

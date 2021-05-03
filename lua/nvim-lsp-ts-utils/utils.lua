@@ -85,7 +85,11 @@ M.file = {
 
     exists = function(path)
         local file = uv.fs_open(path, "r", 438)
-        return file and true or false
+        if file then
+            uv.fs_close(file)
+            return true
+        end
+        return false
     end,
 
     check_ft = function(bufnr)
@@ -96,9 +100,22 @@ M.file = {
         end
     end,
 
-    is_tsserver_filename = function(filename)
-        return M.table.contains(tsserver_extensions,
-                                vim.fn.fnamemodify(filename, ":e"))
+    stat = function(path)
+        local fd = uv.fs_open(path, "r", 438)
+        if not fd then return nil end
+
+        local stat = uv.fs_fstat(fd)
+        uv.fs_close(fd)
+        return stat
+    end,
+
+    extension = function(filename) return vim.fn.fnamemodify(filename, ":e") end,
+
+    has_tsserver_extension = function(filename)
+        local extension = M.file.extension(filename)
+        -- assume no extension == directory (which needs to be validated)
+        return extension == "" or
+                   M.table.contains(tsserver_extensions, extension)
     end
 }
 

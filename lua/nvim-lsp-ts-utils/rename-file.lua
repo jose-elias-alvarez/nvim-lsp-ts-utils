@@ -2,6 +2,7 @@ local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 local s = require("nvim-lsp-ts-utils.state")
 
+local uv = vim.loop
 local lsp = vim.lsp
 local api = vim.api
 
@@ -51,7 +52,7 @@ M.manual = function(target)
     vim.cmd(bufnr .. "bwipeout!")
 end
 
-M.on_move = function(source, target)
+M.on_move = function(source, target, is_dir)
     if source == target then return end
 
     if o.get().require_confirmation_on_move then
@@ -60,30 +61,35 @@ M.on_move = function(source, target)
         if confirm ~= 1 then return end
     end
 
-    local source_bufnr = u.buffer.bufnr(source)
-    local target_bufnr = u.buffer.bufnr(target)
+    local source_bufnr, target_bufnr
+    if not is_dir then
+        source_bufnr = u.buffer.bufnr(source)
+        target_bufnr = u.buffer.bufnr(target)
+    end
     if target_bufnr then vim.cmd(target_bufnr .. "bwipeout!") end
 
-    -- coc.nvim prefers using bufadd and bufload on recent vim versions,
-    -- but it seems that the target needs to be open in an active window
-    -- in order for execute_command to do anything
+    -- when the focused window contains a terminal buffer,
+    -- execute_command only seems to work when the target file(s) are open
     if vim.bo.buftype == "terminal" then
         local terminal_win = api.nvim_get_current_win()
-        vim.cmd([[noa keepalt 1new +setl\ bufhidden=wipe]])
-        vim.cmd([[noa edit +setl\ bufhidden=hide ]] .. target)
-        vim.cmd([[filetype detect]])
+        -- open target in a split window (a lousy workaround, but it works)
+        if is_dir then
+            -- opening directories doesn't work, so get and open first file in directory
+            local handle = uv.fs_scandir(target)
+            local file = uv.fs_scandir_next(handle)
+            vim.cmd("new " .. target .. "/" .. file)
+        else
+            vim.cmd("new " .. target)
+        end
         rename_file(source, target)
 
-        -- try to prevent closing last non-floating window
-        -- this behaves terribly if the moves multiple loaded files and needs a better solution
-        if not source_bufnr or api.nvim_win_get_config(terminal_win).relative ~=
-            "editor" then vim.cmd([[noa close]]) end
-        if source_bufnr then vim.cmd(source_bufnr .. "bwipeout!") end
+        -- return to terminal window
         vim.api.nvim_set_current_win(terminal_win)
     else
-        -- non-terminal buffers don't need any special handling, except to close and re-open
-        -- moved file(s) if they were open
+        -- no special handling for regular buffers
         rename_file(source, target)
+
+        -- close and reopen renamed file(s)
         if source_bufnr then
             vim.cmd("e " .. target)
             vim.cmd(source_bufnr .. "bwipeout!")
