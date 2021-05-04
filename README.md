@@ -294,11 +294,9 @@ Thank you for helping the plugin grow and improve!
 
 I've covered most of the current functions with LSP integration tests using
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim), which you can run by
-running `make test`.
-
-Note that the current test suite requires you to have Plenary and nvim-lspconfig
-installed via [packer.nvim](https://github.com/wbthomason/packer.nvim) due to my
-complete ignorance about `runtimepath` and `packpath`. Sorry!
+running `make test`. The test suite has the same requirements as the plugin, and
+testing ESLint code actions and formatting requires `eslint` and `prettier` to
+be on your `$PATH`.
 
 ## Goals
 
