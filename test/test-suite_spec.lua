@@ -58,6 +58,18 @@ describe("request-handlers", function()
         assert.equals(vim.fn.search("===", "nwp"), 1)
     end)
 
+    it("should add disable rule comment with matching indentation", function()
+        edit_test_file("eslint-code-fix.js")
+        vim.wait(500)
+        vim.cmd("2")
+
+        ts_utils.fix_current(2)
+        vim.wait(500)
+
+        assert.equals(get_file_content()[2],
+                      "  // eslint-disable-next-line eqeqeq")
+    end)
+
     it("should show eslint diagnostics", function()
         edit_test_file("eslint-code-fix.js")
         ts_utils.diagnostics()

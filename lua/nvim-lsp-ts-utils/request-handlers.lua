@@ -43,18 +43,19 @@ local push_fix_code_action = function(problem, range, text_document, actions)
                  create_edit_action(title, new_text, range, text_document))
 end
 
-local push_disable_code_actions = function(problem, current_line, text_document,
-                                           actions, rules)
+local push_disable_code_actions = function(problem, row, indentation,
+                                           text_document, actions, rules)
     local rule_id = problem.ruleId
     if (u.table.contains(rules, rule_id)) then return end
     table.insert(rules, rule_id)
 
     local line_title = "Disable ESLint rule " .. problem.ruleId ..
                            " for this line"
-    local line_new_text = "// eslint-disable-next-line " .. rule_id .. "\n"
+    local line_new_text = indentation .. "// eslint-disable-next-line " ..
+                              rule_id .. "\n"
     local line_range = {
-        start = {line = current_line, character = 0},
-        ["end"] = {line = current_line, character = 0}
+        start = {line = row, character = 0},
+        ["end"] = {line = row, character = 0}
     }
 
     local doc_title = "Disable ESLint rule " .. problem.ruleId ..
@@ -123,6 +124,8 @@ end
 local parse_eslint_messages = function(messages, actions)
     local text_document = lsp.util.make_text_document_params()
     local row = api.nvim_win_get_cursor(0)[1] - 1
+    local indentation = string.match(u.buffer.line(row + 1), "^%s+")
+    if not indentation then indentation = "" end
 
     local rules = {}
     for _, problem in ipairs(messages) do
@@ -140,8 +143,8 @@ local parse_eslint_messages = function(messages, actions)
                                  actions)
         end
         if problem.ruleId and o.get().eslint_enable_disable_comments then
-            push_disable_code_actions(problem, row, text_document, actions,
-                                      rules)
+            push_disable_code_actions(problem, row, indentation, text_document,
+                                      actions, rules)
         end
     end
 end
