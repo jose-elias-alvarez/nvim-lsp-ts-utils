@@ -1,11 +1,10 @@
-local json = require("json")
-
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
 local loop = require("nvim-lsp-ts-utils.loop")
 
 local api = vim.api
 local lsp = vim.lsp
+local json_decode = vim.fn.json_decode
 
 local eslint_bin, formatter_bin
 
@@ -173,7 +172,7 @@ local eslint_handler = function(bufnr, handler)
             return
         end
 
-        local ok, parsed = pcall(json.decode, output)
+        local ok, parsed = pcall(json_decode, output)
         local eslint_err
         if not ok then
             if string.match(output, "Error") then
