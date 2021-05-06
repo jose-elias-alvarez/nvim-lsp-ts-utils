@@ -2,7 +2,6 @@ local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 local s = require("nvim-lsp-ts-utils.state")
 
-local uv = vim.loop
 local lsp = vim.lsp
 local api = vim.api
 
@@ -16,6 +15,14 @@ local rename_file = function(source, target)
             }
         }
     })
+end
+
+-- needs testing with additional file manager plugins
+local special_filetypes = {"netrw", "dirvish", "nerdtree"}
+
+local in_special_buffer = function()
+    return vim.bo.buftype ~= "" or
+               vim.tbl_contains(special_filetypes, vim.bo.filetype)
 end
 
 local M = {}
@@ -61,40 +68,34 @@ M.on_move = function(source, target, is_dir)
         if confirm ~= 1 then return end
     end
 
-    local source_bufnr, target_bufnr
-    if not is_dir then
-        source_bufnr = u.buffer.bufnr(source)
-        target_bufnr = u.buffer.bufnr(target)
-    end
-    if target_bufnr then vim.cmd(target_bufnr .. "bwipeout!") end
+    local source_bufnr = is_dir and nil or u.buffer.bufnr(source)
 
-    -- when the focused window contains a terminal buffer,
-    -- execute_command only seems to work when the target file(s) are open
-    if vim.bo.buftype == "terminal" then
-        local terminal_win = api.nvim_get_current_win()
-        -- open target in a split window (a lousy workaround, but it works)
+    -- workspace/applyEdit needs to load buffers, so some buffer types neeed special handling
+    if in_special_buffer() then
+        local original_buffer = api.nvim_win_get_buf(0)
+        local buffer_to_add = target
         if is_dir then
-            -- opening directories doesn't work, so get and open first file in directory
-            local handle = uv.fs_scandir(target)
-            local file = uv.fs_scandir_next(handle)
-            vim.cmd("new " .. target .. "/" .. file)
-        else
-            vim.cmd("new " .. target)
+            -- opening directories doesn't work, so load first file in directory as a workaround
+            buffer_to_add = target .. "/" .. u.file.dir_file(target, 1)
         end
+
+        -- temporarily load buffer into window
+        local target_bufnr = vim.fn.bufadd(buffer_to_add)
+        vim.fn.bufload(buffer_to_add)
+        vim.fn.setbufvar(target_bufnr, "&buflisted", 1)
+        api.nvim_win_set_buf(0, target_bufnr)
+
         rename_file(source, target)
 
-        -- return to terminal window
-        vim.api.nvim_set_current_win(terminal_win)
+        -- restore original buffer after rename
+        api.nvim_win_set_buf(0, original_buffer)
     else
-        -- no special handling for regular buffers
         rename_file(source, target)
-
-        -- close and reopen renamed file(s)
-        if source_bufnr then
-            vim.cmd("e " .. target)
-            vim.cmd(source_bufnr .. "bwipeout!")
-        end
+        -- if source was loaded, edit target, since source will be closed
+        if source_bufnr then vim.cmd("e " .. target) end
     end
+
+    if source_bufnr then vim.cmd(source_bufnr .. "bwipeout!") end
 end
 
 return M

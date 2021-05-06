@@ -83,6 +83,15 @@ M.file = {
         if not force and not ok then error("failed to remove " .. path) end
     end,
 
+    dir_file = function(dir, index)
+        local handle = uv.fs_scandir(dir)
+        for i = 1, index do
+            local file = uv.fs_scandir_next(handle)
+            if i == index and file then return file end
+        end
+        return nil
+    end,
+
     exists = function(path)
         local file = uv.fs_open(path, "r", 438)
         if file then
