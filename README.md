@@ -68,6 +68,16 @@ make some things faster, but at the moment it's not strictly required.
   of time, which you can change by setting `import_on_completion_timeout` in
   your setup function (`0` disables this behavior).
 
+- Fix invalid ranges
+
+  `tsserver` uses non-compliant ranges in some code actions (most notably "Move
+  to a new file"), which makes them [not work properly in
+  Neovim](https://github.com/neovim/neovim/issues/14469). The plugin fixes these
+  ranges so that the affected actions work as expected.
+
+  This feature is enabled by calling `setup_client` in your configuration (see
+  below).
+
 - ESLint code actions
 
   Parses ESLint JSON output for the current file, converts fixes into code
