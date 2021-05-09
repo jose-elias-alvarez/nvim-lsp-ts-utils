@@ -5,6 +5,7 @@ local api = vim.api
 local lsp = vim.lsp
 
 local add_parens = function(bufnr)
+    if vim.fn.mode() ~= "i" then return end
     local row, col = u.cursor.pos()
     -- check next char to prevent ()()
     local next_char = string.sub(u.buffer.line(row), col + 1, col + 1)
@@ -21,8 +22,7 @@ local fix_position = function(result)
         result.additionalTextEdits[1].newText) then return end
 
     local new_text = result.additionalTextEdits[1].newText
-    local newlines = 0
-    for _ in string.gmatch(new_text, "\n") do newlines = newlines + 1 end
+    local _, newlines = string.gsub(new_text, "\n", "")
 
     local row, col = u.cursor.pos()
     u.cursor.set(row + newlines, col)
@@ -37,12 +37,8 @@ end
 
 local M = {}
 M.enable = function()
-    vim.api.nvim_exec([[
-    augroup TSLspImportOnCompletion
-        autocmd! * <buffer>
-        autocmd CompleteDone <buffer> lua require'nvim-lsp-ts-utils'.import_on_completion()
-    augroup END
-    ]], false)
+    u.define_buf_augroup("TSLspImportOnCompletion", "CompleteDone",
+                         "import_on_completion()")
 end
 
 local last_imported = ""

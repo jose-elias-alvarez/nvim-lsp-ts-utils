@@ -68,6 +68,16 @@ make some things faster, but at the moment it's not strictly required.
   of time, which you can change by setting `import_on_completion_timeout` in
   your setup function (`0` disables this behavior).
 
+- Fix invalid ranges
+
+  `tsserver` uses non-compliant ranges in some code actions (most notably "Move
+  to a new file"), which makes them [not work properly in
+  Neovim](https://github.com/neovim/neovim/issues/14469). The plugin fixes these
+  ranges so that the affected actions work as expected.
+
+  This feature is enabled by calling `setup_client` in your configuration (see
+  below).
+
 - ESLint code actions
 
   Parses ESLint JSON output for the current file, converts fixes into code
@@ -171,6 +181,22 @@ make some things faster, but at the moment it's not strictly required.
   for instructions on setting up `eslint_d`, which supports running both at
   once.
 
+- Update imports on file move
+
+  Watches a given directory for file move / rename events (even from outside of
+  Neovim!) and updates imports accordingly.
+
+  Supports the following settings:
+
+  - `update_imports_on_move`: enables this feature. Set to `false` by default.
+
+  - `require_confirmation_on_move`: if `true`, prompts for confirmation before
+    updating imports. Set to `false` by default.
+
+  - `watch_dir`: sets the directory that the plugin will watch for changes,
+    relative to your root path (where `tsconfig.json` or `package.json` is
+    located). Set to `/src` by default.
+
 - Parentheses completion
 
   Automatically inserts `()` after confirming completion on a function, method,
@@ -201,10 +227,11 @@ nvim_lsp.tsserver.setup {
 
         -- defaults
         ts_utils.setup {
-            disable_commands = false,
             debug = false,
+            disable_commands = false,
             enable_import_on_completion = false,
             import_on_completion_timeout = 5000,
+
             -- eslint
             eslint_bin = "eslint",
             eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
@@ -214,15 +241,22 @@ nvim_lsp.tsserver.setup {
             -- eslint diagnostics
             eslint_enable_diagnostics = false,
             eslint_diagnostics_debounce = 250,
+
             -- formatting
             enable_formatting = false,
             formatter = "prettier",
             formatter_args = {"--stdin-filepath", "$FILENAME"},
             format_on_save = false,
             no_save_after_format = false,
+
             -- parentheses completion
             complete_parens = false,
             signature_help_in_parens = false,
+
+	    -- update imports on file move
+	    update_imports_on_move = false,
+	    require_confirmation_on_move = false,
+	    watch_dir = "/src",
         }
 
         -- required to enable ESLint code actions and formatting
@@ -270,11 +304,9 @@ Thank you for helping the plugin grow and improve!
 
 I've covered most of the current functions with LSP integration tests using
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim), which you can run by
-running `make test`.
-
-Note that the current test suite requires you to have Plenary and nvim-lspconfig
-installed via [packer.nvim](https://github.com/wbthomason/packer.nvim) due to my
-complete ignorance about `runtimepath` and `packpath`. Sorry!
+running `make test`. The test suite has the same requirements as the plugin, and
+testing ESLint code actions and formatting requires `eslint` and `prettier` to
+be on your `$PATH`.
 
 ## Goals
 
@@ -291,10 +323,3 @@ complete ignorance about `runtimepath` and `packpath`. Sorry!
   output, the plugin should be able to handle them in the same way it handles
   ESLint. I'm a little concerned about speed and handling output from more than
   one linter, so I'd appreciate input from users of these linters.
-
-- [ ] Watch project files and update imports on change.
-
-  An early version of this feature is available on the plugin's `develop`
-  branch, if you are brave enough to help test it. See [this
-  issue](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils/issues/20) for
-  details / progress updates.

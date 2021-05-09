@@ -1,9 +1,10 @@
-local json = require("json")
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
+local loop = require("nvim-lsp-ts-utils.loop")
 
 local api = vim.api
 local lsp = vim.lsp
+local json_decode = vim.fn.json_decode
 
 local eslint_bin, formatter_bin
 
@@ -41,18 +42,19 @@ local push_fix_code_action = function(problem, range, text_document, actions)
                  create_edit_action(title, new_text, range, text_document))
 end
 
-local push_disable_code_actions = function(problem, current_line, text_document,
-                                           actions, rules)
+local push_disable_code_actions = function(problem, row, indentation,
+                                           text_document, actions, rules)
     local rule_id = problem.ruleId
     if (u.table.contains(rules, rule_id)) then return end
     table.insert(rules, rule_id)
 
     local line_title = "Disable ESLint rule " .. problem.ruleId ..
                            " for this line"
-    local line_new_text = "// eslint-disable-next-line " .. rule_id .. "\n"
+    local line_new_text = indentation .. "// eslint-disable-next-line " ..
+                              rule_id .. "\n"
     local line_range = {
-        start = {line = current_line, character = 0},
-        ["end"] = {line = current_line, character = 0}
+        start = {line = row, character = 0},
+        ["end"] = {line = row, character = 0}
     }
 
     local doc_title = "Disable ESLint rule " .. problem.ruleId ..
@@ -121,6 +123,8 @@ end
 local parse_eslint_messages = function(messages, actions)
     local text_document = lsp.util.make_text_document_params()
     local row = api.nvim_win_get_cursor(0)[1] - 1
+    local indentation = string.match(u.buffer.line(row + 1), "^%s+")
+    if not indentation then indentation = "" end
 
     local rules = {}
     for _, problem in ipairs(messages) do
@@ -138,8 +142,8 @@ local parse_eslint_messages = function(messages, actions)
                                  actions)
         end
         if problem.ruleId and o.get().eslint_enable_disable_comments then
-            push_disable_code_actions(problem, row, text_document, actions,
-                                      rules)
+            push_disable_code_actions(problem, row, indentation, text_document,
+                                      actions, rules)
         end
     end
 end
@@ -156,7 +160,7 @@ local eslint_handler = function(bufnr, handler)
     if not eslint_bin then eslint_bin = u.find_bin(o.get().eslint_bin) end
     local args = u.parse_args(o.get().eslint_args, bufnr)
 
-    u.loop.buf_to_stdin(eslint_bin, args, function(error_output, output)
+    loop.buf_to_stdin(eslint_bin, args, function(error_output, output)
         -- don't attempt to parse after error
         if error_output then
             handler(error_output, nil)
@@ -168,7 +172,7 @@ local eslint_handler = function(bufnr, handler)
             return
         end
 
-        local ok, parsed = pcall(json.decode, output)
+        local ok, parsed = pcall(json_decode, output)
         local eslint_err
         if not ok then
             if string.match(output, "Error") then
@@ -193,9 +197,9 @@ local format = function(formatter, args, bufnr)
         formatter_bin = u.find_bin(formatter)
     end
 
-    u.loop.buf_to_stdin(formatter_bin, parsed_args,
-                        function(error_output, output)
+    loop.buf_to_stdin(formatter_bin, parsed_args, function(error_output, output)
         if error_output or not output then return end
+        if not api.nvim_buf_is_loaded(bufnr) then return end
 
         api.nvim_buf_set_lines(bufnr, 0, api.nvim_buf_line_count(bufnr), false,
                                u.string.split_at_newline(output))
@@ -206,10 +210,35 @@ local format = function(formatter, args, bufnr)
 end
 M.format = format
 
+local fix_range = function(range)
+    if range["end"].character == -1 then range["end"].character = 0 end
+    if range["end"].line == -1 then range["end"].line = 0 end
+    if range.start.character == -1 then range.start.character = 0 end
+    if range.start.line == -1 then range.start.line = 0 end
+end
+
+local validate_changes = function(changes)
+    for _, _change in pairs(changes) do
+        for _, change in ipairs(_change) do
+            if change.range then fix_range(change.range) end
+        end
+    end
+end
+
+local edit_handler = function(_, _, workspace_edit)
+    if workspace_edit.edit and workspace_edit.edit.changes then
+        validate_changes(workspace_edit.edit.changes)
+    end
+    local status, result = pcall(lsp.util.apply_workspace_edit,
+                                 workspace_edit.edit)
+    return {applied = status, failureReason = result}
+end
+
 M.setup_client = function(client)
     if client.ts_utils_setup_complete then return end
+    client.handlers["workspace/applyEdit"] = edit_handler
 
-    local original = client.request
+    local original_request = client.request
     client.request = function(method, params, handler, bufnr)
         handler = handler or lsp.handlers[method]
 
@@ -224,7 +253,7 @@ M.setup_client = function(client)
                     end)
                 end)
             end
-            return original(method, params, inject_handler, bufnr)
+            return original_request(method, params, inject_handler, bufnr)
         end
 
         if method == "textDocument/formatting" and o.get().enable_formatting then
@@ -233,7 +262,7 @@ M.setup_client = function(client)
             return false
         end
 
-        return original(method, params, handler, bufnr)
+        return original_request(method, params, handler, bufnr)
     end
     client.ts_utils_setup_complete = true
 end

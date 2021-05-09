@@ -5,6 +5,9 @@ local options = {
     signature_help_in_parens = false,
     import_on_completion_timeout = 5000,
     debug = false,
+    update_imports_on_move = false,
+    require_confirmation_on_move = false,
+    watch_dir = "/src",
     -- eslint
     eslint_bin = "eslint",
     eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},

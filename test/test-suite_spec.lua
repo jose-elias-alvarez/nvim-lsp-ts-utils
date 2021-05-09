@@ -1,6 +1,9 @@
 local o = require("nvim-lsp-ts-utils.options")
+local s = require("nvim-lsp-ts-utils.state")
+local u = require("nvim-lsp-ts-utils.utils")
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
+local watcher = require("nvim-lsp-ts-utils.watcher")
 
 local pwd = vim.api.nvim_exec("pwd", true) .. "/"
 local base_path = "test/files/"
@@ -9,12 +12,11 @@ local full_path = pwd .. base_path
 local edit_test_file = function(name) vim.cmd("e " .. base_path .. name) end
 
 local copy_test_file = function(original, target)
-    os.execute("cp " .. full_path .. original .. " " .. full_path .. target)
+    u.file.cp(full_path .. original, full_path .. target)
 end
 
-local delete_test_file = function(target)
-    os.execute("rm " .. full_path .. target .. " 2> /dev/null")
-end
+local delete_test_file =
+    function(target) u.file.rm(full_path .. target, true) end
 
 local get_file_content = function()
     return vim.api.nvim_buf_get_lines(0, 0, -1, false)
@@ -54,6 +56,18 @@ describe("request-handlers", function()
 
         -- check that eslint fix has been applied, replacing == with ===
         assert.equals(vim.fn.search("===", "nwp"), 1)
+    end)
+
+    it("should add disable rule comment with matching indentation", function()
+        edit_test_file("eslint-code-fix.js")
+        vim.wait(500)
+        vim.cmd("2")
+
+        ts_utils.fix_current(2)
+        vim.wait(500)
+
+        assert.equals(get_file_content()[2],
+                      "  // eslint-disable-next-line eqeqeq")
     end)
 
     it("should show eslint diagnostics", function()
@@ -169,6 +183,8 @@ describe("organize_imports", function()
 end)
 
 local rename_file_setup = function()
+    s.reset()
+
     copy_test_file("file-to-be-moved.orig.ts", "file-to-be-moved.ts")
     copy_test_file("linked-file.orig.ts", "linked-file.ts")
     copy_test_file("existing-file.orig.ts", "existing-file.ts")
@@ -176,6 +192,7 @@ end
 
 local rename_file_breakdown = function()
     vim.cmd("bufdo! bwipeout!")
+    watcher.stop()
 
     delete_test_file("new-path.ts")
     delete_test_file("linked-file.ts")
@@ -209,21 +226,7 @@ describe("rename_file", function()
         assert.same(original_content, new_content)
     end)
 
-    it("should update imports in linked file", function()
-        rename_file_setup()
-        edit_test_file("file-to-be-moved.ts")
-        vim.wait(1000)
-
-        local new_path = full_path .. "new-path.ts"
-        ts_utils.rename_file(new_path)
-        vim.wait(200)
-
-        edit_test_file("linked-file.ts")
-        assert.equals(vim.fn.search("new-path", "nw"), 1)
-    end)
-
     it("should overwrite existing file", function()
-        rename_file_setup()
         edit_test_file("existing-file.ts")
         local original_content = get_file_content()
 
@@ -235,5 +238,57 @@ describe("rename_file", function()
 
         local new_content = get_file_content()
         assert.is.Not.same(original_content, new_content)
+    end)
+
+    it("should update imports in linked file on manual rename", function()
+        edit_test_file("file-to-be-moved.ts")
+        vim.wait(1000)
+
+        local new_path = full_path .. "new-path.ts"
+        ts_utils.rename_file(new_path)
+        vim.wait(200)
+
+        edit_test_file("linked-file.ts")
+        assert.equals(vim.fn.search("new-path", "nw"), 1)
+    end)
+
+    it("should update imports in linked file on move", function()
+        edit_test_file("file-to-be-moved.ts")
+        watcher.start()
+        vim.wait(1000)
+
+        local new_path = full_path .. "new-path.ts"
+        u.file.mv(full_path .. "file-to-be-moved.ts", new_path)
+        vim.wait(200)
+
+        edit_test_file("linked-file.ts")
+        assert.equals(vim.fn.search("new-path", "nw"), 1)
+    end)
+end)
+
+describe("edit_handler", function()
+    before_each(function()
+        copy_test_file("move-to-new-file.orig.ts", "move-to-new-file.ts")
+    end)
+    after_each(function()
+        delete_test_file("move-to-new-file.ts")
+        delete_test_file("functionToMove.ts")
+    end)
+
+    it("should fix range and make code action actually work", function()
+        edit_test_file("move-to-new-file.ts")
+        vim.wait(1000)
+        vim.api.nvim_win_set_cursor(0, {3, 10})
+
+        ts_utils.fix_current()
+        vim.wait(500)
+
+        assert.equals(u.file.exists(full_path .. "functionToMove.ts"), true)
+        assert.equals(get_file_content()[1],
+                      [[import { functionToMove } from "./functionToMove";]])
+
+        edit_test_file("functionToMove.ts")
+        assert.equals(get_file_content()[3],
+                      "export function functionToMove() {")
     end)
 end)

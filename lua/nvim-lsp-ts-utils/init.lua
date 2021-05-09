@@ -8,13 +8,18 @@ local import_all = require("nvim-lsp-ts-utils.import-all")
 local fix_current = require("nvim-lsp-ts-utils.fix-current")
 local rename_file = require("nvim-lsp-ts-utils.rename-file")
 local import_on_completion = require("nvim-lsp-ts-utils.import-on-completion")
+local watcher = require("nvim-lsp-ts-utils.watcher")
 
 local M = {}
 M.organize_imports = organize_imports.async
 M.organize_imports_sync = organize_imports.sync
 
 M.fix_current = fix_current
-M.rename_file = rename_file
+
+M.rename_file = rename_file.manual
+M.start_watcher = watcher.start
+M.stop_watcher = watcher.stop
+M.restart_watcher = watcher.restart
 
 M.setup_client = request_handlers.setup_client
 M.format = request_handlers.format
@@ -33,6 +38,7 @@ M.setup = function(user_options)
     if o.get().eslint_enable_diagnostics then
         request_handlers.enable_diagnostics()
     end
+    if o.get().update_imports_on_move then watcher.start() end
 end
 
 M.code_action_handler = function() u.removed_warning("code_action_handler") end
