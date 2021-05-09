@@ -265,3 +265,30 @@ describe("rename_file", function()
         assert.equals(vim.fn.search("new-path", "nw"), 1)
     end)
 end)
+
+describe("edit_handler", function()
+    before_each(function()
+        copy_test_file("move-to-new-file.orig.ts", "move-to-new-file.ts")
+    end)
+    after_each(function()
+        delete_test_file("move-to-new-file.ts")
+        delete_test_file("functionToMove.ts")
+    end)
+
+    it("should fix range and make code action actually work", function()
+        edit_test_file("move-to-new-file.ts")
+        vim.wait(1000)
+        vim.api.nvim_win_set_cursor(0, {3, 10})
+
+        ts_utils.fix_current()
+        vim.wait(500)
+
+        assert.equals(u.file.exists(full_path .. "functionToMove.ts"), true)
+        assert.equals(get_file_content()[1],
+                      [[import { functionToMove } from "./functionToMove";]])
+
+        edit_test_file("functionToMove.ts")
+        assert.equals(get_file_content()[3],
+                      "export function functionToMove() {")
+    end)
+end)
