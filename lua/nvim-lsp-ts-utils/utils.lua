@@ -20,11 +20,6 @@ M.echo_warning = function(message)
                       {})
 end
 
-M.removed_warning = function(method)
-    M.echo_warning(method ..
-                       " has been removed! Please see the readme for instructions.")
-end
-
 M.debug_log = function(target)
     if not o.get().debug then return end
 
