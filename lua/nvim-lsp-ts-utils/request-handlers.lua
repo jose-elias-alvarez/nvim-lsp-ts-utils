@@ -311,24 +311,19 @@ end
 
 M.diagnostics = get_diagnostics
 
-M.enable_diagnostics = function(bufnr)
-    if not bufnr then bufnr = api.nvim_get_current_buf() end
+M.enable_diagnostics = function()
+    local bufnr = api.nvim_get_current_buf()
 
-    local debouncing = false
+    local callback = vim.schedule_wrap(function() get_diagnostics(bufnr) end)
+    -- immediately get buffer diagnostics
+    local timer = loop.timer(0, nil, true, callback)
+
     api.nvim_buf_attach(bufnr, false, {
         on_lines = function()
-            if debouncing then return end
-
-            get_diagnostics(bufnr)
-
-            debouncing = true
-            vim.defer_fn(function() debouncing = false end,
-                         o.get().eslint_diagnostics_debounce)
+            -- restart timer on text change
+            timer.restart(o.get().eslint_diagnostics_debounce)
         end
     })
-
-    -- trigger on lsp attach to get initial diagnostics
-    get_diagnostics(bufnr)
 end
 
 return M

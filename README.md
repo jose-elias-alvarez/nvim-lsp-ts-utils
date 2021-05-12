@@ -119,9 +119,9 @@ make some things faster, but at the moment it's not strictly required.
     buffer on `tsserver` attach. Set to `false` by default.
 
   - `eslint_diagnostics_debounce`: to simulate LSP behavior, the plugin
-    subscribes to buffer changes and gets / refreshes ESLint diagnostics on
-    change. This variable modifies the amount of time between diagnostic
-    refreshes. Set to `250` (ms) by default.
+    subscribes to buffer changes and refreshes ESLint diagnostics on change.
+    This variable modifies the amount of time between the last change and the
+    next refresh. Set to `250` (ms) by default.
 
   - `eslint_bin` and `eslint_args`: applies the same settings as ESLint code
     actions.

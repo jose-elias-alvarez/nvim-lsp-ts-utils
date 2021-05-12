@@ -109,4 +109,16 @@ M.watch_dir = function(dir, opts)
     uv.fs_event_start(handle, dir, {recursive = true}, callback)
 end
 
+M.timer = function(timeout, interval, start, callback)
+    local timer = vim.loop.new_timer()
+    local restart = function(new_timeout, new_interval)
+        timer:stop()
+        timer:start(new_timeout or timeout, new_interval or interval or 0,
+                    callback)
+    end
+
+    if start then timer:start(timeout, interval or 0, callback) end
+    return {_timer = timer, restart = restart}
+end
+
 return M
