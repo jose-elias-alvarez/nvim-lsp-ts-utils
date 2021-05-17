@@ -88,6 +88,8 @@ make some things faster, but at the moment it's not strictly required.
 
   Supports the following settings:
 
+  - `eslint_enable_code_actions`: enables ESLint code actions. Set to `true` by default.
+
   - `eslint_bin`: sets the binary used to get ESLint output. Looks for a local
     executable in `node_modules` and falls back to a system-wide executable,
     which must be available on your `$PATH`.

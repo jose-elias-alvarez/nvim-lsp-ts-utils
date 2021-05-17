@@ -243,7 +243,8 @@ M.setup_client = function(client)
         handler = handler or lsp.handlers[method]
 
         -- internal methods (currently import_all) may want to skip this
-        if method == "textDocument/codeAction" and not params.skip_eslint then
+        if method == "textDocument/codeAction" and
+            o.get().eslint_enable_code_actions and not params.skip_eslint then
             local inject_handler = function(err, _, actions, client_id, _,
                                             config)
                 eslint_handler(bufnr, function(eslint_err, parsed)

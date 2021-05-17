@@ -9,6 +9,7 @@ local options = {
     require_confirmation_on_move = false,
     watch_dir = "/src",
     -- eslint
+    eslint_enable_code_actions = true,
     eslint_bin = "eslint",
     eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
     eslint_enable_diagnostics = false,
