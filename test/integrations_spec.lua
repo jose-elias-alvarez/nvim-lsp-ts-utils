@@ -2,6 +2,7 @@ local has_null_ls, null_ls = pcall(require, "null-ls")
 
 local ts_utils = require("nvim-lsp-ts-utils")
 local integrations = require("nvim-lsp-ts-utils.integrations")
+local o = require("nvim-lsp-ts-utils.options")
 
 local base_path = "test/files/"
 
@@ -18,6 +19,7 @@ describe("integrations", function()
     end
 
     describe("null_ls", function()
+        o.set({enable_eslint_code_actions = true})
         null_ls.setup {}
         integrations.setup()
 
