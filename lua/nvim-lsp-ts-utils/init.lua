@@ -32,7 +32,7 @@ M.import_all = import_all
 
 M.setup = function(user_options)
     o.set(user_options)
-    if not o.get().disable_integrations then integrations.setup() end
+    if not o.get()._disable_integrations then integrations.setup() end
 
     define_commands()
 

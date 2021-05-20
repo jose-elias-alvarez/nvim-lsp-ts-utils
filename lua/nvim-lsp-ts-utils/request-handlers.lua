@@ -304,9 +304,10 @@ local handle_eslint_diagnostics = function(err, parsed, bufnr)
 end
 
 local get_diagnostics = function(bufnr)
-    if not bufnr then bufnr = api.nvim_get_current_buf() end
+    -- this condition won't happen under normal circumstances but can during testing
+    if s.get().null_ls then return end
 
-    eslint_handler(bufnr, function(err, parsed)
+    eslint_handler(bufnr or api.nvim_get_current_buf(), function(err, parsed)
         handle_eslint_diagnostics(err, parsed, bufnr)
     end)
 end

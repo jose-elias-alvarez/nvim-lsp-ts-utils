@@ -13,7 +13,7 @@ require'lspconfig'.tsserver.setup {
         ts_utils.setup {
             no_save_after_format = true,
             watch_dir = "",
-            disable_integrations = true
+            _disable_integrations = true
         }
         ts_utils.setup_client(client)
     end

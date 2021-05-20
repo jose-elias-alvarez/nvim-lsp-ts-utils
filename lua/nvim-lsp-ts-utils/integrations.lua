@@ -1,14 +1,18 @@
+local ok, null_ls = pcall(require, "null-ls")
+
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 local s = require("nvim-lsp-ts-utils.state")
 
-local ok, null_ls = pcall(require, "null-ls")
+local api = vim.api
+local set_lines = vim.api.nvim_buf_set_lines
+local set_text = vim.api.nvim_buf_set_text
 
 local M = {}
 
 local convert_offset = function(row, params, start_offset, end_offset)
     local start_char, end_char
-    local line_offset = vim.api.nvim_buf_get_offset(params.bufnr, row)
+    local line_offset = api.nvim_buf_get_offset(params.bufnr, row)
     local line_end_char = string.len(params.content[row + 1])
     for j = 0, line_end_char do
         local char_offset = line_offset + j
@@ -19,7 +23,8 @@ local convert_offset = function(row, params, start_offset, end_offset)
 end
 
 local is_fixable = function(problem, row)
-    if not problem or problem.line == nil then return false end
+    if not problem or not problem.line then return false end
+
     if problem.endLine ~= nil then
         return problem.line - 1 <= row and problem.endLine - 1 >= row
     end
@@ -29,9 +34,9 @@ local is_fixable = function(problem, row)
 end
 
 local get_message_range = function(problem)
-    local row = (problem.line and problem.line > 0 and problem.line - 1) or 0
-    local col =
-        (problem.column and problem.column > 0 and problem.column - 1) or 0
+    local row = problem.line and problem.line > 0 and problem.line - 1 or 0
+    local col = problem.column and problem.column > 0 and problem.column - 1 or
+                    0
     local end_row = problem.endLine and problem.endLine - 1 or 0
     local end_col = problem.endColumn and problem.endColumn - 1 or 0
 
@@ -51,8 +56,8 @@ local generate_edit_action = function(title, new_text, range, params)
     return {
         title = title,
         action = function()
-            vim.api.nvim_buf_set_text(params.bufnr, range.row, range.col,
-                                      range.end_row, range.end_col, {new_text})
+            set_text(params.bufnr, range.row, range.col, range.end_row,
+                     range.end_col, {new_text})
         end
     }
 end
@@ -61,8 +66,7 @@ local generate_edit_line_action = function(title, new_text, row, params)
     return {
         title = title,
         action = function()
-            vim.api
-                .nvim_buf_set_lines(params.bufnr, row, row, false, {new_text})
+            set_lines(params.bufnr, row, row, false, {new_text})
         end
     }
 end
@@ -85,7 +89,7 @@ end
 
 local generate_disable_actions = function(message, indentation, params, rules)
     local rule_id = message.ruleId
-    if (vim.tbl_contains(rules, rule_id)) then return end
+    if vim.tbl_contains(rules, rule_id) then return end
     table.insert(rules, rule_id)
 
     local actions = {}
@@ -105,17 +109,13 @@ local generate_disable_actions = function(message, indentation, params, rules)
     return actions
 end
 
-local on_code_action_output = function(params)
-    local output = params.output
-    if not (output[1] and output[1].messages) then return end
-
-    local messages = output[1].messages
+local code_action_handler = function(params)
     local row = params.row
     local indentation = string.match(params.content[row], "^%s+")
     if not indentation then indentation = "" end
 
     local rules, actions = {}, {}
-    for _, message in ipairs(messages) do
+    for _, message in ipairs(params.messages) do
         if is_fixable(message, row - 1) then
             if message.suggestions then
                 for _, suggestion in ipairs(message.suggestions) do
@@ -156,52 +156,57 @@ local create_diagnostic = function(message)
     }
 end
 
-local on_diagnostic_output = function(params)
-    local output = params.output
-    if not (output[1] and output[1].messages) then return end
-
-    local messages = output[1].messages
+local diagnostic_handler = function(params)
     local diagnostics = {}
-    for _, message in ipairs(messages) do
+    for _, message in ipairs(params.messages) do
         table.insert(diagnostics, create_diagnostic(message))
     end
 
     return diagnostics
 end
 
+local on_output_factory = function(callback)
+    return function(params)
+        local output = params.output
+        if not (output[1] and output[1].messages) then return end
+
+        params.messages = output[1].messages
+        return callback(params)
+    end
+end
+
 M.setup = function()
     if not ok then return end
-    if not s.get().null_ls then s.set({null_ls = true}) end
+
+    if s.get().null_ls then return end
+    s.set({null_ls = true})
+
+    local options = {
+        command = o.get().eslint_bin,
+        args = o.get().eslint_args,
+        format = "json",
+        to_stdin = true
+    }
+
+    local make_opts = function(handler)
+        local opts = vim.deepcopy(options)
+        opts.on_output = on_output_factory(handler)
+        return opts
+    end
 
     local sources = {}
+    local add_source = function(method, generator)
+        table.insert(sources, {method = method, generator = generator})
+    end
+
     if o.get().eslint_enable_code_actions then
-        local eslint_code_actions = null_ls.generator(
-                                        {
-                command = o.get().eslint_bin,
-                args = o.get().eslint_args,
-                format = "json",
-                to_stdin = true,
-                on_output = on_code_action_output
-            })
-        table.insert(sources, {
-            method = null_ls.methods.CODE_ACTION,
-            generator = eslint_code_actions
-        })
+        add_source(null_ls.methods.CODE_ACTION,
+                   null_ls.generator(make_opts(code_action_handler)))
     end
 
     if o.get().eslint_enable_diagnostics then
-        local eslint_diagnostics = null_ls.generator(
-                                       {
-                command = o.get().eslint_bin,
-                args = o.get().eslint_args,
-                format = "json",
-                to_stdin = true,
-                on_output = on_diagnostic_output
-            })
-        table.insert(sources, {
-            method = null_ls.methods.DIAGNOSTICS,
-            generator = eslint_diagnostics
-        })
+        add_source(null_ls.methods.DIAGNOSTICS,
+                   null_ls.generator(make_opts(diagnostic_handler)))
     end
 
     null_ls.register({

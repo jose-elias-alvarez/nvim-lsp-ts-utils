@@ -19,7 +19,10 @@ describe("integrations", function()
     end
 
     describe("null_ls", function()
-        o.set({enable_eslint_code_actions = true})
+        o.set({
+            enable_eslint_code_actions = true,
+            eslint_enable_diagnostics = true
+        })
         null_ls.setup {}
         integrations.setup()
 
@@ -61,6 +64,8 @@ describe("integrations", function()
 
             -- error is on line 2, so diagnostic.goto_next should move cursor down
             assert.equals(vim.api.nvim_win_get_cursor(0)[1], 2)
+            -- assert that diagnostics are only coming from null-ls
+            assert.equals(vim.tbl_count(vim.lsp.diagnostic.get()), 1)
         end)
     end)
 end)
