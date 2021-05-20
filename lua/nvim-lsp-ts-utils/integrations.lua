@@ -183,7 +183,10 @@ M.setup = function()
                 to_stdin = true,
                 on_output = on_code_action_output
             })
-        table.insert(sources, eslint_code_actions)
+        table.insert(sources, {
+            method = null_ls.methods.CODE_ACTION,
+            generator = eslint_code_actions
+        })
     end
 
     if o.get().eslint_enable_diagnostics then
@@ -195,7 +198,10 @@ M.setup = function()
                 to_stdin = true,
                 on_output = on_diagnostic_output
             })
-        table.insert(sources, eslint_diagnostics)
+        table.insert(sources, {
+            method = null_ls.methods.DIAGNOSTICS,
+            generator = eslint_diagnostics
+        })
     end
 
     null_ls.register({
