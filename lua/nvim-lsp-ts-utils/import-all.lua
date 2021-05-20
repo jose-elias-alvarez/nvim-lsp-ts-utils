@@ -18,6 +18,8 @@ local get_import_params = function(entry)
     params.context = {diagnostics = {entry}}
     -- caught by create_request_handler
     params.skip_eslint = true
+    -- caught by null-ls
+    params._null_ls_ignore = true
 
     return params
 end
