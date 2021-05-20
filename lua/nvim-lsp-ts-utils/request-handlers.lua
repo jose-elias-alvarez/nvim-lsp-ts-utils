@@ -1,3 +1,4 @@
+local s = require("nvim-lsp-ts-utils.state")
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
 local loop = require("nvim-lsp-ts-utils.loop")
@@ -243,7 +244,7 @@ M.setup_client = function(client)
         handler = handler or lsp.handlers[method]
 
         -- internal methods (currently import_all) may want to skip this
-        if method == "textDocument/codeAction" and
+        if method == "textDocument/codeAction" and not s.get().null_ls and
             o.get().eslint_enable_code_actions and not params.skip_eslint then
             local inject_handler = function(err, _, actions, client_id, _,
                                             config)
@@ -313,6 +314,7 @@ end
 M.diagnostics = get_diagnostics
 
 M.enable_diagnostics = function()
+    if s.get().null_ls then return end
     local bufnr = api.nvim_get_current_buf()
 
     local callback = vim.schedule_wrap(function() get_diagnostics(bufnr) end)

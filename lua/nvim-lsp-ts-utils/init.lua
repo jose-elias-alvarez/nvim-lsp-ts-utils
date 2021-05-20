@@ -8,6 +8,7 @@ local fix_current = require("nvim-lsp-ts-utils.fix-current")
 local rename_file = require("nvim-lsp-ts-utils.rename-file")
 local import_on_completion = require("nvim-lsp-ts-utils.import-on-completion")
 local watcher = require("nvim-lsp-ts-utils.watcher")
+local integrations = require("nvim-lsp-ts-utils.integrations")
 
 local M = {}
 M.organize_imports = organize_imports.async
@@ -31,6 +32,8 @@ M.import_all = import_all
 
 M.setup = function(user_options)
     o.set(user_options)
+    if not o.get().disable_integrations then integrations.setup() end
+
     define_commands()
 
     if o.get().enable_import_on_completion then import_on_completion.enable() end

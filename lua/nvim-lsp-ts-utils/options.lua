@@ -20,7 +20,8 @@ local options = {
     formatter = "prettier",
     formatter_args = {"--stdin-filepath", "$FILENAME"},
     format_on_save = false,
-    no_save_after_format = false
+    no_save_after_format = false,
+    disable_integrations = false
 }
 
 local M = {}

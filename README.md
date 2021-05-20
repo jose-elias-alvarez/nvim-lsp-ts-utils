@@ -22,10 +22,14 @@ for a `!`, which indicates that you may have to update your config.
 
 The plugin requires some utilities from
 [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), which you are
-(probably) already using to configure `typescript-language-server`.
+(probably) already using to configure `typescript-language-server`. Having
+[plenary.nvim](https://github.com/nvim-lua/plenary.nvim) installed will make
+some things faster, so I recommend installing it if you haven't.
 
-Having [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) installed will
-make some things faster, but at the moment it's not strictly required.
+The plugin will provide ESLint code actions and diagnostics (if those features
+are enabled) via [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim),
+if it's available. null-ls makes it easier, faster, and safer to inject LSP code
+actions and diagnostics, so it will become a requirement in the near future.
 
 ## Features
 

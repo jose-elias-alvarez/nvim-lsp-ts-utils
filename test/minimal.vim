@@ -12,7 +12,8 @@ require'lspconfig'.tsserver.setup {
         local ts_utils = require("nvim-lsp-ts-utils")
         ts_utils.setup {
             no_save_after_format = true,
-            watch_dir = ""
+            watch_dir = "",
+            disable_integrations = true
         }
         ts_utils.setup_client(client)
     end

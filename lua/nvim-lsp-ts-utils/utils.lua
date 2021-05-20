@@ -14,6 +14,7 @@ local tsserver_extensions = {"js", "jsx", "ts", "tsx"}
 local node_modules = "/node_modules/.bin"
 
 local M = {}
+M.tsserver_fts = tsserver_fts
 
 M.echo_warning = function(message)
     vim.api.nvim_echo({{"nvim-lsp-ts-utils: " .. message, "WarningMsg"}}, true,
