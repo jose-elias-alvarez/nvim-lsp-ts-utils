@@ -70,4 +70,4 @@ describe("integrations", function()
     end)
 end)
 
-null_ls._shutdown()
+null_ls.shutdown()
