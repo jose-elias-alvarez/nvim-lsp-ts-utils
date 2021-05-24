@@ -31,12 +31,12 @@ M.debug_log = function(target)
     end
 end
 
-M.define_buf_command = function(name, fn)
+M.buf_command = function(name, fn)
     vim.cmd(format("command! -buffer %s lua require'nvim-lsp-ts-utils'.%s",
                    name, fn))
 end
 
-M.define_buf_augroup = function(name, event, fn)
+M.buf_augroup = function(name, event, fn)
     exec(format([[
     augroup %s
         autocmd! * <buffer>

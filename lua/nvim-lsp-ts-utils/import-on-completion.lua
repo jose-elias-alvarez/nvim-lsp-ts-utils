@@ -46,7 +46,7 @@ end
 
 local M = {}
 M.enable = function()
-    u.define_buf_augroup("TSLspImportOnCompletion", "CompleteDone",
+    u.buf_augroup("TSLspImportOnCompletion", "CompleteDone",
                          "import_on_completion()")
 end
 
