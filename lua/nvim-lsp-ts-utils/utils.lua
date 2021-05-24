@@ -135,6 +135,19 @@ M.find_bin = function(cmd)
     end
 end
 
+M.eslint_config_exists = function()
+    local root = M.buffer.root()
+    local config_file_formats = {
+        ".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yml",
+        ".eslintrc.yaml"
+    }
+    for _, config_file in pairs(config_file_formats) do
+        if M.file.exists(root .. "/" .. config_file) then return true end
+    end
+
+    return false
+end
+
 M.table = {
     contains = function(list, candidate)
         for _, element in pairs(list) do

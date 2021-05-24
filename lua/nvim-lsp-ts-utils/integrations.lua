@@ -182,11 +182,20 @@ M.setup = function()
     s.set({null_ls = true})
 
     local options = {
-        command = o.get().eslint_bin,
+        command = u.find_bin(o.get().eslint_bin),
         args = o.get().eslint_args,
         format = "json",
         to_stdin = true
     }
+    if not u.eslint_config_exists() then
+        local fallback = o.get().eslint_config_fallback
+        if not fallback then
+            u.echo_warning("failed to resolve ESLint config")
+        else
+            table.insert(options.args, "--config")
+            table.insert(options.args, fallback)
+        end
+    end
 
     local make_opts = function(handler)
         local opts = vim.deepcopy(options)

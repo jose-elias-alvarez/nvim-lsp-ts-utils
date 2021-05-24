@@ -12,6 +12,7 @@ local options = {
     eslint_enable_code_actions = true,
     eslint_bin = "eslint",
     eslint_args = {"-f", "json", "--stdin", "--stdin-filename", "$FILENAME"},
+    eslint_config_fallback = nil,
     eslint_enable_diagnostics = false,
     eslint_diagnostics_debounce = 250,
     eslint_enable_disable_comments = true,

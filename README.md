@@ -106,6 +106,10 @@ actions and diagnostics, so it will become a requirement in the near future.
   - `eslint_args`: defines the arguments passed to `eslint_bin`. Messing with this
     will probably break the integration!
 
+  - `eslint_config_fallback`: sets a path to a fallback ESLint config file that
+    the plugin will use if it can't find a config file in the root directory.
+    Set to `nil` by default.
+
   - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
     violated rule for the current line / file. Set to `true` by default.
 
@@ -129,8 +133,8 @@ actions and diagnostics, so it will become a requirement in the near future.
     This variable modifies the amount of time between the last change and the
     next refresh. Set to `250` (ms) by default.
 
-  - `eslint_bin` and `eslint_args`: applies the same settings as ESLint code
-    actions.
+  - `eslint_bin`, `eslint_args`, and `eslint_config_fallback`: applies the same
+    settings as ESLint code actions.
 
 - Formatting
 
