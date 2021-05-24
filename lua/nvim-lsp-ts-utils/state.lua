@@ -1,4 +1,4 @@
-local initial_state = {watching = false, ignoring = false, null_ls = nil}
+local initial_state = {watching = false, ignoring = false}
 local state = initial_state
 
 local defer = vim.defer_fn

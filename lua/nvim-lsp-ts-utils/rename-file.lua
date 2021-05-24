@@ -28,9 +28,6 @@ end
 local M = {}
 
 M.manual = function(target)
-    local ft_ok, ft_err = pcall(u.file.check_ft)
-    if not ft_ok then error(ft_err) end
-
     local bufnr = api.nvim_get_current_buf()
     local source = u.buffer.name(bufnr)
 

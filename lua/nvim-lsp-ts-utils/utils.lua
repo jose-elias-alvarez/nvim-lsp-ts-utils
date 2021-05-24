@@ -14,6 +14,7 @@ local tsserver_extensions = {"js", "jsx", "ts", "tsx"}
 local node_modules = "/node_modules/.bin"
 
 local M = {}
+
 M.tsserver_fts = tsserver_fts
 
 M.echo_warning = function(message)
@@ -47,18 +48,6 @@ end
 
 M.print_no_actions_message = function() print("No code actions available") end
 
-M.parse_args = function(args, bufnr)
-    local parsed = {}
-    for _, arg in pairs(args) do
-        if arg == "$FILENAME" then
-            table.insert(parsed, M.buffer.name(bufnr))
-        else
-            table.insert(parsed, arg)
-        end
-    end
-    return parsed
-end
-
 M.file = {
     mv = function(source, target)
         local ok = uv.fs_rename(source, target)
@@ -67,9 +56,9 @@ M.file = {
         end
     end,
 
-    cp = function(source, target)
+    cp = function(source, target, force)
         local ok = uv.fs_copyfile(source, target)
-        if not ok then
+        if not force and not ok then
             error("failed to copy " .. source .. " to " .. target)
         end
     end,
@@ -97,14 +86,6 @@ M.file = {
         return false
     end,
 
-    check_ft = function(bufnr)
-        if not bufnr then bufnr = 0 end
-        local ft = api.nvim_buf_get_option(bufnr, "filetype")
-        if not M.table.contains(tsserver_fts, ft) then
-            error("invalid filetype")
-        end
-    end,
-
     stat = function(path)
         local fd = uv.fs_open(path, "r", 438)
         if not fd then return nil end
@@ -120,11 +101,11 @@ M.file = {
         local extension = M.file.extension(filename)
         -- assume no extension == directory (which needs to be validated)
         return extension == "" or
-                   M.table.contains(tsserver_extensions, extension)
+                   vim.tbl_contains(tsserver_extensions, extension)
     end
 }
 
-M.find_bin = function(cmd)
+M.resolve_bin = function(cmd)
     local local_bin = M.buffer.root() .. node_modules .. "/" .. cmd
     if M.file.exists(local_bin) then
         M.debug_log("using local executable " .. local_bin)
@@ -148,21 +129,6 @@ M.eslint_config_exists = function()
     return false
 end
 
-M.table = {
-    contains = function(list, candidate)
-        for _, element in pairs(list) do
-            if element == candidate then return true end
-        end
-        return false
-    end,
-
-    len = function(table)
-        local count = 0
-        for _ in pairs(table) do count = count + 1 end
-        return count
-    end
-}
-
 M.cursor = {
     pos = function(winnr)
         if not winnr then winnr = 0 end
@@ -178,8 +144,7 @@ M.cursor = {
 
 M.buffer = {
     name = function(bufnr)
-        if not bufnr then bufnr = api.nvim_get_current_buf() end
-        return api.nvim_buf_get_name(bufnr)
+        return api.nvim_buf_get_name(bufnr or api.nvim_get_current_buf())
     end,
 
     bufnr = function(name)
@@ -187,39 +152,21 @@ M.buffer = {
         return info and info.bufnr or nil
     end,
 
-    to_string = function(bufnr)
-        if not bufnr then bufnr = api.nvim_get_current_buf() end
-        local content = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-        return table.concat(content, "\n") .. "\n"
-    end,
-
     line = function(row, bufnr)
-        return
-            api.nvim_buf_get_lines(bufnr and bufnr or 0, row - 1, row, false)[1]
+        return api.nvim_buf_get_lines(bufnr or api.nvim_get_current_buf(),
+                                      row - 1, row, false)[1]
     end,
 
     insert_text = function(row, col, text, bufnr)
-        if not bufnr then bufnr = api.nvim_get_current_buf() end
-        api.nvim_buf_set_text(bufnr, row, col, row, col, {text})
+        api.nvim_buf_set_text(bufnr or api.nvim_get_current_buf(), row, col,
+                              row, col, {text})
     end,
 
     root = function(fname)
-        if not fname then fname = M.buffer.name() end
+        fname = fname or M.buffer.name()
         return lspconfig.root_pattern("tsconfig.json")(fname) or
                    lspconfig.root_pattern("package.json", "jsconfig.json",
                                           ".git")(fname)
-    end
-}
-
-M.string = {
-    split_at_newline = function(str)
-        local split = {}
-        for line in string.gmatch(str, "([^\n]*)\n?") do
-            table.insert(split, line)
-        end
-        -- remove final empty newline
-        table.remove(split)
-        return split
     end
 }
 

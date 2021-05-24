@@ -8,7 +8,7 @@ local fix_current = require("nvim-lsp-ts-utils.fix-current")
 local rename_file = require("nvim-lsp-ts-utils.rename-file")
 local import_on_completion = require("nvim-lsp-ts-utils.import-on-completion")
 local watcher = require("nvim-lsp-ts-utils.watcher")
-local integrations = require("nvim-lsp-ts-utils.integrations")
+local null_ls = require("nvim-lsp-ts-utils.null-ls")
 
 local M = {}
 M.organize_imports = organize_imports.async
@@ -22,9 +22,6 @@ M.stop_watcher = watcher.stop
 M.restart_watcher = watcher.restart
 
 M.setup_client = request_handlers.setup_client
-M.format = request_handlers.format
-M.diagnostics = request_handlers.diagnostics
-M.diagnostics_on_change = request_handlers.diagnostics_on_change
 
 M.import_on_completion = import_on_completion.handle
 
@@ -32,14 +29,10 @@ M.import_all = import_all
 
 M.setup = function(user_options)
     o.set(user_options)
-    if not o.get()._disable_integrations then integrations.setup() end
-
+    null_ls.setup()
     define_commands()
 
     if o.get().enable_import_on_completion then import_on_completion.enable() end
-    if o.get().eslint_enable_diagnostics then
-        request_handlers.enable_diagnostics()
-    end
     if o.get().update_imports_on_move then watcher.start() end
 end
 

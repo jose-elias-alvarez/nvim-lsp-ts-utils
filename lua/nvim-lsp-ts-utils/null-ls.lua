@@ -2,7 +2,6 @@ local ok, null_ls = pcall(require, "null-ls")
 
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
-local s = require("nvim-lsp-ts-utils.state")
 
 local api = vim.api
 local set_lines = vim.api.nvim_buf_set_lines
@@ -175,52 +174,84 @@ local on_output_factory = function(callback)
     end
 end
 
+local eslint_enabled = function()
+    return o.get().eslint_enable_code_actions == true or
+               o.get().eslint_enable_diagnostics == true
+end
+
 M.setup = function()
     if not ok then return end
 
-    if s.get().null_ls then return end
-    s.set({null_ls = true})
-
-    local options = {
-        command = u.find_bin(o.get().eslint_bin),
-        args = o.get().eslint_args,
-        format = "json",
-        to_stdin = true
-    }
-    if not u.eslint_config_exists() then
-        local fallback = o.get().eslint_config_fallback
-        if not fallback then
-            u.echo_warning("failed to resolve ESLint config")
-        else
-            table.insert(options.args, "--config")
-            table.insert(options.args, fallback)
-        end
-    end
-
-    local make_opts = function(handler)
-        local opts = vim.deepcopy(options)
-        opts.on_output = on_output_factory(handler)
-        return opts
-    end
+    local name = "nvim-lsp-ts-utils"
+    if null_ls.is_registered(name) then return end
 
     local sources = {}
     local add_source = function(method, generator)
         table.insert(sources, {method = method, generator = generator})
     end
 
-    if o.get().eslint_enable_code_actions then
-        add_source(null_ls.methods.CODE_ACTION,
-                   null_ls.generator(make_opts(code_action_handler)))
+    if eslint_enabled() then
+        local eslint_bin = o.get().eslint_bin
+        local eslint_opts = {
+            command = u.resolve_bin(eslint_bin),
+            args = o.get().eslint_args,
+            format = "json",
+            to_stdin = true,
+            check_exit_code = function(code) return code <= 1 end
+        }
+
+        if not u.config_file_exists(eslint_bin) then
+            local fallback = o.get().eslint_config_fallback
+            if not fallback then
+                u.echo_warning("failed to resolve ESLint config")
+            else
+                table.insert(eslint_opts.args, "--config")
+                table.insert(eslint_opts.args, fallback)
+            end
+        end
+
+        local make_eslint_opts = function(handler)
+            local opts = vim.deepcopy(eslint_opts)
+            opts.on_output = on_output_factory(handler)
+            return opts
+        end
+
+        if o.get().eslint_enable_code_actions then
+            add_source(null_ls.methods.CODE_ACTION,
+                       null_ls.generator(make_eslint_opts(code_action_handler)))
+        end
+
+        if o.get().eslint_enable_diagnostics then
+            add_source(null_ls.methods.DIAGNOSTICS,
+                       null_ls.generator(make_eslint_opts(diagnostic_handler)))
+        end
     end
 
-    if o.get().eslint_enable_diagnostics then
-        add_source(null_ls.methods.DIAGNOSTICS,
-                   null_ls.generator(make_opts(diagnostic_handler)))
+    if o.get().enable_formatting then
+        local formatter = o.get().formatter
+        local formatter_opts = {
+            command = u.resolve_bin(formatter),
+            args = o.get().formatter_args,
+            to_stdin = true
+        }
+
+        if not u.config_file_exists(formatter) then
+            local fallback = o.get().formatter_config_fallback
+            -- no need to warn for prettier, since it works without a config
+            if not fallback and formatter == "eslint_d" then
+                u.echo_warning("failed to resolve ESLint config")
+            else
+                table.insert(formatter_opts.args, "--config")
+                table.insert(formatter_opts.args, fallback)
+            end
+        end
+
+        add_source(null_ls.methods.FORMATTING, null_ls.formatter(formatter_opts))
     end
 
     null_ls.register({
         filetypes = u.tsserver_fts,
-        name = "nvim-lsp-ts-utils",
+        name = name,
         sources = sources
     })
 end
