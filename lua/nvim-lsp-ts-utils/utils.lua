@@ -13,6 +13,21 @@ local tsserver_fts = {
 local tsserver_extensions = {"js", "jsx", "ts", "tsx"}
 local node_modules = "/node_modules/.bin"
 
+local eslint_config_formats = {
+    ".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yml",
+    ".eslintrc.yaml"
+}
+local prettier_config_formats = {
+    ".prettierrc", ".prettierrc.js", ".prettierrc.json", ".prettierrc.yml",
+    ".prettierrc.yaml"
+}
+local config_file_formats = {
+    eslint = eslint_config_formats,
+    eslint_d = eslint_config_formats,
+    prettier = prettier_config_formats,
+    prettier_d_slim = prettier_config_formats
+}
+
 local M = {}
 
 M.tsserver_fts = tsserver_fts
@@ -116,13 +131,9 @@ M.resolve_bin = function(cmd)
     end
 end
 
-M.eslint_config_exists = function()
+M.config_file_exists = function(bin)
     local root = M.buffer.root()
-    local config_file_formats = {
-        ".eslintrc", ".eslintrc.js", ".eslintrc.json", ".eslintrc.yml",
-        ".eslintrc.yaml"
-    }
-    for _, config_file in pairs(config_file_formats) do
+    for _, config_file in pairs(config_file_formats[bin]) do
         if M.file.exists(root .. "/" .. config_file) then return true end
     end
 
@@ -166,7 +177,7 @@ M.buffer = {
         fname = fname or M.buffer.name()
         return lspconfig.root_pattern("tsconfig.json")(fname) or
                    lspconfig.root_pattern("package.json", "jsconfig.json",
-                                          ".git")(fname)
+                                          ".git")(fname) or vim.fn.getcwd()
     end
 }
 

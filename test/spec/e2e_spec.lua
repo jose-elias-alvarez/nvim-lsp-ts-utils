@@ -31,6 +31,22 @@ end
 local lsp_wait = function(time) vim.wait(time or 400) end
 
 describe("e2e", function()
+    null_ls.setup()
+
+    require"lspconfig".tsserver.setup {
+        on_attach = function(client)
+            client.resolved_capabilities.document_formatting = false
+            require"nvim-lsp-ts-utils".setup_client(client)
+        end
+    }
+
+    ts_utils.setup {
+        watch_dir = "",
+        eslint_enable_code_actions = true,
+        eslint_enable_diagnostics = true,
+        enable_formatting = true
+    }
+
     after_each(function() vim.cmd("silent bufdo! bdelete!") end)
 
     describe("fix_current", function()

@@ -47,7 +47,7 @@ end
 local M = {}
 M.enable = function()
     u.buf_augroup("TSLspImportOnCompletion", "CompleteDone",
-                         "import_on_completion()")
+                  "import_on_completion()")
 end
 
 local last
@@ -63,7 +63,7 @@ M.handle = function()
 
     last = item.label
     -- use timeout to prevent multiple imports, since CompleteDone can fire multiple times
-    vim.defer_fn(function() last = nil end, o.get().import_on_completion_timeout)
+    vim.defer_fn(function() last = nil end, 5000)
 
     -- place after last check to set timeout on parens
     if should_add_parens(item) then add_parens(bufnr) end
