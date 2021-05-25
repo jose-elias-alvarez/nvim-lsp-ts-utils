@@ -16,9 +16,9 @@ possibility. If something doesn't work, please let me know!
 ## Requirements
 
 - [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), which you are
-(probably) already using to configure `typescript-language-server`.
+  (probably) already using to configure `typescript-language-server`.
 
-- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) 
+- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
 
 - [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim) for ESLint
   integration and formatting
@@ -121,7 +121,7 @@ possibility. If something doesn't work, please let me know!
 
   - `formatter_config_fallback`: sets a path to a fallback formatter config file
     that the plugin will use if it can't find a config file in the root
-    directory.  Set to `nil` by default.
+    directory. Set to `nil` by default.
 
     Like `eslint_bin`, the plugin will look for a local
     executable in `node_modules` and fall back to a system-wide executable,
