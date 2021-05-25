@@ -24,12 +24,12 @@ local options = {
     eslint_enable_code_actions = true,
     eslint_enable_disable_comments = true,
     eslint_bin = "eslint",
-    eslint_config_fallback = nil,
+    eslint_config_fallback = "",
     eslint_enable_diagnostics = false,
     -- formatting
     enable_formatting = false,
     formatter = "prettier",
-    formatter_config_fallback = nil,
+    formatter_config_fallback = "",
     -- internal
     _initialized = false
 }
