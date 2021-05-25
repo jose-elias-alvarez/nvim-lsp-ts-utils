@@ -26,10 +26,12 @@ The plugin requires some utilities from
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim) installed will make
 some things faster, so I recommend installing it if you haven't.
 
-The plugin will provide ESLint code actions and diagnostics (if those features
-are enabled) via [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim),
-if it's available. null-ls makes it easier, faster, and safer to inject LSP code
-actions and diagnostics, so it will become a requirement in the near future.
+The plugin will provide ESLint code actions and diagnostics (if enabled) via
+[null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim), if it's
+available. null-ls makes it easier, faster, and safer to inject LSP code actions
+and diagnostics, so it will become required to use these features soon.  You can
+try out full null-ls integration now by using the plugin's `develop` branch
+(feedback greatly appreciated).
 
 ## Features
 
