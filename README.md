@@ -69,7 +69,8 @@ possibility. If something doesn't work, please let me know!
 
 - ESLint code actions
 
-  Adds actions to fix ESLint issues or disable the violated rule for the current line / file.
+  Adds actions to fix ESLint issues or disable the violated rule for the current
+  line / file.
 
   Supports the following settings:
 
@@ -126,6 +127,10 @@ possibility. If something doesn't work, please let me know!
     Like `eslint_bin`, the plugin will look for a local
     executable in `node_modules` and fall back to a system-wide executable,
     which must be available on your `$PATH`.
+
+## Experimental Features
+
+**The following features are experimental! Bug reports and feedback are greatly appreciated.**
 
 - Update imports on file move
 
