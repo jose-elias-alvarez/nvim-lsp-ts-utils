@@ -1,6 +1,5 @@
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
-local s = require("nvim-lsp-ts-utils.state")
 
 local lsp = vim.lsp
 local api = vim.api
@@ -49,15 +48,13 @@ M.manual = function(target)
     local modified = fn.getbufvar(bufnr, "&modified")
     if modified then vim.cmd("silent noautocmd w") end
 
-    -- prevent watcher callback from triggering
-    s.ignore()
     u.file.mv(source, target)
 
     vim.cmd("e " .. target)
     vim.cmd(bufnr .. "bwipeout!")
 end
 
-M.on_move = function(source, target, is_dir)
+M.on_move = function(source, target)
     if source == target then return end
 
     if o.get().require_confirmation_on_move then
@@ -66,6 +63,7 @@ M.on_move = function(source, target, is_dir)
         if confirm ~= 1 then return end
     end
 
+    local is_dir = u.file.extension(target) == "" and u.file.is_dir(target)
     local source_bufnr = is_dir and nil or u.buffer.bufnr(source)
 
     -- workspace/applyEdit seems to need access to a visible window,

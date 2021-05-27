@@ -7,10 +7,6 @@ local uv = vim.loop
 local api = vim.api
 local exec = api.nvim_exec
 
-local tsserver_fts = {
-    "javascript", "javascriptreact", "typescript", "typescriptreact"
-}
-local tsserver_extensions = {"js", "jsx", "ts", "tsx"}
 local node_modules = "/node_modules/.bin"
 
 local eslint_config_formats = {
@@ -30,15 +26,18 @@ local config_file_formats = {
 
 local M = {}
 
-M.tsserver_fts = tsserver_fts
+M.tsserver_fts = {
+    "javascript", "javascriptreact", "typescript", "typescriptreact"
+}
+M.tsserver_extensions = {"js", "jsx", "ts", "tsx"}
 
 M.echo_warning = function(message)
     vim.api.nvim_echo({{"nvim-lsp-ts-utils: " .. message, "WarningMsg"}}, true,
                       {})
 end
 
-M.debug_log = function(target)
-    if not o.get().debug then return end
+M.debug_log = function(target, force)
+    if not o.get().debug and not force then return end
 
     if type(target) == "table" then
         print(vim.inspect(target))
@@ -110,14 +109,14 @@ M.file = {
         return stat
     end,
 
-    extension = function(filename) return vim.fn.fnamemodify(filename, ":e") end,
+    is_dir = function(path)
+        local stat = M.file.stat(path)
+        if not stat then return false end
 
-    has_tsserver_extension = function(filename)
-        local extension = M.file.extension(filename)
-        -- assume no extension == directory (which needs to be validated)
-        return extension == "" or
-                   vim.tbl_contains(tsserver_extensions, extension)
-    end
+        return stat.type == "directory"
+    end,
+
+    extension = function(filename) return vim.fn.fnamemodify(filename, ":e") end
 }
 
 M.resolve_bin = function(cmd)

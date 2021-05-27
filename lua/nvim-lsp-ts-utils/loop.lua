@@ -26,6 +26,7 @@ M.watch_dir = function(dir, opts)
     end)
 
     uv.fs_event_start(handle, dir, {recursive = true}, callback)
+    return unwatch
 end
 
 return M
