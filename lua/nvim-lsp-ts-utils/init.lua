@@ -28,12 +28,16 @@ M.import_on_completion = import_on_completion.handle
 M.import_all = import_all
 
 M.setup = function(user_options)
-    o.set(user_options)
-    null_ls.setup()
-    define_commands()
+	o.set(user_options)
+	null_ls.setup()
+	define_commands()
 
-    if o.get().enable_import_on_completion then import_on_completion.enable() end
-    if o.get().update_imports_on_move then watcher.start() end
+	if o.get().enable_import_on_completion then
+		import_on_completion.enable()
+	end
+	if o.get().update_imports_on_move then
+		watcher.start()
+	end
 end
 
 return M
