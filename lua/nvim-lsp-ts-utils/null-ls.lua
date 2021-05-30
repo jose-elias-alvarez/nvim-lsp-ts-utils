@@ -167,7 +167,7 @@ end
 local on_output_factory = function(callback)
     return function(params)
         local output = params.output
-        if not (output[1] and output[1].messages) then return end
+        if not (output and output[1] and output[1].messages) then return end
 
         params.messages = output[1].messages
         return callback(params)
