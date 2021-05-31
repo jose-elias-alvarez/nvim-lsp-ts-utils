@@ -103,15 +103,8 @@ M.file = {
 		end
 	end,
 
-	dir_file = function(dir, index)
-		local handle = uv.fs_scandir(dir)
-		for i = 1, index do
-			local file = uv.fs_scandir_next(handle)
-			if i == index and file then
-				return file
-			end
-		end
-		return nil
+	dir_file = function(dir, depth)
+		return require("plenary.scandir").scan_dir(dir, { depth = depth or 5, search_pattern = ".[tj][s]x?" })[1]
 	end,
 
 	exists = function(path)
