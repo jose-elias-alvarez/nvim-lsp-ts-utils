@@ -1,6 +1,6 @@
 local o = require("nvim-lsp-ts-utils.options")
 
-local request_handlers = require("nvim-lsp-ts-utils.request-handlers")
+local client = require("nvim-lsp-ts-utils.client")
 local define_commands = require("nvim-lsp-ts-utils.define-commands")
 local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
 local import_all = require("nvim-lsp-ts-utils.import-all")
@@ -21,7 +21,7 @@ M.start_watcher = watcher.start
 M.stop_watcher = watcher.stop
 M.restart_watcher = watcher.restart
 
-M.setup_client = request_handlers.setup_client
+M.setup_client = client.setup
 
 M.import_on_completion = import_on_completion.handle
 

@@ -1,5 +1,7 @@
 local lsp = vim.lsp
 
+local APPLY_EDIT = "workspace/applyEdit"
+
 local fix_range = function(range)
     if range["end"].character == -1 then
         range["end"].character = 0
@@ -29,18 +31,19 @@ local edit_handler = function(_, _, workspace_edit)
     if workspace_edit.edit and workspace_edit.edit.changes then
         validate_changes(workspace_edit.edit.changes)
     end
+
     local status, result = pcall(lsp.util.apply_workspace_edit, workspace_edit.edit)
     return { applied = status, failureReason = result }
 end
 
 local M = {}
 
-M.setup_client = function(client)
-    if client.ts_utils_setup_complete then
+M.setup = function(client)
+    if client._ts_utils_setup_complete then
         return
     end
-    client.handlers["workspace/applyEdit"] = edit_handler
-    client.ts_utils_setup_complete = true
+    client.handlers[APPLY_EDIT] = edit_handler
+    client._ts_utils_setup_complete = true
 end
 
 return M
