@@ -6,15 +6,27 @@ local api = vim.api
 local fn = vim.fn
 
 local rename_file = function(source, target)
-    lsp.buf.execute_command({
-        command = "_typescript.applyRenameFile",
-        arguments = {
-            {
-                sourceUri = vim.uri_from_fname(source),
-                targetUri = vim.uri_from_fname(target),
-            },
-        },
-    })
+    local client_found, request_ok
+    for _, client in ipairs(lsp.get_active_clients()) do
+        if client.name == "tsserver" then
+            client_found = true
+            request_ok = client.request("workspace/executeCommand", {
+                command = "_typescript.applyRenameFile",
+                arguments = {
+                    {
+                        sourceUri = vim.uri_from_fname(source),
+                        targetUri = vim.uri_from_fname(target),
+                    },
+                },
+            })
+        end
+    end
+
+    if not client_found then
+        u.echo_warning("failed to rename file: tsserver not running")
+    elseif not request_ok then
+        u.echo_warning("failed to rename file: tsserver request failed")
+    end
 end
 
 local M = {}
