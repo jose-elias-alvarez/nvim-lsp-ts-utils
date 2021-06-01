@@ -21,7 +21,7 @@ possibility. If something doesn't work, please let me know!
 - [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
 
 - [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim) for ESLint
-  integration and formatting
+  integrations and formatting
 
 ## Built-in Features
 
@@ -66,6 +66,16 @@ possibility. If something doesn't work, please let me know!
   below).
 
 ## null-ls Integrations
+
+The plugin integrates with
+[null-ls.nvim](https://github.com/jose-elias-alvarez/null-ls.nvim) to provide
+ESLint code actions, diagnostics, and formatting. To enable null-ls itself, you
+must install it via your plugin manager and add the following snippet to your
+LSP configuration (location doesn't matter):
+
+```lua
+require("null-ls").setup {}
+```
 
 - ESLint code actions
 
@@ -128,6 +138,18 @@ possibility. If something doesn't work, please let me know!
     executable in `node_modules` and fall back to a system-wide executable,
     which must be available on your `$PATH`.
 
+  To set up formatting on save via null-ls, add the following snippet to your
+  `on_attach` callback:
+
+  ```lua
+  on_attach = function(client)
+    -- disable tsserver formatting to prevent conflicts
+    client.resolved_capabilities.document_formatting = false
+
+    vim.cmd("autocmd BufWritePost lua vim.lsp.buf.formatting()")
+  end
+  ```
+
 ## Experimental Features
 
 **The following features are experimental! Bug reports and feedback are greatly appreciated.**
@@ -170,6 +192,9 @@ An example showing the available settings and their defaults:
 
 ```lua
 local nvim_lsp = require("lspconfig")
+
+-- enable null-ls integration (optional)
+require("null-ls").setup {}
 
 nvim_lsp.tsserver.setup {
     on_attach = function(client, bufnr)
