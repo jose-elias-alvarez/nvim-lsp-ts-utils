@@ -25,14 +25,13 @@ s.reset = function()
 end
 
 local should_ignore_file = function(path)
-    local extension = u.file.extension(path)
-    if vim.tbl_contains(u.tsserver_extensions, extension) then
+    if string.match(path, u.tsserver_extensions) then
         return false
     end
 
     -- the path may be a directory,
     -- but since it could be deleted, we can't check with fs_fstat
-    if extension == "" then
+    if u.file.extension(path) == "" then
         return false
     end
 

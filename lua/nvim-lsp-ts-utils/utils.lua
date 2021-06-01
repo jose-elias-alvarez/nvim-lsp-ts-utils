@@ -38,7 +38,7 @@ M.tsserver_fts = {
     "typescript",
     "typescriptreact",
 }
-M.tsserver_extensions = { "js", "jsx", "ts", "tsx" }
+M.tsserver_extensions = "[.][tj][s]x?$"
 
 M.echo_warning = function(message)
     vim.api.nvim_echo({ { "nvim-lsp-ts-utils: " .. message, "WarningMsg" } }, true, {})
@@ -104,7 +104,10 @@ M.file = {
     end,
 
     dir_file = function(dir, depth)
-        return require("plenary.scandir").scan_dir(dir, { depth = depth or 5, search_pattern = ".[tj][s]x?" })[1]
+        return require("plenary.scandir").scan_dir(dir, {
+            depth = depth or 5,
+            search_pattern = M.tsserver_extensions,
+        })[1]
     end,
 
     exists = function(path)
