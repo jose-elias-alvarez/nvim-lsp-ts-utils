@@ -8,7 +8,7 @@ local fn = vim.fn
 local rename_file = function(source, target)
     local client_found, request_ok
     for _, client in ipairs(lsp.get_active_clients()) do
-        if client.name == "tsserver" then
+        if not client_found and client.name == "tsserver" then
             client_found = true
             request_ok = client.request("workspace/executeCommand", {
                 command = "_typescript.applyRenameFile",
@@ -31,20 +31,20 @@ end
 
 local M = {}
 
-M.manual = function(target)
+M.manual = function(target, force)
     local bufnr = api.nvim_get_current_buf()
     local source = u.buffer.name(bufnr)
 
     local status
     if not target then
         status, target = pcall(fn.input, "New path: ", source, "file")
-        if not status or target == "" or target == source then
+        if not status or not target or target == "" or target == source then
             return
         end
     end
 
     local exists = u.file.exists(target)
-    if exists then
+    if exists and not force then
         local confirm = fn.confirm("File exists! Overwrite?", "&Yes\n&No")
         if confirm ~= 1 then
             return
@@ -53,15 +53,14 @@ M.manual = function(target)
 
     rename_file(source, target)
 
-    local modified = fn.getbufvar(bufnr, "&modified")
-    if modified then
+    if fn.getbufvar(bufnr, "&modified") then
         vim.cmd("silent noautocmd w")
     end
 
     u.file.mv(source, target)
 
     vim.cmd("e " .. target)
-    vim.cmd(bufnr .. "bwipeout!")
+    vim.cmd(bufnr .. "bdelete!")
 end
 
 M.on_move = function(source, target)
@@ -92,8 +91,7 @@ M.on_move = function(source, target)
     fn.bufload(buffer_to_add)
     fn.setbufvar(target_bufnr, "&buflisted", 1)
 
-    -- handle renaming from a floating window
-    -- when the source is loaded in a background window
+    -- handle renaming from a floating window when the source is loaded in a background window
     if source_bufnr and api.nvim_win_get_config(original_win).relative ~= "" then
         local info = fn.getbufinfo(source_bufnr)[1]
         if info and info.windows and info.windows[1] then

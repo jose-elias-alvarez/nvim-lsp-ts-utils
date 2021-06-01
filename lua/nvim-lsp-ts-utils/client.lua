@@ -42,6 +42,7 @@ M.setup = function(client)
     if client._ts_utils_setup_complete then
         return
     end
+
     client.handlers[APPLY_EDIT] = edit_handler
     client._ts_utils_setup_complete = true
 end

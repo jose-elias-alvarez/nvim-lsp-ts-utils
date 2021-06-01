@@ -1,3 +1,4 @@
+local scan_dir = require("plenary.scandir").scan_dir
 local lspconfig = require("lspconfig/util")
 
 local o = require("nvim-lsp-ts-utils.options")
@@ -28,6 +29,7 @@ local config_file_formats = {
     eslint_d = eslint_config_formats,
     prettier = prettier_config_formats,
     prettier_d_slim = prettier_config_formats,
+    git = { ".gitignore" },
 }
 
 local M = {}
@@ -38,10 +40,15 @@ M.tsserver_fts = {
     "typescript",
     "typescriptreact",
 }
-M.tsserver_extensions = "[.][tj][s]x?$"
+
+M.tsserver_extension_pattern = "[.][tj][s]x?$"
+
+M.is_tsserver_file = function(path)
+    return string.match(path, M.tsserver_extension_pattern) ~= nil
+end
 
 M.echo_warning = function(message)
-    vim.api.nvim_echo({ { "nvim-lsp-ts-utils: " .. message, "WarningMsg" } }, true, {})
+    api.nvim_echo({ { "nvim-lsp-ts-utils: " .. message, "WarningMsg" } }, true, {})
 end
 
 M.debug_log = function(target, force)
@@ -64,11 +71,11 @@ M.buf_augroup = function(name, event, fn)
     exec(
         format(
             [[
-    augroup %s
-        autocmd! * <buffer>
-        autocmd %s <buffer> lua require'nvim-lsp-ts-utils'.%s
-    augroup END
-    ]],
+            augroup %s
+                autocmd! * <buffer>
+                autocmd %s <buffer> lua require'nvim-lsp-ts-utils'.%s
+            augroup END
+            ]],
             name,
             event,
             fn
@@ -83,30 +90,16 @@ end
 
 M.file = {
     mv = function(source, target)
-        local ok = uv.fs_rename(source, target)
+        local ok, err = uv.fs_rename(source, target)
         if not ok then
-            error("failed to move " .. source .. " to " .. target)
-        end
-    end,
-
-    cp = function(source, target, force)
-        local ok = uv.fs_copyfile(source, target)
-        if not force and not ok then
-            error("failed to copy " .. source .. " to " .. target)
-        end
-    end,
-
-    rm = function(path, force)
-        local ok = uv.fs_unlink(path)
-        if not force and not ok then
-            error("failed to remove " .. path)
+            error(format("failed to move %s to %s: %s", source, target, err))
         end
     end,
 
     dir_file = function(dir, depth)
-        return require("plenary.scandir").scan_dir(dir, {
+        return scan_dir(dir, {
             depth = depth or 5,
-            search_pattern = M.tsserver_extensions,
+            search_pattern = M.tsserver_extension_pattern,
         })[1]
     end,
 
@@ -203,11 +196,12 @@ M.buffer = {
 
     root = function(fname)
         fname = fname or M.buffer.name()
-        return lspconfig.root_pattern("tsconfig.json")(fname) or lspconfig.root_pattern(
+
+        return lspconfig.root_pattern(".git")(fname) or lspconfig.root_pattern(
+            "tsconfig.json",
             "package.json",
-            "jsconfig.json",
-            ".git"
-        )(fname) or vim.fn.getcwd()
+            "jsconfig.json"
+        )(fname) or _G._TEST and vim.fn.getcwd()
     end,
 }
 

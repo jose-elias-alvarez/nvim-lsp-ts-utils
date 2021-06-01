@@ -10,7 +10,7 @@ local APPLY_EDIT = "_typescript.applyWorkspaceEdit"
 local get_diagnostics = function(bufnr)
     local diagnostics = lsp.diagnostic.get(bufnr)
 
-    if vim.tbl_isempty(diagnostics) then
+    if not diagnostics or vim.tbl_isempty(diagnostics) then
         u.print_no_actions_message()
         return nil
     end
