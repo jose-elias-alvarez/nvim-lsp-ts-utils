@@ -156,7 +156,9 @@ require("null-ls").setup {}
 
 - Update imports on file move
 
-  Watches a given directory for file move / rename events and updates imports accordingly.
+  Watches the root directory for file move / rename events and updates imports
+  accordingly. The plugin will attempt to find a `.gitignore` file in the root
+  directory and watch all non-ignored directories.
 
   Supports the following settings:
 
@@ -165,9 +167,13 @@ require("null-ls").setup {}
   - `require_confirmation_on_move`: if `true`, prompts for confirmation before
     updating imports. Set to `false` by default.
 
-  - `watch_dir`: sets the directory that the plugin will watch for changes,
-    relative to your root path (the folder that contains `tsconfig.json` or
-    `package.json`) Set to `/src` by default.
+  - `watch_dir`: sets a fallback directory that the plugin will watch for
+    changes if it can't find a `.gitignore` in the root directory. Path is
+    relative to the current root directory. Set to `nil` by default.
+
+  Note that if the root directory is not recognized as a Git project and
+  `watch_dir` is `nil` or fails to resolve, the plugin will not enable file
+  watching.
 
 - Parentheses completion
 
@@ -213,6 +219,7 @@ nvim_lsp.tsserver.setup {
             eslint_enable_code_actions = true,
             eslint_enable_disable_comments = true,
             eslint_bin = "eslint",
+            eslint_config_fallback = nil,
 
             -- eslint diagnostics
             eslint_enable_diagnostics = false,
@@ -221,6 +228,7 @@ nvim_lsp.tsserver.setup {
             -- formatting
             enable_formatting = false,
             formatter = "prettier",
+            formatter_config_fallback = nil,
 
             -- parentheses completion
             complete_parens = false,
@@ -229,7 +237,7 @@ nvim_lsp.tsserver.setup {
             -- update imports on file move
             update_imports_on_move = false,
             require_confirmation_on_move = false,
-            watch_dir = "/src",
+            watch_dir = nil,
         }
 
         -- required to fix code action ranges

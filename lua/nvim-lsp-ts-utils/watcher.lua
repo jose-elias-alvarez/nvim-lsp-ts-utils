@@ -1,3 +1,5 @@
+local p = require("plenary.scandir")
+
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 local loop = require("nvim-lsp-ts-utils.loop")
@@ -24,13 +26,16 @@ s.reset = function()
     s._source = nil
 end
 
+local M = {}
+
+M.state = s
+
 local should_ignore_file = function(path)
-    if string.match(path, u.tsserver_extensions) then
+    if u.is_tsserver_file(path) then
         return false
     end
 
-    -- the path may be a directory,
-    -- but since it could be deleted, we can't check with fs_fstat
+    -- the path may be a directory, but since it could be deleted, we can't check with fs_fstat
     if u.file.extension(path) == "" then
         return false
     end
@@ -73,7 +78,7 @@ local handle_event_factory = function(dir)
             s.source.set(path)
             defer(function()
                 s.source.reset()
-            end, 50)
+            end, 0)
             return
         end
 
@@ -83,7 +88,7 @@ local handle_event_factory = function(dir)
             return
         end
 
-        if source then
+        if source and target then
             u.debug_log("attempting to update imports")
             u.debug_log("source: " .. source)
             u.debug_log("target: " .. target)
@@ -99,7 +104,6 @@ local handle_error = function(err)
     s.reset()
 end
 
-local M = {}
 M.start = function()
     if s.watching then
         return
@@ -111,20 +115,67 @@ M.start = function()
         return
     end
 
-    local dir = root .. o.get().watch_dir
-    assert(u.file.is_dir(dir), "watch_dir is not a directory")
+    u.debug_log("attempting to watch root dir" .. root)
+
+    if u.config_file_exists("git") then
+        u.debug_log("git config found; scanning root dir")
+
+        local dir_files = p.scan_dir(root, {
+            respect_gitignore = true,
+            depth = 1,
+            add_dirs = true,
+        })
+
+        local unwatch_callbacks, watching = {}, false
+        for _, file in ipairs(dir_files) do
+            if u.file.is_dir(file) then
+                watching = true
+                u.debug_log("watching dir " .. file)
+
+                local callback =
+                    loop.watch_dir(file, { on_event = handle_event_factory(file), on_error = handle_error })
+                table.insert(unwatch_callbacks, callback)
+            end
+        end
+
+        if not watching then
+            u.debug_log("no valid directories found in root dir; aborting")
+            return
+        end
+
+        s.watching = true
+        s.unwatch = function()
+            for _, cb in ipairs(unwatch_callbacks) do
+                cb()
+            end
+        end
+        return
+    end
+
+    u.debug_log("git config not found; falling back to watch_dir")
+
+    if not o.get().watch_dir then
+        u.debug_log("watch_dir is not set; watch aborted")
+        return
+    end
+
+    local watch_dir = root .. o.get().watch_dir
+    if not u.file.is_dir(watch_dir) then
+        u.debug_log("failed to resolve watch_dir " .. watch_dir .. "; watch aborted")
+        return
+    end
+
+    u.debug_log("watching directory " .. watch_dir)
 
     s.watching = true
-    u.debug_log("watching directory " .. dir)
-
-    s.unwatch = loop.watch_dir(dir, {
-        on_event = handle_event_factory(dir),
+    s.unwatch = loop.watch_dir(watch_dir, {
+        on_event = handle_event_factory(watch_dir),
         on_error = handle_error,
     })
 end
 
 M.stop = function()
-    if not s.unwatch then
+    if not s.watching then
         return
     end
 
