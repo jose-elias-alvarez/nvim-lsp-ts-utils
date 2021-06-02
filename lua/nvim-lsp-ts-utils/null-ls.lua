@@ -210,8 +210,8 @@ M.setup = function()
 
         if not u.config_file_exists(eslint_bin) then
             local fallback = o.get().eslint_config_fallback
-            if fallback == "" then
-                u.echo_warning("failed to resolve ESLint config")
+            if not fallback then
+                u.debug_log("failed to resolve ESLint config")
             else
                 table.insert(eslint_opts.args, "--config")
                 table.insert(eslint_opts.args, fallback)
@@ -245,9 +245,9 @@ M.setup = function()
             local fallback = formatter == "eslint_d" and o.get().eslint_config_fallback
                 or o.get().formatter_config_fallback
 
-            -- no need to warn for prettier, since it works without a config
-            if fallback == "" and formatter == "eslint_d" then
-                u.echo_warning("failed to resolve ESLint config")
+            -- prettier works without a config
+            if not fallback and formatter == "eslint_d" then
+                u.debug_log("failed to resolve ESLint config")
             else
                 table.insert(formatter_opts.args, "--config")
                 table.insert(formatter_opts.args, fallback)

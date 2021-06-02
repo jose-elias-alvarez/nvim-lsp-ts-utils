@@ -28,7 +28,7 @@ M.import_on_completion = import_on_completion.handle
 M.import_all = import_all
 
 M.setup = function(user_options)
-    o.set(user_options)
+    o.setup(user_options)
     null_ls.setup()
     define_commands()
 
