@@ -257,7 +257,8 @@ nvim_lsp.tsserver.setup {
 First, please check your config and make sure it's in line with the latest
 readme.
 
-Second, please try updating to the latest Neovim master.
+Second, please try updating to the latest Neovim master and make sure you are
+running the latest version of this plugin and its dependencies.
 
 Third, please try setting `debug = true` in `setup` and inspecting the output in
 `:messages` to make sure it matches what you expect.
