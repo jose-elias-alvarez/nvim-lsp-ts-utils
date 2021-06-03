@@ -138,15 +138,21 @@ require("null-ls").setup {}
     executable in `node_modules` and fall back to a system-wide executable,
     which must be available on your `$PATH`.
 
-  To set up formatting on save via null-ls, add the following snippet to your
-  `on_attach` callback:
+  Note that once you've enabled formatting, it'll run whenever you call `:lua
+  vim.lsp.buf.formatting()`, but the plugin won't set up commands or
+  autocommands to avoid conflicts. For convenience, I recommend adding the
+  following snippet to your `tsserver` `on_attach` callback:
 
   ```lua
   on_attach = function(client)
-    -- disable tsserver formatting to prevent conflicts
+    -- disable tsserver formatting
     client.resolved_capabilities.document_formatting = false
 
-    vim.cmd("autocmd BufWritePost lua vim.lsp.buf.formatting()")
+    -- define an alias
+    vim.cmd("command -buffer Formatting lua vim.lsp.buf.formatting()")
+
+    -- enable formatting on save
+    vim.cmd("autocmd BufWritePost <buffer> lua vim.lsp.buf.formatting()")
   end
   ```
 
