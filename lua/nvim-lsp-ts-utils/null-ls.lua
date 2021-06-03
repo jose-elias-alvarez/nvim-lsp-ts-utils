@@ -225,10 +225,12 @@ M.setup = function()
         end
 
         if o.get().eslint_enable_code_actions then
+            u.debug_log("enabling null-ls eslint code actions integration")
             add_source(null_ls.methods.CODE_ACTION, null_ls.generator(make_eslint_opts(code_action_handler)))
         end
 
         if o.get().eslint_enable_diagnostics then
+            u.debug_log("enabling null-ls eslint diagnostics integration")
             add_source(null_ls.methods.DIAGNOSTICS, null_ls.generator(make_eslint_opts(diagnostic_handler)))
         end
     end
@@ -254,14 +256,18 @@ M.setup = function()
             end
         end
 
+        u.debug_log("enabling null-ls formatting integration")
         add_source(null_ls.methods.FORMATTING, null_ls.formatter(formatter_opts))
     end
 
-    null_ls.register({
-        filetypes = u.tsserver_fts,
-        name = name,
-        sources = sources,
-    })
+    if vim.tbl_count(sources) > 0 then
+        null_ls.register({
+            filetypes = u.tsserver_fts,
+            name = name,
+            sources = sources,
+        })
+        u.debug_log("successfully registered null-ls integrations")
+    end
 end
 
 return M
