@@ -119,6 +119,7 @@ require("null-ls").setup {}
   Provides asynchronous formatting via null-ls.
 
   The plugin supports [Prettier](https://github.com/prettier/prettier),
+  [prettierd](https://github.com/fsouza/prettierd),
   [prettier_d_slim](https://github.com/mikew/prettier_d_slim) and
   [eslint_d](https://github.com/mantoni/eslint_d.js/) as formatters. Formatting
   via vanilla `eslint` is not supported.
@@ -138,10 +139,17 @@ require("null-ls").setup {}
     executable in `node_modules` and fall back to a system-wide executable,
     which must be available on your `$PATH`.
 
-  Note that once you've enabled formatting, it'll run whenever you call `:lua
-  vim.lsp.buf.formatting()`, but the plugin won't set up commands or
-  autocommands to avoid conflicts. For convenience, I recommend adding the
-  following snippet to your `tsserver` `on_attach` callback:
+  Note that once you've enabled formatting, it'll run whenever you call the
+  following command:
+
+  ```vim
+  :lua vim.lsp.buf.formatting()
+  ```
+
+  To avoid conflicts with existing LSP configurations, the plugin won't set up
+  any commands or autocommands. If you don't already have an LSP formatting
+  setup, I recommend adding the following snippet to your `tsserver` `on_attach`
+  callback:
 
   ```lua
   on_attach = function(client)

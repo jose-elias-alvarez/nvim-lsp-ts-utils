@@ -4,11 +4,12 @@ local eslint_executables = { "eslint", "eslint_d" }
 local _eslint_args = { "-f", "json", "--stdin", "--stdin-filename", "$FILENAME" }
 local eslint_args = { eslint = _eslint_args, eslint_d = _eslint_args }
 
-local formatters = { "prettier", "prettier_d_slim", "eslint_d" }
+local formatters = { "prettier", "prettierd", "prettier_d_slim", "eslint_d" }
 local formatter_args = {
     prettier = { "--stdin-filepath", "$FILENAME" },
     prettier_d_slim = { "--stdin", "--stdin-filepath", "$FILENAME" },
     eslint_d = { "--fix-to-stdout", "--stdin", "--stdin-filename", "$FILENAME" },
+    prettierd = { "$FILENAME" },
 }
 
 local defaults = {
