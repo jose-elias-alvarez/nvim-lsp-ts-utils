@@ -277,6 +277,11 @@ running the latest version of this plugin and its dependencies.
 Third, please try setting `debug = true` in `setup` and inspecting the output in
 `:messages` to make sure it matches what you expect.
 
+If your issue relates to `eslint_d`, please try exiting Neovim, running
+`eslint_d stop` from your command line, then restarting Neovim. `eslint_d` can
+get "stuck" on a particular configuration when switching between projects, so
+this step resolve a lot of issues.
+
 If those options don't help, please open up an issue and provide as much
 information as possible about your error, including debug output when relevant.
 Thank you for helping the plugin grow and improve!
