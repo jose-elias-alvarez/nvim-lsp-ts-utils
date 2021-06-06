@@ -1,101 +1,127 @@
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
-local s = require("nvim-lsp-ts-utils.state")
 
 local lsp = vim.lsp
 local api = vim.api
+local fn = vim.fn
 
 local rename_file = function(source, target)
-    lsp.buf.execute_command({
-        command = "_typescript.applyRenameFile",
-        arguments = {
-            {
-                sourceUri = vim.uri_from_fname(source),
-                targetUri = vim.uri_from_fname(target)
-            }
-        }
-    })
-end
+    local client_found, request_ok
+    for _, client in ipairs(lsp.get_active_clients()) do
+        if not client_found and client.name == "tsserver" then
+            client_found = true
+            request_ok = client.request("workspace/executeCommand", {
+                command = "_typescript.applyRenameFile",
+                arguments = {
+                    {
+                        sourceUri = vim.uri_from_fname(source),
+                        targetUri = vim.uri_from_fname(target),
+                    },
+                },
+            })
+        end
+    end
 
--- needs testing with additional file manager plugins
-local special_filetypes = {"netrw", "dirvish", "nerdtree"}
-
-local in_special_buffer = function()
-    return vim.bo.buftype ~= "" or
-               vim.tbl_contains(special_filetypes, vim.bo.filetype)
+    if not client_found then
+        u.echo_warning("failed to rename file: tsserver not running")
+    elseif not request_ok then
+        u.echo_warning("failed to rename file: tsserver request failed")
+    end
 end
 
 local M = {}
 
-M.manual = function(target)
-    local ft_ok, ft_err = pcall(u.file.check_ft)
-    if not ft_ok then error(ft_err) end
-
+M.manual = function(target, force)
     local bufnr = api.nvim_get_current_buf()
     local source = u.buffer.name(bufnr)
 
     local status
     if not target then
-        status, target = pcall(vim.fn.input, "New path: ", source, "file")
-        if not status or target == "" or target == source then return end
+        status, target = pcall(fn.input, "New path: ", source, "file")
+        if not status or not target or target == "" or target == source then
+            return
+        end
     end
 
     local exists = u.file.exists(target)
-    if exists then
-        local confirm = vim.fn.confirm("File exists! Overwrite?", "&Yes\n&No")
-        if confirm ~= 1 then return end
+    if exists and not force then
+        local confirm = fn.confirm("File exists! Overwrite?", "&Yes\n&No")
+        if confirm ~= 1 then
+            return
+        end
     end
 
     rename_file(source, target)
 
-    local modified = vim.fn.getbufvar(bufnr, "&modified")
-    if modified then vim.cmd("silent noautocmd w") end
+    if fn.getbufvar(bufnr, "&modified") then
+        vim.cmd("silent noautocmd w")
+    end
 
-    -- prevent watcher callback from triggering
-    s.ignore()
     u.file.mv(source, target)
 
     vim.cmd("e " .. target)
-    vim.cmd(bufnr .. "bwipeout!")
+    vim.cmd(bufnr .. "bdelete!")
 end
 
-M.on_move = function(source, target, is_dir)
-    if source == target then return end
+M.on_move = function(source, target)
+    if source == target then
+        return
+    end
 
     if o.get().require_confirmation_on_move then
-        local confirm = vim.fn.confirm("Update imports for file " .. target ..
-                                           "?", "&Yes\n&No")
-        if confirm ~= 1 then return end
+        local confirm = fn.confirm("Update imports for file " .. target .. "?", "&Yes\n&No")
+        if confirm ~= 1 then
+            return
+        end
     end
 
+    local original_win = api.nvim_get_current_win()
+    local original_bufnr = api.nvim_get_current_buf()
+
+    local is_dir = u.file.extension(target) == "" and u.file.is_dir(target)
     local source_bufnr = is_dir and nil or u.buffer.bufnr(source)
 
-    -- workspace/applyEdit needs to load buffers, so some buffer types neeed special handling
-    if in_special_buffer() then
-        local original_buffer = api.nvim_win_get_buf(0)
-        local buffer_to_add = target
-        if is_dir then
-            -- opening directories doesn't work, so load first file in directory as a workaround
-            buffer_to_add = target .. "/" .. u.file.dir_file(target, 1)
-        end
-
-        -- temporarily load buffer into window
-        local target_bufnr = vim.fn.bufadd(buffer_to_add)
-        vim.fn.bufload(buffer_to_add)
-        vim.fn.setbufvar(target_bufnr, "&buflisted", 1)
-        api.nvim_win_set_buf(0, target_bufnr)
-
-        rename_file(source, target)
-
-        -- restore original buffer after rename
-        api.nvim_win_set_buf(0, original_buffer)
-    else
-        rename_file(source, target)
-        -- if source was loaded, edit target, since source will be closed
-        if source_bufnr then vim.cmd("e " .. target) end
+    local buffer_to_add = target
+    if is_dir then
+        -- opening directories won't work, so load first file in directory
+        buffer_to_add = u.file.dir_file(target)
     end
 
-    if source_bufnr then vim.cmd(source_bufnr .. "bwipeout!") end
+    local target_bufnr = fn.bufadd(buffer_to_add)
+    fn.bufload(buffer_to_add)
+    fn.setbufvar(target_bufnr, "&buflisted", 1)
+
+    -- handle renaming from a floating window when the source is loaded in a background window
+    if source_bufnr and api.nvim_win_get_config(original_win).relative ~= "" then
+        local info = fn.getbufinfo(source_bufnr)[1]
+        if info and info.windows and info.windows[1] then
+            api.nvim_win_set_buf(info.windows[1], target_bufnr)
+        end
+    end
+
+    -- create temporary floating window to contain target
+    local temp_win = api.nvim_open_win(target_bufnr, true, {
+        relative = "editor",
+        height = 1,
+        width = 1,
+        row = 1,
+        col = 1,
+    })
+    rename_file(source, target)
+
+    -- restore original window layout after rename
+    api.nvim_set_current_win(original_win)
+    api.nvim_win_close(temp_win, true)
+
+    if source_bufnr then
+        if source_bufnr == original_bufnr then
+            vim.cmd("e " .. target)
+        end
+
+        if api.nvim_buf_is_loaded(source_bufnr) then
+            vim.cmd(source_bufnr .. "bdelete!")
+        end
+    end
 end
 
 return M
