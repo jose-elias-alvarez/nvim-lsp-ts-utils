@@ -21,7 +21,7 @@ possibility. If something doesn't work, please let me know!
 - [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
 
 - [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim) for ESLint
-  integrations and formatting
+  integrations and formatting (experimental)
 
 ## Built-in Features
 
@@ -65,15 +65,31 @@ possibility. If something doesn't work, please let me know!
   You can enable this feature by calling `setup_client` in your configuration (see
   below).
 
-## null-ls Integrations
+## Experimental Features
+
+The following features are **experimental**, meaning they are subject to change
+and are not guaranteed to work out-of-the-box. These features need more testing
+in real-world environments before I can consider them stable. Until then, users
+of these features should prepare themselves for **bugs, unexpected behavior, and
+breaking changes.**
+
+If your goal is to get a stable, functional setup with minimal effort, see [this
+article](https://jose-elias-alvarez.medium.com/configuring-neovims-lsp-client-for-typescript-development-5789d58ea9c)
+for instructions on setting up ESLint diagnostics and formatting via
+[diagnostic-languageserver](https://github.com/iamcco/diagnostic-languageserver).
+
+Bug reports and feedback are, as always, greatly appreciated.
+
+### null-ls Integrations
 
 The plugin integrates with
 [null-ls.nvim](https://github.com/jose-elias-alvarez/null-ls.nvim) to provide
 ESLint code actions, diagnostics, and formatting. To enable null-ls itself, you
 must install it via your plugin manager and add the following snippet to your
-LSP configuration (location doesn't matter):
+LSP configuration:
 
 ```lua
+-- location doesn't matter, but place it in on_attach if you're unsure
 require("null-ls").setup {}
 ```
 
@@ -129,15 +145,19 @@ require("null-ls").setup {}
   - `enable_formatting`: enables formatting. Set to `false` by default.
 
   - `formatter`: sets the executable used for formatting. Set to `prettier` by
-    default. Must be one of `prettier`, `prettier_d_slim`, or `eslint_d`.
+    default. Must be one of `prettier`, `prettierd`, `prettier_d_slim`, or
+    `eslint_d`.
+
+    Like `eslint_bin`, the plugin will look for a local
+    executable in `node_modules` and fall back to a system-wide executable,
+    which must be available on your `$PATH`.
 
   - `formatter_config_fallback`: sets a path to a fallback formatter config file
     that the plugin will use if it can't find a config file in the root
     directory. Set to `nil` by default.
 
-    Like `eslint_bin`, the plugin will look for a local
-    executable in `node_modules` and fall back to a system-wide executable,
-    which must be available on your `$PATH`.
+    Note that if you've set `formatter` to `eslint_d`, the plugin will use
+    `eslint_config_fallback` instead.
 
   Note that once you've enabled formatting, it'll run whenever you call the
   following command:
@@ -146,10 +166,10 @@ require("null-ls").setup {}
   :lua vim.lsp.buf.formatting()
   ```
 
-  To avoid conflicts with existing LSP configurations, the plugin won't set up
-  any commands or autocommands. If you don't already have an LSP formatting
-  setup, I recommend adding the following snippet to your `tsserver` `on_attach`
-  callback:
+  To avoid conflicts with existing LSP configurations, the plugin **will not**
+  set up any formatting-related commands or autocommands. If you don't already
+  have an LSP formatting setup, I recommend adding the following snippet to your
+  `tsserver` `on_attach` callback:
 
   ```lua
   on_attach = function(client)
@@ -159,14 +179,12 @@ require("null-ls").setup {}
     -- define an alias
     vim.cmd("command -buffer Formatting lua vim.lsp.buf.formatting()")
 
-    -- enable formatting on save
+    -- format on save
     vim.cmd("autocmd BufWritePost <buffer> lua vim.lsp.buf.formatting()")
   end
   ```
 
-## Experimental Features
-
-**The following features are experimental! Bug reports and feedback are greatly appreciated.**
+### Other Experimental Features
 
 - Update imports on file move
 
@@ -269,18 +287,20 @@ nvim_lsp.tsserver.setup {
 ## Troubleshooting
 
 First, please check your config and make sure it's in line with the latest
-readme.
+version of this document. If you don't see a setting in the list of defaults
+above, that setting is no longer available.
 
 Second, please try updating to the latest Neovim master and make sure you are
 running the latest version of this plugin and its dependencies.
 
 Third, please try setting `debug = true` in `setup` and inspecting the output in
-`:messages` to make sure it matches what you expect.
+`:messages` to make sure it matches what you expect. null-ls has an identical
+debug option that you can use to help debug issues related to null-ls features.
 
 If your issue relates to `eslint_d`, please try exiting Neovim, running
 `eslint_d stop` from your command line, then restarting Neovim. `eslint_d` can
 get "stuck" on a particular configuration when switching between projects, so
-this step resolve a lot of issues.
+this step can resolve a lot of issues.
 
 If those options don't help, please open up an issue and provide as much
 information as possible about your error, including debug output when relevant.

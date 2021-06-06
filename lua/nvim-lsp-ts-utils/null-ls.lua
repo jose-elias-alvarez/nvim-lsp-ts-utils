@@ -158,6 +158,10 @@ end
 
 local diagnostic_handler = function(params)
     local diagnostics = {}
+    if params.err then
+        params.messages = { { message = params.err } }
+    end
+
     for _, message in ipairs(params.messages) do
         table.insert(diagnostics, create_diagnostic(message))
     end
@@ -165,9 +169,13 @@ local diagnostic_handler = function(params)
     return diagnostics
 end
 
-local on_output_factory = function(callback)
+local on_output_factory = function(callback, handle_errors)
     return function(params)
-        local output = params.output
+        local output, err = params.output, params.err
+        if err and handle_errors then
+            return callback(params)
+        end
+
         if not (output and output[1] and output[1].messages) then
             return
         end
@@ -201,7 +209,7 @@ M.setup = function()
         local eslint_opts = {
             command = u.resolve_bin(eslint_bin),
             args = o.get().eslint_args,
-            format = "json",
+            format = "json_raw",
             to_stdin = true,
             check_exit_code = function(code)
                 return code <= 1
@@ -218,20 +226,24 @@ M.setup = function()
             end
         end
 
-        local make_eslint_opts = function(handler)
+        local make_eslint_opts = function(handler, method)
             local opts = vim.deepcopy(eslint_opts)
-            opts.on_output = on_output_factory(handler)
+            opts.on_output = on_output_factory(handler, method == null_ls.methods.DIAGNOSTICS)
             return opts
         end
 
         if o.get().eslint_enable_code_actions then
             u.debug_log("enabling null-ls eslint code actions integration")
-            add_source(null_ls.methods.CODE_ACTION, null_ls.generator(make_eslint_opts(code_action_handler)))
+
+            local method = null_ls.methods.CODE_ACTION
+            add_source(method, null_ls.generator(make_eslint_opts(code_action_handler, method)))
         end
 
         if o.get().eslint_enable_diagnostics then
             u.debug_log("enabling null-ls eslint diagnostics integration")
-            add_source(null_ls.methods.DIAGNOSTICS, null_ls.generator(make_eslint_opts(diagnostic_handler)))
+
+            local method = null_ls.methods.DIAGNOSTICS
+            add_source(method, null_ls.generator(make_eslint_opts(diagnostic_handler, method)))
         end
     end
 
