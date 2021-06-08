@@ -214,6 +214,7 @@ M.setup = function()
             check_exit_code = function(code)
                 return code <= 1
             end,
+            use_cache = true,
         }
 
         if not u.config_file_exists(eslint_bin) then
