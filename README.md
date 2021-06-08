@@ -312,18 +312,11 @@ Run `make test` in the root of the project to run the test suite. The suite has 
 same requirements as the plugin, and running the full suite requires having
 null-ls installed and having `eslint` and `prettier` on your `$PATH`.
 
-## Goals
+## Other Recommended Plugins
 
-- [ ] ESLint code action feature parity with [vscode-eslint](https://github.com/microsoft/vscode-eslint)
+- [JoosepAlviste/nvim-ts-context-commentstring](https://github.com/JoosepAlviste/nvim-ts-context-commentstring):
+  sets `commentstring` intelligently based on the cursor's position in the file,
+  meaning JSX comments work as you'd expect
 
-  The VS Code plugin supports 3 more code actions: `applySameFixes`,
-  `applyAllFixes`, and `openRuleDoc`. Implementing them shouldn't be too hard
-  (though `openRuleDoc` should be opt-in, since it requires ESLint to use the
-  heavier `json-with-metadata` format).
-
-- [ ] TSLint / stylelint code action support?
-
-  I'm not familiar with these at all, but since they both support CLI JSON
-  output, the plugin should be able to handle them in the same way it handles
-  ESLint. I'm a little concerned about speed and handling output from more than
-  one linter, so I'd appreciate input from users of these linters.
+- [windwp/nvim-ts-autotag](https://github.com/windwp/nvim-ts-autotag): uses
+  Treesitter to automatically close and rename JSX tags
