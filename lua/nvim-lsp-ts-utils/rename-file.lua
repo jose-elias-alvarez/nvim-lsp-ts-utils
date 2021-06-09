@@ -115,7 +115,7 @@ M.on_move = function(source, target)
 
     if source_bufnr then
         if source_bufnr == original_bufnr then
-            vim.cmd("e " .. target)
+            vim.cmd("e " .. buffer_to_add)
         end
 
         if api.nvim_buf_is_loaded(source_bufnr) then
