@@ -252,10 +252,7 @@ nvim_lsp.tsserver.setup {
             eslint_enable_disable_comments = true,
             eslint_bin = "eslint",
             eslint_config_fallback = nil,
-
-            -- eslint diagnostics
             eslint_enable_diagnostics = false,
-            eslint_diagnostics_debounce = 250,
 
             -- formatting
             enable_formatting = false,
