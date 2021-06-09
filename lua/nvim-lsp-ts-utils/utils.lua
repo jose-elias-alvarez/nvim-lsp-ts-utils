@@ -40,6 +40,8 @@ M.tsserver_fts = {
     "javascriptreact",
     "typescript",
     "typescriptreact",
+    "javascript.jsx",
+    "typescript.tsx",
 }
 
 M.tsserver_extension_pattern = "[.][tj][s]x?$"
