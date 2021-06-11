@@ -218,8 +218,8 @@ require("null-ls").setup {}
     default.
 
   - `signature_help_in_parens`: automatically triggers
-    `vim.lsp.buf.signature_help` after inserting `()`. Set to `false` by
-    default.
+    `vim.lsp.buf.signature_help` after the plugin inserts `()` via
+    `complete_parens`. Set to `false` by default.
 
 ## Setup
 
@@ -312,8 +312,11 @@ null-ls installed and having `eslint` and `prettier` on your `$PATH`.
 ## Other Recommended Plugins
 
 - [JoosepAlviste/nvim-ts-context-commentstring](https://github.com/JoosepAlviste/nvim-ts-context-commentstring):
-  sets `commentstring` intelligently based on the cursor's position in the file,
-  meaning JSX comments work as you'd expect
+  Sets `commentstring` intelligently based on the cursor's position in the file,
+  meaning JSX comments work as you'd expect.
 
-- [windwp/nvim-ts-autotag](https://github.com/windwp/nvim-ts-autotag): uses
-  Treesitter to automatically close and rename JSX tags
+- [windwp/nvim-ts-autotag](https://github.com/windwp/nvim-ts-autotag): Uses
+  Treesitter to automatically close and rename JSX tags.
+
+- [RRethy/nvim-treesitter-textsubjects](https://github.com/RRethy/nvim-treesitter-textsubjects):
+  Adds a useful "smart" text object that adapts to the current context.
