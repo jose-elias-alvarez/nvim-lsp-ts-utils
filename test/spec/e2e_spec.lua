@@ -81,21 +81,6 @@ describe("e2e", function()
 
     describe("eslint", function()
         describe("diagnostics", function()
-            local move_eslintrc = function()
-                vim.cmd("silent !mv test/files/.eslintrc.js test/files/.eslintrc.bak")
-            end
-            local reset_eslintrc = function()
-                if vim.fn.filereadable("test/files/.eslintrc.bak") == 0 then
-                    return
-                end
-
-                vim.cmd("silent !mv test/files/.eslintrc.bak test/files/.eslintrc.js")
-            end
-
-            after_each(function()
-                reset_eslintrc()
-            end)
-
             it("should show eslint diagnostics", function()
                 edit_test_file("eslint-code-fix.js")
                 lsp_wait()
@@ -106,17 +91,6 @@ describe("e2e", function()
                 assert.equals(diagnostics[1].code, "eqeqeq")
                 assert.equals(diagnostics[1].message, "Expected '===' and instead saw '=='.")
                 assert.equals(diagnostics[1].source, "eslint")
-            end)
-
-            it("should create diagnostic from eslint error", function()
-                move_eslintrc()
-                edit_test_file("eslint-code-fix.js")
-                lsp_wait()
-
-                local diagnostics = lsp.diagnostic.get()
-
-                assert.equals(vim.tbl_count(diagnostics), 1)
-                assert.matches("Cannot read config file", diagnostics[1].message)
             end)
         end)
 
