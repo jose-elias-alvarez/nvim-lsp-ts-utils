@@ -40,41 +40,51 @@ local create_response_handler = function(edits, imports)
         if not responses then
             return
         end
+
+        local should_handle_action = function(action)
+            if action.command ~= APPLY_EDIT then
+                return false
+            end
+
+            -- keep only actions that look like imports
+            if
+                not (
+                    (string.match(action.title, "Add") and string.match(action.title, "existing import"))
+                    or string.match(action.title, "Import")
+                )
+            then
+                return false
+            end
+
+            local arguments = action.arguments
+            if not arguments or not arguments[1] then
+                return false
+            end
+
+            local changes = arguments[1].documentChanges
+            if not changes or not changes[1] then
+                return false
+            end
+
+            return true
+        end
+
+        local push_edits = function(action)
+            -- avoid importing same variable twice
+            local import = string.match(action.title, "%b''")
+            if import and not vim.tbl_contains(imports, import) then
+                for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
+                    table.insert(edits, edit)
+                end
+                table.insert(imports, import)
+            end
+        end
+
         for _, response in ipairs(responses) do
             for _, result in pairs(response) do
                 for _, action in pairs(result) do
-                    -- keep only edits
-                    if action.command ~= APPLY_EDIT then
-                        break
-                    end
-                    -- keep only actions that look like imports
-                    if
-                        not (
-                            (string.match(action.title, "Add") and string.match(action.title, "existing import"))
-                            or string.match(action.title, "Import")
-                        )
-                    then
-                        break
-                    end
-
-                    local arguments = action.arguments
-                    if not arguments or not arguments[1] then
-                        break
-                    end
-
-                    local changes = arguments[1].documentChanges
-                    if not changes or not changes[1] then
-                        break
-                    end
-
-                    -- capture variable name, which should be surrounded by single quotes
-                    local import = string.match(action.title, "%b''")
-                    -- avoid importing same variable twice
-                    if import and not vim.tbl_contains(imports, import) then
-                        for _, edit in ipairs(changes[1].edits) do
-                            table.insert(edits, edit)
-                        end
-                        table.insert(imports, import)
+                    if should_handle_action(action) then
+                        push_edits(action)
                     end
                 end
             end
@@ -83,6 +93,11 @@ local create_response_handler = function(edits, imports)
 end
 
 local apply_edits = function(edits, bufnr)
+    if vim.tbl_count(edits) == 0 then
+        return
+    end
+
+    u.debug_log("applying " .. vim.tbl_count(edits) .. " edits")
     lsp.util.apply_text_edits(edits, bufnr)
 
     -- organize imports afterwards to merge separate import statements from the same file
@@ -95,12 +110,19 @@ return a.async_void(function(bufnr)
         return
     end
 
+    u.debug_log("received " .. vim.tbl_count(diagnostics) .. " diagnostics from tsserver")
+
     local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
     local edits, imports, messages = {}, {}, {}
     local response_handler = create_response_handler(edits, imports)
 
     local get_responses = function(diagnostic)
-        return a.await(buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic)))
+        u.debug_log("awaiting responses for diagnostic: " .. diagnostic.message)
+
+        local responses = a.await(buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic)))
+        u.debug_log("received " .. vim.tbl_count(responses) .. " responses for diagnostic: " .. diagnostic.message)
+
+        return responses
     end
 
     local futures = {}
@@ -117,6 +139,9 @@ return a.async_void(function(bufnr)
         end
     end
 
+    u.debug_log("awaiting code action results from " .. vim.tbl_count(futures) .. " futures")
     a.await_all(futures)
-    apply_edits(edits, bufnr)
+    vim.schedule(function()
+        apply_edits(edits, bufnr)
+    end)
 end)

@@ -30,7 +30,7 @@ local config_file_formats = {
     prettier = prettier_config_formats,
     prettierd = prettier_config_formats,
     prettier_d_slim = prettier_config_formats,
-    git = { ".gitignore" },
+    git = { ".gitignore", ".git" },
 }
 
 local M = {}
