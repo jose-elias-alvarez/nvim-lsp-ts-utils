@@ -126,22 +126,16 @@ return a.async_void(function(bufnr)
         last_request_time = vim.loop.now()
     end
 
-    local expected, received = vim.tbl_count(diagnostics), 0
+    local response_count = 0
     local get_responses = function(diagnostic)
         u.debug_log("awaiting responses for diagnostic: " .. diagnostic.message)
         wait_for_request()
 
         local responses = a.await(buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic)))
         u.debug_log("received " .. vim.tbl_count(responses) .. " responses for diagnostic: " .. diagnostic.message)
-        received = received + 1
+        response_count = response_count + 1
         return responses
     end
-
-    vim.defer_fn(function()
-        if received < expected then
-            u.echo_warning("import all timed out")
-        end
-    end, o.get().import_all_timeout)
 
     local futures = {}
     local future_factory = function(diagnostic)
@@ -156,6 +150,13 @@ return a.async_void(function(bufnr)
             table.insert(futures, future_factory(diagnostic))
         end
     end
+
+    local expected_response_count = vim.tbl_count(futures)
+    vim.defer_fn(function()
+        if response_count < expected_response_count then
+            u.echo_warning("import all timed out")
+        end
+    end, o.get().import_all_timeout)
 
     u.debug_log("awaiting code action results from " .. vim.tbl_count(futures) .. " futures")
     a.await_all(futures)
