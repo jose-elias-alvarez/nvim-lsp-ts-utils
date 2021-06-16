@@ -15,6 +15,8 @@ local formatter_args = {
 local defaults = {
     debug = false,
     disable_commands = false,
+    -- import all
+    import_all_timeout = 5000,
     -- completion
     enable_import_on_completion = false,
     complete_parens = false,

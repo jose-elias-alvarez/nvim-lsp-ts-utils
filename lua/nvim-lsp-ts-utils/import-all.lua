@@ -1,5 +1,7 @@
 local a = require("plenary.async_lib")
+
 local u = require("nvim-lsp-ts-utils.utils")
+local o = require("nvim-lsp-ts-utils.options")
 local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
 
 local lsp = vim.lsp
@@ -116,14 +118,30 @@ return a.async_void(function(bufnr)
     local edits, imports, messages = {}, {}, {}
     local response_handler = create_response_handler(edits, imports)
 
+    local last_request_time = vim.loop.now()
+    local wait_for_request = function()
+        vim.wait(250, function()
+            return vim.loop.now() - last_request_time > 25
+        end, 5)
+        last_request_time = vim.loop.now()
+    end
+
+    local expected, received = vim.tbl_count(diagnostics), 0
     local get_responses = function(diagnostic)
         u.debug_log("awaiting responses for diagnostic: " .. diagnostic.message)
+        wait_for_request()
 
         local responses = a.await(buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic)))
         u.debug_log("received " .. vim.tbl_count(responses) .. " responses for diagnostic: " .. diagnostic.message)
-
+        received = received + 1
         return responses
     end
+
+    vim.defer_fn(function()
+        if received < expected then
+            u.echo_warning("import all timed out")
+        end
+    end, o.get().import_all_timeout)
 
     local futures = {}
     local future_factory = function(diagnostic)

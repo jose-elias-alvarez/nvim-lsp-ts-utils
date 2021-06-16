@@ -46,6 +46,10 @@ possibility. If something doesn't work, please let me know!
   (imperfectly) determine whether it's an import action. Also organizes imports
   afterwards to merge imports from the same source.
 
+  Note that `tsserver` has a tendency to time out when making large requests. If
+  you frequently see timeout warnings, you can change `import_all_timeout` (see
+  below).
+
 - Import on completion
 
   Adds missing imports on completion confirm (`<C-y>`) when using the built-in
@@ -246,6 +250,7 @@ nvim_lsp.tsserver.setup {
             debug = false,
             disable_commands = false,
             enable_import_on_completion = false,
+            import_all_timeout = 5000, -- ms
 
             -- eslint
             eslint_enable_code_actions = true,
