@@ -7,22 +7,31 @@ local api = vim.api
 local set_lines = vim.api.nvim_buf_set_lines
 local set_text = vim.api.nvim_buf_set_text
 
+local get_col = function(line_len, line_offset, offset)
+    for i = 0, line_len do
+        local char_offset = line_offset + i
+        if char_offset == offset then
+            return i
+        end
+    end
+end
+
 local M = {}
 
 local convert_offset = function(row, params, start_offset, end_offset)
-    local start_char, end_char
-    local line_offset = api.nvim_buf_get_offset(params.bufnr, row)
-    local line_end_char = string.len(params.content[row + 1])
-    for j = 0, line_end_char do
-        local char_offset = line_offset + j
-        if char_offset == start_offset then
-            start_char = j
-        end
-        if char_offset == end_offset then
-            end_char = j
-        end
+    local start_line_offset = api.nvim_buf_get_offset(params.bufnr, row)
+    local start_line_len = #params.content[row + 1]
+
+    local end_line_offset, end_row = start_line_offset, row
+    while end_line_offset + #params.content[end_row + 1] < end_offset do
+        end_row = end_row + 1
+        end_line_offset = api.nvim_buf_get_offset(params.bufnr, end_row)
     end
-    return start_char, end_char
+    local end_line_len = #params.content[end_row + 1]
+
+    local start_col = get_col(start_line_len, start_line_offset, start_offset)
+    local end_col = get_col(end_line_len, end_line_offset, end_offset)
+    return start_col, end_col, end_row
 end
 
 local is_fixable = function(problem, row)
@@ -53,16 +62,16 @@ local get_fix_range = function(problem, params)
     local row = problem.line - 1
     local offset = problem.fix.range[1]
     local end_offset = problem.fix.range[2]
-    local col, end_col = convert_offset(row, params, offset, end_offset)
+    local col, end_col, end_row = convert_offset(row, params, offset, end_offset)
 
-    return { row = row, col = col, end_row = row, end_col = end_col }
+    return { row = row, col = col, end_row = end_row, end_col = end_col }
 end
 
 local generate_edit_action = function(title, new_text, range, params)
     return {
         title = title,
         action = function()
-            set_text(params.bufnr, range.row, range.col, range.end_row, range.end_col, { new_text })
+            set_text(params.bufnr, range.row, range.col, range.end_row, range.end_col, vim.split(new_text, "\n"))
         end,
     }
 end
@@ -102,7 +111,8 @@ local generate_disable_actions = function(message, indentation, params, rules)
     local actions = {}
     local line_title = "Disable ESLint rule " .. message.ruleId .. " for this line"
     local line_new_text = indentation .. "// eslint-disable-next-line " .. rule_id
-    table.insert(actions, generate_edit_line_action(line_title, line_new_text, params.row - 1, params))
+    local row = message.line and message.line > 0 and message.line - 1 or 0
+    table.insert(actions, generate_edit_line_action(line_title, line_new_text, row, params))
 
     local file_title = "Disable ESLint rule " .. message.ruleId .. " for the entire file"
     local file_new_text = "/* eslint-disable " .. rule_id .. " */"
