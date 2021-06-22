@@ -101,20 +101,16 @@ local generate_fix_action = function(message, params)
     return generate_edit_action(title, new_text, range, params)
 end
 
-local generate_disable_actions = function(message, indentation, params, rules)
+local generate_disable_actions = function(message, indentation, params)
     local rule_id = message.ruleId
-    if vim.tbl_contains(rules, rule_id) then
-        return
-    end
-    table.insert(rules, rule_id)
 
     local actions = {}
-    local line_title = "Disable ESLint rule " .. message.ruleId .. " for this line"
+    local line_title = "Disable ESLint rule " .. rule_id .. " for this line"
     local line_new_text = indentation .. "// eslint-disable-next-line " .. rule_id
     local row = message.line and message.line > 0 and message.line - 1 or 0
     table.insert(actions, generate_edit_line_action(line_title, line_new_text, row, params))
 
-    local file_title = "Disable ESLint rule " .. message.ruleId .. " for the entire file"
+    local file_title = "Disable ESLint rule " .. rule_id .. " for the entire file"
     local file_new_text = "/* eslint-disable " .. rule_id .. " */"
     table.insert(actions, generate_edit_line_action(file_title, file_new_text, 0, params))
 
@@ -139,8 +135,13 @@ local code_action_handler = function(params)
             if message.fix then
                 table.insert(actions, generate_fix_action(message, params))
             end
-            if message.ruleId and o.get().eslint_enable_disable_comments then
-                vim.list_extend(actions, generate_disable_actions(message, indentation, params, rules))
+            if
+                message.ruleId
+                and o.get().eslint_enable_disable_comments
+                and not vim.tbl_contains(rules, message.ruleId)
+            then
+                table.insert(rules, message.ruleId)
+                vim.list_extend(actions, generate_disable_actions(message, indentation, params))
             end
         end
     end
