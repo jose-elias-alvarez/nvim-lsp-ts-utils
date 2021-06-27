@@ -274,7 +274,7 @@ M.setup = function()
             -- prettier works without a config
             if not fallback and formatter == "eslint_d" then
                 u.debug_log("failed to resolve ESLint config")
-            else
+            elseif fallback then
                 table.insert(formatter_opts.args, "--config")
                 table.insert(formatter_opts.args, fallback)
             end
