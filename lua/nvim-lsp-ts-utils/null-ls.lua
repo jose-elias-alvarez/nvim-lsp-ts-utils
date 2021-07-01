@@ -231,7 +231,7 @@ M.setup = function()
         if not u.config_file_exists(eslint_bin) then
             local fallback = o.get().eslint_config_fallback
             if not fallback then
-                u.debug_log("failed to resolve ESLint config")
+                u.debug_log("ESLint config file not found (config may still be valid; see diagnostics for errors)")
             else
                 table.insert(eslint_opts.args, "--config")
                 table.insert(eslint_opts.args, fallback)
