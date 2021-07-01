@@ -104,22 +104,24 @@ require("null-ls").setup {}
 
   Supports the following settings:
 
-  - `eslint_enable_code_actions`: enables ESLint code actions. Set to `true` by default.
+  - `eslint_enable_code_actions` (boolean): enables ESLint code actions. Set to
+    `true` by default.
 
-  - `eslint_enable_disable_comments`: enables ESLint code actions to disable the
-    violated rule for the current line / file. Set to `true` by default.
+  - `eslint_enable_disable_comments` (boolean): enables ESLint code actions to
+    disable the violated rule for the current line / file. Set to `true` by
+    default.
 
-  - `eslint_bin`: sets the binary used to get ESLint output. Looks for a local
-    executable in `node_modules` and falls back to a system-wide executable,
-    which must be available on your `$PATH`.
+  - `eslint_bin` (string): sets the binary used to get ESLint output. Looks for
+    a local executable in `node_modules` and falls back to a system-wide
+    executable, which must be available on your `$PATH`.
 
     Uses `eslint` by default for compatibility, but I highly, highly recommend
     using [eslint_d](https://github.com/mantoni/eslint_d.js). `eslint` will add
     a noticeable delay to each code action.
 
-  - `eslint_config_fallback`: sets a path to a fallback ESLint config file that
-    the plugin will use if it can't find a config file in the root directory.
-    Set to `nil` by default.
+  - `eslint_config_fallback` (string, function): path to a fallback ESLint
+    config file that the plugin will use if it can't find a config file in the
+    root directory. Set to `nil` by default.
 
 - ESLint diagnostics
 
@@ -127,8 +129,8 @@ require("null-ls").setup {}
 
   Supports the following settings:
 
-  - `eslint_enable_diagnostics`: enables ESLint diagnostics for the current
-    buffer on `tsserver` attach. Set to `false` by default.
+  - `eslint_enable_diagnostics` (boolean): enables ESLint diagnostics for the
+    current buffer on `tsserver` attach. Set to `false` by default.
 
   - `eslint_bin` and `eslint_config_fallback`: applies the same settings as
     ESLint code actions. Like code actions, using `eslint_d` will improve your
@@ -146,19 +148,20 @@ require("null-ls").setup {}
 
   Supports the following settings:
 
-  - `enable_formatting`: enables formatting. Set to `false` by default.
+  - `enable_formatting` (boolean): enables formatting. Set to `false` by
+    default.
 
-  - `formatter`: sets the executable used for formatting. Set to `prettier` by
-    default. Must be one of `prettier`, `prettierd`, `prettier_d_slim`, or
-    `eslint_d`.
+  - `formatter` (string): sets the executable used for formatting. Set to
+    `prettier` by default. Must be one of `prettier`, `prettierd`,
+    `prettier_d_slim`, or `eslint_d`.
 
     Like `eslint_bin`, the plugin will look for a local
     executable in `node_modules` and fall back to a system-wide executable,
     which must be available on your `$PATH`.
 
-  - `formatter_config_fallback`: sets a path to a fallback formatter config file
-    that the plugin will use if it can't find a config file in the root
-    directory. Set to `nil` by default.
+  - `formatter_config_fallback` (string, function): path to a fallback formatter
+    config file that the plugin will use if it can't find a config file in the
+    root directory. Set to `nil` by default.
 
     Note that if you've set `formatter` to `eslint_d`, the plugin will use
     `eslint_config_fallback` instead.
@@ -198,14 +201,15 @@ require("null-ls").setup {}
 
   Supports the following settings:
 
-  - `update_imports_on_move`: enables this feature. Set to `false` by default.
+  - `update_imports_on_move` (boolean): enables this feature. Set to `false` by
+    default.
 
-  - `require_confirmation_on_move`: if `true`, prompts for confirmation before
-    updating imports. Set to `false` by default.
+  - `require_confirmation_on_move` (boolean): if `true`, prompts for
+    confirmation before updating imports. Set to `false` by default.
 
-  - `watch_dir`: sets a fallback directory that the plugin will watch for
-    changes if it can't find a `.gitignore` in the root directory. Path is
-    relative to the current root directory. Set to `nil` by default.
+  - `watch_dir` (string, nil): sets a fallback directory that the plugin will
+    watch for changes if it can't find a `.gitignore` in the root directory.
+    Path is relative to the current root directory. Set to `nil` by default.
 
   Note that if the root directory is not recognized as a Git project and
   `watch_dir` is `nil` or fails to resolve, the plugin will not enable file
@@ -218,10 +222,10 @@ require("null-ls").setup {}
 
   Supports the following settings:
 
-  - `complete_parens`: enables or disables this feature. Set to `false` by
-    default.
+  - `complete_parens` (boolean): enables or disables this feature. Set to
+    `false` by default.
 
-  - `signature_help_in_parens`: automatically triggers
+  - `signature_help_in_parens` (boolean): automatically triggers
     `vim.lsp.buf.signature_help` after the plugin inserts `()` via
     `complete_parens`. Set to `false` by default.
 

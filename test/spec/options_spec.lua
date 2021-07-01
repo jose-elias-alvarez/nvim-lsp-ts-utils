@@ -1,5 +1,3 @@
-local stub = require("luassert.stub")
-
 describe("config", function()
     local o = require("nvim-lsp-ts-utils.options")
 
@@ -12,6 +10,16 @@ describe("config", function()
             o.setup({ debug = true })
 
             assert.equals(o.get().debug, true)
+        end)
+
+        it("should get option by running function", function()
+            o.setup({
+                eslint_config_fallback = function()
+                    return ".eslintrc.js"
+                end,
+            })
+
+            assert.equals(o.get().eslint_config_fallback, ".eslintrc.js")
         end)
     end)
 

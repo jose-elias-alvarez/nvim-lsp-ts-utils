@@ -53,8 +53,8 @@ local type_overrides = {
         end
         return not a or vim.tbl_contains(formatters, a)
     end,
-    eslint_config_fallback = { "string", "nil" },
-    formatter_config_fallback = { "string", "nil" },
+    eslint_config_fallback = { "string", "function", "nil" },
+    formatter_config_fallback = { "string", "function", "nil" },
 }
 
 local wanted_type = function(k)
@@ -116,7 +116,11 @@ M.setup = function(user_options)
 end
 
 M.get = function()
-    return options
+    local _options = {}
+    for k, v in pairs(options) do
+        _options[k] = type(v) == "function" and v() or v
+    end
+    return _options
 end
 
 M.reset = function()
