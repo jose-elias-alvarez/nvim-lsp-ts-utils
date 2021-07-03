@@ -103,20 +103,13 @@ describe("e2e", function()
                 -- jump to line containing error
                 vim.cmd("2")
             end)
+
             it("should apply eslint fix", function()
                 ts_utils.fix_current()
                 lsp_wait()
 
                 -- check that eslint fix has been applied, replacing == with ===
                 assert.equals(get_buf_content(2), [[  if (typeof user.name === "string") {]])
-            end)
-
-            it("should add disable rule comment with matching indentation", function()
-                -- specify index to choose disable action
-                ts_utils.fix_current(2)
-                lsp_wait()
-
-                assert.equals(get_buf_content(2), "  // eslint-disable-next-line eqeqeq")
             end)
         end)
     end)
