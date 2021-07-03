@@ -176,8 +176,22 @@ local apply_edits = function(edits, bufnr)
     u.debug_log("applying " .. vim.tbl_count(edits) .. " edits")
     lsp.util.apply_text_edits(edits, bufnr)
 
-    -- organize imports afterwards to merge separate import statements from the same file
-    organize_imports.async()
+    -- organize imports to merge separate import statements from the same file
+    organize_imports.async(bufnr, function()
+        -- remove empty lines created by merge
+        local empty_start, empty_end
+        for i, line in ipairs(api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+            if not empty_end and empty_start and line ~= "" then
+                empty_end = i - 1
+            end
+            if not empty_start and line == "" then
+                empty_start = i
+            end
+        end
+        if empty_start < empty_end then
+            api.nvim_buf_set_lines(bufnr, empty_start, empty_end, false, {})
+        end
+    end)
 end
 
 return a.async_void(function(bufnr)
