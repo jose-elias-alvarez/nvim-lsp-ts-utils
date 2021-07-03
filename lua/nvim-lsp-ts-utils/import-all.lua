@@ -5,9 +5,18 @@ local o = require("nvim-lsp-ts-utils.options")
 local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
 
 local lsp = vim.lsp
+local api = vim.api
 
 local CODE_ACTION = "textDocument/codeAction"
 local APPLY_EDIT = "_typescript.applyWorkspaceEdit"
+local rel_path_pattern = "^[.]+/"
+
+local priorities = {
+    max = 3,
+    high = 2,
+    med = 1,
+    low = 0,
+}
 
 local get_diagnostics = function(bufnr)
     local diagnostics = lsp.diagnostic.get(bufnr)
@@ -37,7 +46,7 @@ local make_params = function(entry)
     return params
 end
 
-local create_response_handler = function(edits, imports)
+local create_response_handler = function(imports)
     return function(responses)
         if not responses then
             return
@@ -71,14 +80,79 @@ local create_response_handler = function(edits, imports)
             return true
         end
 
-        local push_edits = function(action)
-            -- avoid importing same variable twice
-            local import = string.match(action.title, "%b''")
-            if import and not vim.tbl_contains(imports, import) then
-                for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
-                    table.insert(edits, edit)
+        local scan_buffer = function(buffer, source)
+            for _, line in ipairs(api.nvim_buf_get_lines(buffer.bufnr, 0, -1, false)) do
+                -- continue until blank line
+                if line == "" then
+                    return false
                 end
-                table.insert(imports, import)
+                if line:match("import") and line:find(source, nil, true) then
+                    return true
+                end
+            end
+        end
+
+        local to_scan, scanned = o.get().import_all_scan_buffers, 0
+        local buffers = vim.fn.getbufinfo({ listed = 1 })
+        local current = api.nvim_get_current_buf()
+        local calculate_priority = function(title)
+            -- check if already imported in the same file
+            if title:match("Add") then
+                return priorities.max
+            end
+
+            local source = title:match('%b""')
+            -- fallback in case source can't be determined
+            if not source then
+                return priorities.low
+            end
+
+            -- remove quotes
+            source = source:sub(2, -2)
+
+            -- attempt to determine if source is local (far from perfect and needs more patterns)
+            if source:match(rel_path_pattern) or source:match("src") then
+                return priorities.high
+            end
+
+            -- remove relative path patterns
+            while source:find(rel_path_pattern) do
+                source = source:gsub(rel_path_pattern, "")
+            end
+
+            for _, b in ipairs(buffers) do
+                if b.bufnr ~= current and u.is_tsserver_file(b.name) then
+                    -- check if buffer name matches source
+                    if source:find(vim.fn.fnamemodify(b.name, ":t:r"), nil, true) then
+                        return priorities.med
+                    end
+
+                    -- scan loaded buffers for source
+                    if scanned < to_scan then
+                        scanned = scanned + 1
+                        local found = scan_buffer(b, source)
+                        if found then
+                            return priorities.med
+                        end
+                    end
+                end
+            end
+
+            return priorities.low
+        end
+
+        local parse_action = function(action)
+            local title = action.title
+            local priority = o.get().import_all_disable_priority and priorities.low or calculate_priority(title)
+            local target = title:match("%b''")
+            if target then
+                target = target:sub(2, -2)
+                local existing = imports[target]
+                -- checking < means that conflicts will resolve in favor of the first found import,
+                -- which is consistent with VS Code's behavior
+                if not existing or existing.priority < priority then
+                    imports[target] = { priority = priority, action = action }
+                end
             end
         end
 
@@ -86,7 +160,7 @@ local create_response_handler = function(edits, imports)
             for _, result in pairs(response) do
                 for _, action in pairs(result) do
                     if should_handle_action(action) then
-                        push_edits(action)
+                        parse_action(action)
                     end
                 end
             end
@@ -116,7 +190,13 @@ return a.async_void(function(bufnr)
 
     local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
     local edits, imports, messages = {}, {}, {}
-    local response_handler = create_response_handler(edits, imports)
+    local push_edits = function(action)
+        for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
+            table.insert(edits, edit)
+        end
+    end
+
+    local response_handler = create_response_handler(imports)
 
     local last_request_time = vim.loop.now()
     local wait_for_request = function()
@@ -160,6 +240,10 @@ return a.async_void(function(bufnr)
 
     u.debug_log("awaiting code action results from " .. vim.tbl_count(futures) .. " futures")
     a.await_all(futures)
+    for _, import in pairs(imports) do
+        push_edits(import.action)
+    end
+
     vim.schedule(function()
         apply_edits(edits, bufnr)
     end)

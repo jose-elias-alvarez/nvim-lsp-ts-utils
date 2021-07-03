@@ -50,6 +50,15 @@ possibility. If something doesn't work, please let me know!
   you frequently see timeout warnings, you can change `import_all_timeout` (see
   below).
 
+  By default, the command will resolve conflicting imports by checking other
+  imports in the same file and other open buffers. This has a minor performance
+  impact, but you can disable the feature entirely by setting
+  `import_all_disable_priority` to `true` (see below).
+
+  `:TSLspImportAll` can also scan the content of other open buffers to resolve
+  import priority, limited by `import_all_scan_buffers` (set to `0` by default).
+  This has a positive impact on import accuracy but a larger performance impact.
+
 - Import on completion
 
   Adds missing imports on completion confirm (`<C-y>`) when using the built-in
@@ -254,7 +263,11 @@ nvim_lsp.tsserver.setup {
             debug = false,
             disable_commands = false,
             enable_import_on_completion = false,
+
+            -- import all
             import_all_timeout = 5000, -- ms
+            import_all_disable_priority = false,
+            import_all_scan_buffers = 0
 
             -- eslint
             eslint_enable_code_actions = true,

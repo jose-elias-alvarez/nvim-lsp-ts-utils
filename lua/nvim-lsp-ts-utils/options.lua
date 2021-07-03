@@ -17,6 +17,8 @@ local defaults = {
     disable_commands = false,
     -- import all
     import_all_timeout = 5000,
+    import_all_disable_priority = false,
+    import_all_scan_buffers = 0,
     -- completion
     enable_import_on_completion = false,
     complete_parens = false,
