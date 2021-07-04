@@ -215,7 +215,7 @@ return a.async_void(function(bufnr)
     local last_request_time = vim.loop.now()
     local wait_for_request = function()
         vim.wait(250, function()
-            return vim.loop.now() - last_request_time > 25
+            return vim.loop.now() - last_request_time > 10
         end, 5)
         last_request_time = vim.loop.now()
     end
