@@ -19,6 +19,10 @@ end
 local M = {}
 
 local convert_offset = function(row, params, start_offset, end_offset)
+    local to_string = table.concat(params.content, "\n")
+    start_offset = vim.str_byteindex(to_string, start_offset)
+    end_offset = vim.str_byteindex(to_string, end_offset)
+
     local start_line_offset = api.nvim_buf_get_offset(params.bufnr, row)
     local start_line_len = #params.content[row + 1]
 
