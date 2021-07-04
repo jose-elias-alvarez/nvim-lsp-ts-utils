@@ -7,35 +7,31 @@ local api = vim.api
 local set_lines = vim.api.nvim_buf_set_lines
 local set_text = vim.api.nvim_buf_set_text
 
-local get_col = function(line_len, line_offset, offset)
-    for i = 0, line_len do
-        local char_offset = line_offset + i
-        if char_offset == offset then
-            return i
-        end
-    end
-end
-
 local M = {}
 
-local convert_offset = function(row, params, start_offset, end_offset)
-    local to_string = table.concat(params.content, "\n")
-    start_offset = vim.str_byteindex(to_string, start_offset)
-    end_offset = vim.str_byteindex(to_string, end_offset)
+local get_offset_positions = function(content, start_offset, end_offset)
+    -- ESLint uses character offsets, so convert to byte indexes to handle multibyte characters
+    local to_string = table.concat(content, "\n")
+    start_offset = vim.str_byteindex(to_string, start_offset + 1)
+    end_offset = vim.str_byteindex(to_string, end_offset + 1)
 
-    local start_line_offset = api.nvim_buf_get_offset(params.bufnr, row)
-    local start_line_len = #params.content[row + 1]
+    -- save original window position and virtualedit setting
+    local view = vim.fn.winsaveview()
+    local virtualedit = vim.opt.virtualedit
+    vim.opt.virtualedit = "all"
 
-    local end_line_offset, end_row = start_line_offset, row
-    while end_line_offset + #params.content[end_row + 1] < end_offset do
-        end_row = end_row + 1
-        end_line_offset = api.nvim_buf_get_offset(params.bufnr, end_row)
-    end
-    local end_line_len = #params.content[end_row + 1]
+    vim.cmd("go " .. start_offset)
+    local cursor = api.nvim_win_get_cursor(0)
+    local col = cursor[2]
+    vim.cmd("go " .. end_offset)
+    cursor = api.nvim_win_get_cursor(0)
+    local end_row, end_col = cursor[1] - 1, cursor[2]
 
-    local start_col = get_col(start_line_len, start_line_offset, start_offset)
-    local end_col = get_col(end_line_len, end_line_offset, end_offset)
-    return start_col, end_col, end_row
+    -- restore state
+    vim.fn.winrestview(view)
+    vim.opt.virtualedit = virtualedit
+
+    return col, end_col, end_row
 end
 
 local is_fixable = function(problem, row)
@@ -66,7 +62,7 @@ local get_fix_range = function(problem, params)
     local row = problem.line - 1
     local offset = problem.fix.range[1]
     local end_offset = problem.fix.range[2]
-    local col, end_col, end_row = convert_offset(row, params, offset, end_offset)
+    local col, end_col, end_row = get_offset_positions(params.content, offset, end_offset)
 
     return { row = row, col = col, end_row = end_row, end_col = end_col }
 end
