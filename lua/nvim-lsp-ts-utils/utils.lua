@@ -1,4 +1,5 @@
 local scan_dir = require("plenary.scandir").scan_dir
+local Job = require("plenary.job")
 local lspconfig = require("lspconfig/util")
 
 local o = require("nvim-lsp-ts-utils.options")
@@ -207,5 +208,20 @@ M.buffer = {
         )(fname) or _G._TEST and vim.fn.getcwd()
     end,
 }
+
+M.get_command_output = function(cmd, args)
+    local stderr = {}
+    local stdout, ret = Job
+        :new({
+            command = cmd,
+            args = args,
+            cwd = M.buffer.root(),
+            on_stderr = function(_, data)
+                table.insert(stderr, data)
+            end,
+        })
+        :sync()
+    return stdout, ret, stderr
+end
 
 return M

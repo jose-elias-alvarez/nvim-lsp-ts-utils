@@ -47,6 +47,17 @@ local make_params = function(entry)
 end
 
 local create_response_handler = function(imports)
+    local to_scan, scanned = o.get().import_all_scan_buffers, 0
+    local git_output, git_ret = u.get_command_output(
+        "git",
+        { "ls-files", "--cached", "--others", "--exclude-standard" }
+    )
+    local buffers = vim.fn.getbufinfo({ listed = 1 })
+    local current = api.nvim_get_current_buf()
+    local should_check_buffer = function(b)
+        return scanned < to_scan and b.bufnr ~= current and u.is_tsserver_file(b.name)
+    end
+
     return function(responses)
         if not responses then
             return
@@ -57,23 +68,16 @@ local create_response_handler = function(imports)
                 return false
             end
 
-            -- keep only actions that look like imports
+            local arguments, title = action.arguments, action.title
+            -- keep only actions that can be handled
             if
-                not (
-                    (string.match(action.title, "Add") and string.match(action.title, "existing import"))
-                    or string.match(action.title, "Import")
-                )
+                not (arguments and arguments[1] and arguments[1].documentChanges and arguments[1].documentChanges[1])
             then
                 return false
             end
 
-            local arguments = action.arguments
-            if not arguments or not arguments[1] then
-                return false
-            end
-
-            local changes = arguments[1].documentChanges
-            if not changes or not changes[1] then
+            -- keep only actions that look like imports
+            if not ((title:match("Add") and title:match("existing import")) or title:match("Import")) then
                 return false
             end
 
@@ -92,9 +96,6 @@ local create_response_handler = function(imports)
             end
         end
 
-        local to_scan, scanned = o.get().import_all_scan_buffers, 0
-        local buffers = vim.fn.getbufinfo({ listed = 1 })
-        local current = api.nvim_get_current_buf()
         local calculate_priority = function(title)
             -- check if already imported in the same file
             if title:match("Add") then
@@ -110,7 +111,7 @@ local create_response_handler = function(imports)
             -- remove quotes
             source = source:sub(2, -2)
 
-            -- attempt to determine if source is local (far from perfect and needs more patterns)
+            -- attempt to determine if source is local (won't work when basePath is set in tsconfig.json)
             if source:match(rel_path_pattern) or source:match("src") then
                 return priorities.high
             end
@@ -120,20 +121,31 @@ local create_response_handler = function(imports)
                 source = source:gsub(rel_path_pattern, "")
             end
 
+            -- if possible, check source against git files to determine if local
+            if git_ret == 0 then
+                for _, git_file in ipairs(git_output) do
+                    if git_file:find(source, nil, true) then
+                        return priorities.high
+                    end
+                end
+            end
+
+            -- check if buffer name matches source
             for _, b in ipairs(buffers) do
-                if b.bufnr ~= current and u.is_tsserver_file(b.name) then
-                    -- check if buffer name matches source
+                if should_check_buffer(b) then
                     if source:find(vim.fn.fnamemodify(b.name, ":t:r"), nil, true) then
                         return priorities.med
                     end
+                end
+            end
 
-                    -- scan loaded buffers for source
-                    if scanned < to_scan then
-                        scanned = scanned + 1
-                        local found = scan_buffer(b, source)
-                        if found then
-                            return priorities.med
-                        end
+            -- check buffer content for import statements containing source
+            for _, b in ipairs(buffers) do
+                if should_check_buffer(b) then
+                    local found = scan_buffer(b, source)
+                    scanned = scanned + 1
+                    if found then
+                        return priorities.med
                     end
                 end
             end
@@ -183,12 +195,13 @@ local apply_edits = function(edits, bufnr)
         for i, line in ipairs(api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
             if not empty_end and empty_start and line ~= "" then
                 empty_end = i - 1
+                break
             end
             if not empty_start and line == "" then
                 empty_start = i
             end
         end
-        if empty_start < empty_end then
+        if empty_start and empty_end and empty_start < empty_end then
             api.nvim_buf_set_lines(bufnr, empty_start, empty_end, false, {})
         end
     end)
