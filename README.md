@@ -51,13 +51,15 @@ possibility. If something doesn't work, please let me know!
   below).
 
   By default, the command will resolve conflicting imports by checking other
-  imports in the same file and other open buffers. This has a minor performance
-  impact, but you can disable the feature entirely by setting
+  imports in the same file and other open buffers. In Git repositories, it will
+  check project files to improve accuracy. This feature has a small performance
+  impact, but you can disable it entirely by setting
   `import_all_disable_priority` to `true` (see below).
 
-  `:TSLspImportAll` can also scan the content of other open buffers to resolve
-  import priority, limited by `import_all_scan_buffers` (set to `0` by default).
-  This has a positive impact on import accuracy but a larger performance impact.
+  `:TSLspImportAll` will also scan the content of other open buffers to resolve
+  import priority, limited by `import_all_scan_buffers`. This has a positive
+  impact on import accuracy but may hurt performance when run with a large
+  number (100+) of loaded buffers.
 
 - Import on completion
 
@@ -267,7 +269,7 @@ nvim_lsp.tsserver.setup {
             -- import all
             import_all_timeout = 5000, -- ms
             import_all_disable_priority = false,
-            import_all_scan_buffers = 0
+            import_all_scan_buffers = 100,
 
             -- eslint
             eslint_enable_code_actions = true,
