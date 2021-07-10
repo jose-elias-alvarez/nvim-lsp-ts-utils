@@ -52,13 +52,15 @@ possibility. If something doesn't work, please let me know!
 
   By default, the command will resolve conflicting imports by checking other
   imports in the same file and other open buffers. In Git repositories, it will
-  check project files to improve accuracy. This feature has a small performance
-  impact, but you can disable it entirely by setting
-  `import_all_disable_priority` to `true` (see below).
+  check project files to improve accuracy. You can alter the weight given to
+  each factor by modifying `import_all_priorities` (see below).
+
+  This feature has a minimal performance impact, but you can disable it entirely
+  by setting `import_all_priorities` to `nil`.
 
   `:TSLspImportAll` will also scan the content of other open buffers to resolve
   import priority, limited by `import_all_scan_buffers`. This has a positive
-  impact on import accuracy but may hurt performance when run with a large
+  impact on import accuracy but may affect performance when run with a large
   number (100+) of loaded buffers.
 
 - Import on completion
@@ -268,7 +270,12 @@ nvim_lsp.tsserver.setup {
 
             -- import all
             import_all_timeout = 5000, -- ms
-            import_all_disable_priority = false,
+            import_all_priorities = {
+                buffers = 4, -- loaded buffer names
+                buffer_content = 3, -- loaded buffer content
+                local_files = 2, -- git files or files with relative path markers
+                same_file = 1, -- add to existing import statement
+            },
             import_all_scan_buffers = 100,
 
             -- eslint
@@ -297,10 +304,11 @@ nvim_lsp.tsserver.setup {
         ts_utils.setup_client(client)
 
         -- no default maps, so you may want to define some here
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", {silent = true})
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":TSLspFixCurrent<CR>", {silent = true})
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", {silent = true})
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", {silent = true})
+        local opts = {silent = true}
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", opts)
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":TSLspFixCurrent<CR>", opts)
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", opts)
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", opts)
     end
 }
 ```

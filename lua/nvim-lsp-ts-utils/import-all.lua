@@ -11,13 +11,6 @@ local CODE_ACTION = "textDocument/codeAction"
 local APPLY_EDIT = "_typescript.applyWorkspaceEdit"
 local rel_path_pattern = "^[.]+/"
 
-local priorities = {
-    max = 3,
-    high = 2,
-    med = 1,
-    low = 0,
-}
-
 local get_diagnostics = function(bufnr)
     local diagnostics = lsp.diagnostic.get(bufnr)
 
@@ -47,11 +40,9 @@ local make_params = function(entry)
 end
 
 local create_response_handler = function(imports)
+    local priorities = o.get().import_all_priorities
     local to_scan, scanned = o.get().import_all_scan_buffers, 0
-    local git_output, git_ret = u.get_command_output(
-        "git",
-        { "ls-files", "--cached", "--others", "--exclude-standard" }
-    )
+    local git_output = u.get_command_output("git", { "ls-files", "--cached", "--others", "--exclude-standard" })
     local buffers = vim.fn.getbufinfo({ listed = 1 })
     local current = api.nvim_get_current_buf()
     local should_check_buffer = function(b)
@@ -84,36 +75,42 @@ local create_response_handler = function(imports)
             return true
         end
 
-        local scan_buffer = function(buffer, source)
+        local scan_buffer = function(buffer, source, target)
             for _, line in ipairs(api.nvim_buf_get_lines(buffer.bufnr, 0, -1, false)) do
                 -- continue until blank line
                 if line == "" then
                     return false
                 end
-                if line:match("import") and line:find(source, nil, true) then
+                if line:match("import") and line:find(target, nil, true) and line:find(source, nil, true) then
                     return true
                 end
             end
         end
 
-        local calculate_priority = function(title)
+        local calculate_priority = function(title, target)
+            local priority = 0
+            if not priorities then
+                return priority
+            end
+
             -- check if already imported in the same file
             if title:match("Add") then
-                return priorities.max
+                priority = priority + priorities.same_file
             end
 
             local source = title:match('%b""')
             -- fallback in case source can't be determined
             if not source then
-                return priorities.low
+                return priority
             end
 
             -- remove quotes
             source = source:sub(2, -2)
 
+            local is_local
             -- attempt to determine if source is local (won't work when basePath is set in tsconfig.json)
             if source:match(rel_path_pattern) or source:match("src") then
-                return priorities.high
+                is_local = true
             end
 
             -- remove relative path patterns
@@ -122,49 +119,58 @@ local create_response_handler = function(imports)
             end
 
             -- if possible, check source against git files to determine if local
-            if git_ret == 0 then
+            if not is_local then
                 for _, git_file in ipairs(git_output) do
                     if git_file:find(source, nil, true) then
-                        return priorities.high
+                        is_local = true
+                        break
                     end
                 end
             end
 
+            if is_local then
+                priority = priority + priorities.local_files
+            end
+
             -- check if buffer name matches source
             for _, b in ipairs(buffers) do
-                if should_check_buffer(b) then
-                    if source:find(vim.fn.fnamemodify(b.name, ":t:r"), nil, true) then
-                        return priorities.med
-                    end
+                if should_check_buffer(b) and source:find(vim.fn.fnamemodify(b.name, ":t:r"), nil, true) then
+                    priority = priority + priorities.buffers
+                    break
                 end
             end
 
             -- check buffer content for import statements containing source
             for _, b in ipairs(buffers) do
                 if should_check_buffer(b) then
-                    local found = scan_buffer(b, source)
+                    local found = scan_buffer(b, source, target)
                     scanned = scanned + 1
                     if found then
-                        return priorities.med
+                        priority = priority + priorities.buffer_content
+                        break
                     end
                 end
             end
 
-            return priorities.low
+            u.debug_log(string.format("assigning priority %d to action %s", priority, title))
+            return priority
         end
 
         local parse_action = function(action)
             local title = action.title
-            local priority = o.get().import_all_disable_priority and priorities.low or calculate_priority(title)
             local target = title:match("%b''")
-            if target then
-                target = target:sub(2, -2)
-                local existing = imports[target]
-                -- checking < means that conflicts will resolve in favor of the first found import,
-                -- which is consistent with VS Code's behavior
-                if not existing or existing.priority < priority then
-                    imports[target] = { priority = priority, action = action }
-                end
+            if not target then
+                return
+            end
+
+            target = target:sub(2, -2)
+            local existing = imports[target]
+
+            local priority = calculate_priority(title, target)
+            -- checking < means that conflicts will resolve in favor of the first found import,
+            -- which is consistent with VS Code's behavior
+            if not existing or existing.priority < priority then
+                imports[target] = { priority = priority, action = action }
             end
         end
 
@@ -185,7 +191,6 @@ local apply_edits = function(edits, bufnr)
         return
     end
 
-    u.debug_log("applying " .. vim.tbl_count(edits) .. " edits")
     lsp.util.apply_text_edits(edits, bufnr)
 
     -- organize imports to merge separate import statements from the same file
@@ -213,8 +218,6 @@ return a.async_void(function(bufnr)
         return
     end
 
-    u.debug_log("received " .. vim.tbl_count(diagnostics) .. " diagnostics from tsserver")
-
     local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
     local edits, imports, messages = {}, {}, {}
     local push_edits = function(action)
@@ -235,11 +238,9 @@ return a.async_void(function(bufnr)
 
     local response_count = 0
     local get_responses = function(diagnostic)
-        u.debug_log("awaiting responses for diagnostic: " .. diagnostic.message)
         wait_for_request()
 
         local responses = a.await(buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic)))
-        u.debug_log("received " .. vim.tbl_count(responses) .. " responses for diagnostic: " .. diagnostic.message)
         response_count = response_count + 1
         return responses
     end
@@ -265,7 +266,6 @@ return a.async_void(function(bufnr)
         end
     end, o.get().import_all_timeout)
 
-    u.debug_log("awaiting code action results from " .. vim.tbl_count(futures) .. " futures")
     a.await_all(futures)
     for _, import in pairs(imports) do
         push_edits(import.action)

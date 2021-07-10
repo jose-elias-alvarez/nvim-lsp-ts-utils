@@ -210,18 +210,21 @@ M.buffer = {
 }
 
 M.get_command_output = function(cmd, args)
-    local stderr = {}
-    local stdout, ret = Job
+    local error
+    local output, ret = Job
         :new({
             command = cmd,
             args = args,
             cwd = M.buffer.root(),
             on_stderr = function(_, data)
-                table.insert(stderr, data)
+                M.debug_log(string.format("error running command %s: %s", cmd, data))
+                error = true
             end,
         })
         :sync()
-    return stdout, ret, stderr
+    M.debug_log(string.format("command %s exited with code %d", cmd, ret))
+    error = error or ret ~= 0
+    return error and {} or output
 end
 
 return M
