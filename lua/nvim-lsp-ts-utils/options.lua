@@ -19,8 +19,6 @@ local defaults = {
     import_all_timeout = 5000,
     -- completion
     enable_import_on_completion = false,
-    complete_parens = false,
-    signature_help_in_parens = false,
     -- watcher
     update_imports_on_move = false,
     watch_dir = nil,
@@ -35,6 +33,11 @@ local defaults = {
     enable_formatting = false,
     formatter = "prettier",
     formatter_config_fallback = nil,
+
+    -- deprecated (don't use)
+    complete_parens = false,
+    signature_help_in_parens = false,
+
     -- internal
     _initialized = false,
 }

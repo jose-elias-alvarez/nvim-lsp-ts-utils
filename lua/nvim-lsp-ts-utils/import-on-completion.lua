@@ -4,16 +4,17 @@ local u = require("nvim-lsp-ts-utils.utils")
 local api = vim.api
 local lsp = vim.lsp
 
-local invalid_next_chars = {
-    "(", -- prevent class.method()() but not func(class.method())
-    '"', -- prevent class["privateMethod()"]
-    "'",
-}
-
+-- deprecated (too many edge cases, and fixing them is outside of the scope of the plugin)
 local add_parens = function(bufnr)
     if vim.fn.mode() ~= "i" then
         return
     end
+
+    local invalid_next_chars = {
+        "(", -- prevent class.method()() but not func(class.method())
+        '"', -- prevent class["privateMethod()"]
+        "'",
+    }
     local row, col = u.cursor.pos()
 
     local next_char = string.sub(u.buffer.line(row), col + 1, col + 1)
@@ -29,6 +30,17 @@ local add_parens = function(bufnr)
     end
 end
 
+-- deprecated
+local should_add_parens = function(item)
+    if not o.get().complete_parens then
+        return false
+    end
+
+    return item.kind == 2 -- method
+        or item.kind == 3 -- function
+        or item.kind == 4 -- constructor
+end
+
 local should_fix_position = function(edits)
     local range = edits[1].range
     return range["end"].line == u.cursor.pos() - 1
@@ -36,18 +48,10 @@ end
 
 local fix_position = function(edits)
     local new_text = edits[1].newText
-    local _, newlines = string.gsub(new_text, "\n", "")
+    local _, new_lines = string.gsub(new_text, "\n", "")
 
     local row, col = u.cursor.pos()
-    u.cursor.set(row + newlines, col)
-end
-
-local should_add_parens = function(item)
-    if not o.get().complete_parens then
-        return false
-    end
-
-    return item.kind == 2 -- method or item.kind == 3 -- function or item.kind == 4 -- constructor
+    u.cursor.set(row + new_lines, col)
 end
 
 local M = {}
@@ -82,7 +86,7 @@ M.handle = function()
         last = nil
     end, 5000)
 
-    -- place after last check to set timeout on parens
+    -- deprecated
     if should_add_parens(item) then
         add_parens(bufnr)
     end
@@ -93,8 +97,7 @@ M.handle = function()
         end
         local edits = result.additionalTextEdits
 
-        -- when an edit's range includes the current line, the cursor won't move
-        -- which is annoying and messes up parens
+        -- when an edit's range includes the current line, the cursor won't move, which is annoying
         local should_fix = should_fix_position(edits)
         lsp.util.apply_text_edits(result.additionalTextEdits, bufnr)
         if should_fix then

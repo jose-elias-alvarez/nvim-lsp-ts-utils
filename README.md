@@ -215,20 +215,6 @@ require("null-ls").setup {}
   `watch_dir` is `nil` or fails to resolve, the plugin will not enable file
   watching.
 
-- Parentheses completion
-
-  Automatically inserts `()` after confirming completion on a function, method,
-  or constructor, for use with `vim.lsp.omnifunc`.
-
-  Supports the following settings:
-
-  - `complete_parens` (boolean): enables or disables this feature. Set to
-    `false` by default.
-
-  - `signature_help_in_parens` (boolean): automatically triggers
-    `vim.lsp.buf.signature_help` after the plugin inserts `()` via
-    `complete_parens`. Set to `false` by default.
-
 ## Setup
 
 Install using your favorite plugin manager and add to your
@@ -267,10 +253,6 @@ nvim_lsp.tsserver.setup {
             enable_formatting = false,
             formatter = "prettier",
             formatter_config_fallback = nil,
-
-            -- parentheses completion
-            complete_parens = false,
-            signature_help_in_parens = false,
 
             -- update imports on file move
             update_imports_on_move = false,
