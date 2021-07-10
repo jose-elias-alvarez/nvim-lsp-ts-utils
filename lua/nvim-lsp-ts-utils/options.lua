@@ -23,6 +23,7 @@ local defaults = {
         local_files = 2,
         same_file = 1,
     },
+    import_all_select_source = false,
     import_all_scan_buffers = 100,
     -- completion
     enable_import_on_completion = false,

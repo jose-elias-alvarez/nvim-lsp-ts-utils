@@ -46,22 +46,21 @@ possibility. If something doesn't work, please let me know!
   (imperfectly) determine whether it's an import action. Also organizes imports
   afterwards to merge imports from the same source.
 
-  Note that `tsserver` has a tendency to time out when making large requests. If
-  you frequently see timeout warnings, you can change `import_all_timeout` (see
-  below).
-
   By default, the command will resolve conflicting imports by checking other
   imports in the same file and other open buffers. In Git repositories, it will
   check project files to improve accuracy. You can alter the weight given to
-  each factor by modifying `import_all_priorities` (see below).
-
-  This feature has a minimal performance impact, but you can disable it entirely
-  by setting `import_all_priorities` to `nil`.
+  each factor by modifying `import_all_priorities` (see below). This feature
+  has a minimal performance impact, but you can disable it entirely by setting
+  `import_all_priorities` to `nil`.
 
   `:TSLspImportAll` will also scan the content of other open buffers to resolve
   import priority, limited by `import_all_scan_buffers`. This has a positive
   impact on import accuracy but may affect performance when run with a large
   number (100+) of loaded buffers.
+
+  Instead of priority, you could also set `import_all_select_source` to `true`,
+  which will prompt you to choose from the available options when there's a
+  conflict.
 
 - Import on completion
 
@@ -277,6 +276,7 @@ nvim_lsp.tsserver.setup {
                 same_file = 1, -- add to existing import statement
             },
             import_all_scan_buffers = 100,
+            import_all_select_source = false,
 
             -- eslint
             eslint_enable_code_actions = true,

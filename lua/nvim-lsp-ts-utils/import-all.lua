@@ -87,7 +87,7 @@ local create_response_handler = function(imports)
             end
         end
 
-        local calculate_priority = function(title, target)
+        local calculate_priority = function(title, source, target)
             local priority = 0
             if not priorities then
                 return priority
@@ -98,17 +98,8 @@ local create_response_handler = function(imports)
                 priority = priority + priorities.same_file
             end
 
-            local source = title:match('%b""')
-            -- fallback in case source can't be determined
-            if not source then
-                return priority
-            end
-
-            -- remove quotes
-            source = source:sub(2, -2)
-
             local is_local
-            -- attempt to determine if source is local (won't work when basePath is set in tsconfig.json)
+            -- attempt to determine if source is local from path (won't work when basePath is set in tsconfig.json)
             if source:match(rel_path_pattern) or source:match("src") then
                 is_local = true
             end
@@ -118,7 +109,7 @@ local create_response_handler = function(imports)
                 source = source:gsub(rel_path_pattern, "")
             end
 
-            -- if possible, check source against git files to determine if local
+            -- check source against git files to determine if local
             if not is_local then
                 for _, git_file in ipairs(git_output) do
                     if git_file:find(source, nil, true) then
@@ -140,7 +131,7 @@ local create_response_handler = function(imports)
                 end
             end
 
-            -- check buffer content for import statements containing source
+            -- check buffer content for import statements containing target and source
             for _, b in ipairs(buffers) do
                 if should_check_buffer(b) then
                     local found = scan_buffer(b, source, target)
@@ -158,19 +149,31 @@ local create_response_handler = function(imports)
 
         local parse_action = function(action)
             local title = action.title
-            local target = title:match("%b''")
-            if not target then
+            local target, source = title:match("%b''"), title:match('%b""')
+            if not (target and source) then
                 return
             end
 
             target = target:sub(2, -2)
-            local existing = imports[target]
+            source = source:sub(2, -2)
+            imports[target] = imports[target] or {}
+            if o.get().import_all_select_source then
+                -- don't push same source twice
+                for _, existing in ipairs(imports[target]) do
+                    if existing.source == source then
+                        return
+                    end
+                end
+                table.insert(imports[target], { action = action, source = source })
+                return
+            end
 
-            local priority = calculate_priority(title, target)
+            local existing = imports[target][1]
+            local priority = calculate_priority(title, source, target)
             -- checking < means that conflicts will resolve in favor of the first found import,
             -- which is consistent with VS Code's behavior
             if not existing or existing.priority < priority then
-                imports[target] = { priority = priority, action = action }
+                imports[target] = { { priority = priority, action = action, source = source } }
             end
         end
 
@@ -219,14 +222,14 @@ return a.async_void(function(bufnr)
     end
 
     local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
-    local edits, imports, messages = {}, {}, {}
+    local edits, all_imports, messages = {}, {}, {}
     local push_edits = function(action)
         for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
             table.insert(edits, edit)
         end
     end
 
-    local response_handler = create_response_handler(imports)
+    local response_handler = create_response_handler(all_imports)
 
     local last_request_time = vim.loop.now()
     local wait_for_request = function()
@@ -267,8 +270,24 @@ return a.async_void(function(bufnr)
     end, o.get().import_all_timeout)
 
     a.await_all(futures)
-    for _, import in pairs(imports) do
-        push_edits(import.action)
+    for k, imports in pairs(all_imports) do
+        local index = 1
+        if vim.tbl_count(imports) > 1 then
+            local choices = {}
+            for i, import in ipairs(imports) do
+                table.insert(choices, string.format("%d %s", i, import.source))
+            end
+            index = vim.fn.confirm(
+                string.format("Select an import source for %s:", k),
+                table.concat(choices, "\n"),
+                1,
+                "Question"
+            )
+            if index == 0 then
+                return
+            end
+        end
+        push_edits(imports[index].action)
     end
 
     vim.schedule(function()
