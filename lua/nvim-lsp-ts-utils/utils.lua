@@ -201,11 +201,9 @@ M.buffer = {
     root = function(fname)
         fname = fname or M.buffer.name()
 
-        return lspconfig.root_pattern(".git")(fname) or lspconfig.root_pattern(
-            "tsconfig.json",
-            "package.json",
-            "jsconfig.json"
-        )(fname) or _G._TEST and vim.fn.getcwd()
+        return lspconfig.root_pattern("tsconfig.json", "package.json", "jsconfig.json")(fname)
+            or lspconfig.root_pattern(".git")(fname)
+            or _G._TEST and vim.fn.getcwd()
     end,
 }
 
