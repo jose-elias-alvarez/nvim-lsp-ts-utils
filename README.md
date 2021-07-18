@@ -105,8 +105,8 @@ must install it via your plugin manager and add the following snippet to your
 LSP configuration:
 
 ```lua
--- location doesn't matter, but place it in on_attach if you're unsure
-require("null-ls").setup {}
+require("null-ls").config {}
+require("lspconfig")["null-ls"].setup {}
 ```
 
 - ESLint code actions
