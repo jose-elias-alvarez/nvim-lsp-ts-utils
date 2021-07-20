@@ -48,27 +48,10 @@ describe("e2e", function()
         vim.cmd("silent bufdo! bdelete!")
     end)
 
-    describe("fix_current", function()
-        before_each(function()
-            -- file declares an instance of User but does not import it from test-types.ts
-            edit_test_file("fix-current.ts")
-            lsp_wait(1000)
-        end)
-
-        it("should import missing type", function()
-            vim.lsp.diagnostic.goto_prev()
-            ts_utils.fix_current()
-            lsp_wait()
-
-            -- check that import statement has been added
-            assert.equals(get_buf_content(1), [[import { User } from "./test-types";]])
-        end)
-    end)
-
     describe("import_all", function()
         before_each(function()
             edit_test_file("import-all.ts")
-            lsp_wait()
+            lsp_wait(1000)
         end)
 
         it("should import both missing types", function()
@@ -149,5 +132,3 @@ describe("e2e", function()
         end)
     end)
 end)
-
-null_ls.shutdown()
