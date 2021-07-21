@@ -238,7 +238,8 @@ An example showing the available settings and their defaults:
 local nvim_lsp = require("lspconfig")
 
 -- enable null-ls integration (optional)
-require("null-ls").setup {}
+require("null-ls").config {}
+require("lspconfig")["null-ls"].setup {}
 
 nvim_lsp.tsserver.setup {
     on_attach = function(client, bufnr)
