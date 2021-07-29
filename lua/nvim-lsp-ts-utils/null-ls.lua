@@ -21,11 +21,12 @@ local get_offset_positions = function(content, start_offset, end_offset)
     vim.opt.virtualedit = "all"
 
     vim.cmd("go " .. start_offset)
+    -- (1,0)-indexed
     local cursor = api.nvim_win_get_cursor(0)
-    local col = cursor[2]
+    local col = cursor[2] + 1
     vim.cmd("go " .. end_offset)
     cursor = api.nvim_win_get_cursor(0)
-    local end_row, end_col = cursor[1] - 1, cursor[2]
+    local end_row, end_col = cursor[1], cursor[2] + 1
 
     -- restore state
     vim.fn.winrestview(view)
@@ -50,16 +51,17 @@ local is_fixable = function(problem, row)
 end
 
 local get_message_range = function(problem)
-    local row = problem.line and problem.line > 0 and problem.line - 1 or 0
-    local col = problem.column and problem.column > 0 and problem.column - 1 or 0
-    local end_row = problem.endLine and problem.endLine - 1 or 0
-    local end_col = problem.endColumn and problem.endColumn - 1 or 0
+    -- 1-indexed
+    local row = problem.line or 1
+    local col = problem.column or 1
+    local end_row = problem.endLine or 1
+    local end_col = problem.endColumn or 1
 
     return { row = row, col = col, end_row = end_row, end_col = end_col }
 end
 
 local get_fix_range = function(problem, params)
-    local row = problem.line - 1
+    local row = problem.line
     local offset = problem.fix.range[1]
     local end_offset = problem.fix.range[2]
     local col, end_col, end_row = get_offset_positions(params.content, offset, end_offset)
@@ -71,7 +73,15 @@ local generate_edit_action = function(title, new_text, range, params)
     return {
         title = title,
         action = function()
-            set_text(params.bufnr, range.row, range.col, range.end_row, range.end_col, vim.split(new_text, "\n"))
+            -- 0-indexed
+            set_text(
+                params.bufnr,
+                range.row - 1,
+                range.col - 1,
+                range.end_row - 1,
+                range.end_col - 1,
+                vim.split(new_text, "\n")
+            )
         end,
     }
 end
@@ -154,9 +164,9 @@ local create_diagnostic = function(message)
     return {
         message = message.message,
         code = message.ruleId,
-        row = range.row + 1,
+        row = range.row,
         col = range.col,
-        end_row = range.end_row + 1,
+        end_row = range.end_row,
         end_col = range.end_col,
         -- eslint severity can be:
         -- 1: warning

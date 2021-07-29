@@ -74,6 +74,12 @@ describe("e2e", function()
                 assert.equals(diagnostics[1].code, "eqeqeq")
                 assert.equals(diagnostics[1].message, "Expected '===' and instead saw '=='.")
                 assert.equals(diagnostics[1].source, "eslint")
+
+                local range = diagnostics[1].range
+                assert.equals(range["start"].line, 1)
+                assert.equals(range["start"].character, 23)
+                assert.equals(range["end"].line, 1)
+                assert.equals(range["end"].character, 25)
             end)
         end)
 
