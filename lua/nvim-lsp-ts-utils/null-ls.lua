@@ -4,8 +4,6 @@ local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 
 local api = vim.api
-local set_lines = vim.api.nvim_buf_set_lines
-local set_text = vim.api.nvim_buf_set_text
 
 local M = {}
 
@@ -74,7 +72,7 @@ local generate_edit_action = function(title, new_text, range, params)
         title = title,
         action = function()
             -- 0-indexed
-            set_text(
+            api.nvim_buf_set_text(
                 params.bufnr,
                 range.row - 1,
                 range.col - 1,
@@ -90,7 +88,8 @@ local generate_edit_line_action = function(title, new_text, row, params)
     return {
         title = title,
         action = function()
-            set_lines(params.bufnr, row, row, false, { new_text })
+            -- 0-indexed
+            api.nvim_buf_set_lines(params.bufnr, row - 1, row - 1, false, { new_text })
         end,
     }
 end
@@ -117,8 +116,7 @@ local generate_disable_actions = function(message, indentation, params)
     local actions = {}
     local line_title = "Disable ESLint rule " .. rule_id .. " for this line"
     local line_new_text = indentation .. "// eslint-disable-next-line " .. rule_id
-    local row = message.line and message.line > 0 and message.line - 1 or 0
-    table.insert(actions, generate_edit_line_action(line_title, line_new_text, row, params))
+    table.insert(actions, generate_edit_line_action(line_title, line_new_text, message.line, params))
 
     local file_title = "Disable ESLint rule " .. rule_id .. " for the entire file"
     local file_new_text = "/* eslint-disable " .. rule_id .. " */"
