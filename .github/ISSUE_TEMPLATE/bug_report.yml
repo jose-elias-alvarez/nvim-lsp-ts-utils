@@ -59,7 +59,7 @@ body:
       description: "Would you be able to resolve this issue by submitting a pull request?"
       options:
         - "Yes"
-        - "Yes, but I don't know how to start. I would need guidance (check question below)"
+        - "Yes, but I don't know how to start. I would need guidance"
         - "No"
     validations:
       required: true
