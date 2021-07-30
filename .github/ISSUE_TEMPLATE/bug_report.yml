@@ -30,15 +30,21 @@ body:
   - type: textarea
     attributes:
       label: "Steps to reproduce"
+    validations:
+      required: true
 
   - type: textarea
     attributes:
       label: "Expected behavior"
+    validations:
+      required: true
 
   - type: textarea
     attributes:
       label: "Actual behavior"
       description: "A description of the behavior you expected. May optionally include logs, images, or videos."
+    validations:
+      required: true
 
   - type: dropdown
     id: help
@@ -47,7 +53,7 @@ body:
       description: "Would you be able to resolve this issue by submitting a pull request?"
       options:
         - "Yes"
-        - "Yes, but I don't know how to start. I would need guidance"
+        - "Yes, but I don't know how to start. I would need guidance (check question below)"
         - "No"
     validations:
       required: true
@@ -55,6 +61,6 @@ body:
   - type: textarea
     attributes:
       label: "Implementation help"
-      description: "If you selected yes in the last question please specify in detail what you would need help with in order to implement this."
+      description: "If you selected yes in the last question please specify what you would need help with in order to fix this."
     validations:
       required: false
