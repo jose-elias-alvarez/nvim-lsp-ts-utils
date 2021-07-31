@@ -30,15 +30,27 @@ body:
   - type: textarea
     attributes:
       label: "Steps to reproduce"
+    validations:
+      required: true
 
   - type: textarea
     attributes:
       label: "Expected behavior"
+      description: "A description of the behavior you expected. May optionally include logs, images, or videos."
+    validations:
+      required: true
 
   - type: textarea
     attributes:
       label: "Actual behavior"
-      description: "A description of the behavior you expected. May optionally include logs, images, or videos."
+      description: "A description of the actual behavior."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: "Debug log"
+      description: "Debug output from `:messages`"
 
   - type: dropdown
     id: help
@@ -55,6 +67,6 @@ body:
   - type: textarea
     attributes:
       label: "Implementation help"
-      description: "If you selected yes in the last question please specify in detail what you would need help with in order to implement this."
+      description: "If you selected yes in the last question please specify what you would need help with in order to fix this."
     validations:
       required: false
