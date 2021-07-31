@@ -50,7 +50,7 @@ body:
   - type: textarea
     attributes:
       label: "Debug log"
-      description: Error stack trace. Guide on how to get it can be found [here](https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils#troubleshooting)
+      description: "Debug output from `:messages`"
 
   - type: dropdown
     id: help
