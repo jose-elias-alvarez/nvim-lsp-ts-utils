@@ -135,9 +135,6 @@ require("lspconfig")["null-ls"].setup {}
     config file that the plugin will use if it can't find a config file in the
     root directory. Set to `nil` by default.
 
-  - `eslint_show_rule_id` (boolean): shows the ESLint rule ID in diagnostics.
-    Set to `false` by default.
-
 - ESLint diagnostics
 
   Shows ESLint diagnostics for the current buffer as LSP diagnostics.
@@ -150,6 +147,9 @@ require("lspconfig")["null-ls"].setup {}
   - `eslint_bin` and `eslint_config_fallback`: applies the same settings as
     ESLint code actions. Like code actions, using `eslint_d` will improve your
     experience.
+
+  - `eslint_show_rule_id` (boolean): shows the ESLint rule ID in diagnostics.
+    Set to `false` by default.
 
 - Formatting
 
