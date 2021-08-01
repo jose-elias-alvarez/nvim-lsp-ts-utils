@@ -135,6 +135,9 @@ require("lspconfig")["null-ls"].setup {}
     config file that the plugin will use if it can't find a config file in the
     root directory. Set to `nil` by default.
 
+  - `eslint_show_rule_id` (boolean): shows the ESLint rule ID in diagnostics.
+    Set to `false` by default.
+
 - ESLint diagnostics
 
   Shows ESLint diagnostics for the current buffer as LSP diagnostics.
@@ -271,6 +274,7 @@ nvim_lsp.tsserver.setup {
             eslint_bin = "eslint",
             eslint_config_fallback = nil,
             eslint_enable_diagnostics = false,
+            eslint_show_rule_id = false,
 
             -- formatting
             enable_formatting = false,

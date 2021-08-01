@@ -37,6 +37,7 @@ local defaults = {
     eslint_bin = "eslint",
     eslint_config_fallback = nil,
     eslint_enable_diagnostics = false,
+    eslint_show_rule_id = false,
     -- formatting
     enable_formatting = false,
     formatter = "prettier",

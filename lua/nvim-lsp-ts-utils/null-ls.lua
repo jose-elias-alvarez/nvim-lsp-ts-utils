@@ -161,7 +161,7 @@ local create_diagnostic = function(message)
 
     return {
         message = message.message,
-        code = message.ruleId,
+        code = message.ruleId ~= vim.NIL and message.ruleId,
         row = range.row,
         col = range.col,
         end_row = range.end_row,
@@ -263,7 +263,11 @@ M.setup = function()
             u.debug_log("enabling null-ls eslint diagnostics integration")
 
             local method = null_ls.methods.DIAGNOSTICS
-            add_source(method, null_ls.generator(make_eslint_opts(diagnostic_handler, method)))
+            local opts = make_eslint_opts(diagnostic_handler, method)
+            if o.get().eslint_show_rule_id then
+                opts.diagnostics_format = "#{m} [#{c}]"
+            end
+            add_source(method, null_ls.generator(opts))
         end
     end
 
