@@ -4,13 +4,7 @@ local eslint_executables = { "eslint", "eslint_d" }
 local _eslint_args = { "-f", "json", "--stdin", "--stdin-filename", "$FILENAME" }
 local eslint_args = { eslint = _eslint_args, eslint_d = _eslint_args }
 
-local formatters = { "prettier", "prettierd", "prettier_d_slim", "eslint_d" }
-local formatter_args = {
-    prettier = { "--stdin-filepath", "$FILENAME" },
-    prettier_d_slim = { "--stdin", "--stdin-filepath", "$FILENAME" },
-    eslint_d = { "--fix-to-stdout", "--stdin", "--stdin-filename", "$FILENAME" },
-    prettierd = { "$FILENAME" },
-}
+local formatters = { "prettier", "prettierd", "prettier_d_slim", "eslint_d", "eslint" }
 
 local defaults = {
     debug = false,
@@ -81,10 +75,8 @@ local wanted_type = function(k)
     if type(override) == "table" then
         return function(a)
             return vim.tbl_contains(override, type(a))
-        end, table.concat(
-            override,
-            ", "
-        )
+        end,
+            table.concat(override, ", ")
     end
     if type(override) == "function" then
         return override, override("_get_msg")
@@ -123,7 +115,6 @@ M.setup = function(user_options)
 
     options = vim.tbl_extend("force", options, validated)
     options.eslint_args = options.eslint_bin and eslint_args[options.eslint_bin]
-    options.formatter_args = options.formatter and formatter_args[options.formatter]
     options._initialized = true
 end
 

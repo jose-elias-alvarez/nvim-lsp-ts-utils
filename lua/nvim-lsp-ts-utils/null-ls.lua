@@ -273,27 +273,32 @@ M.setup = function()
 
     if o.get().enable_formatting then
         local formatter = o.get().formatter
-        local formatter_opts = {
-            command = u.resolve_bin(formatter),
-            args = o.get().formatter_args,
-            to_stdin = true,
-        }
+        local is_eslint_formatter = formatter:find("eslint") ~= nil
+
+        local builtin = null_ls.builtins.formatting[formatter]
+        assert(builtin, formatter .. " is not an available formatter")
+
+        local extra_args = {}
+        local args = builtin._opts.args
+        builtin._opts.args = function(params)
+            local original_args = type(args) == "function" and args(params) or args
+            return vim.list_extend(original_args, extra_args)
+        end
 
         if not u.config_file_exists(formatter) then
-            local fallback = formatter == "eslint_d" and o.get().eslint_config_fallback
-                or o.get().formatter_config_fallback
+            local fallback = is_eslint_formatter and o.get().eslint_config_fallback or o.get().formatter_config_fallback
 
-            -- prettier works without a config
-            if not fallback and formatter == "eslint_d" then
+            -- prettier works without a config, so we only want this for eslint and and friends
+            if not fallback and is_eslint_formatter then
                 u.debug_log("failed to resolve ESLint config")
             elseif fallback then
-                table.insert(formatter_opts.args, "--config")
-                table.insert(formatter_opts.args, fallback)
+                table.insert(extra_args, "--config")
+                table.insert(extra_args, fallback)
             end
         end
 
         u.debug_log("enabling null-ls formatting integration")
-        add_source(null_ls.methods.FORMATTING, null_ls.formatter(formatter_opts))
+        null_ls.register(builtin)
     end
 
     if vim.tbl_count(sources) > 0 then

@@ -129,9 +129,12 @@ require("lspconfig")["null-ls"].setup {}
 
   The plugin supports [Prettier](https://github.com/prettier/prettier),
   [prettierd](https://github.com/fsouza/prettierd),
-  [prettier_d_slim](https://github.com/mikew/prettier_d_slim) and
-  [eslint_d](https://github.com/mantoni/eslint_d.js/) as formatters. Formatting
-  via vanilla `eslint` is not supported.
+  [prettier_d_slim](https://github.com/mikew/prettier_d_slim),
+  [ESLint](https://github.com/eslint/eslint), and
+  [eslint_d](https://github.com/mantoni/eslint_d.js/) as formatters.
+
+  Please note that vanilla ESLint is an absurdly slow formatter and is not
+  suitable for running on save.
 
   Supports the following settings:
 
@@ -140,7 +143,7 @@ require("lspconfig")["null-ls"].setup {}
 
   - `formatter` (string): sets the executable used for formatting. Set to
     `prettier` by default. Must be one of `prettier`, `prettierd`,
-    `prettier_d_slim`, or `eslint_d`.
+    `prettier_d_slim`, `eslint`, or `eslint_d`.
 
     Like `eslint_bin`, the plugin will look for a local
     executable in `node_modules` and fall back to a system-wide executable,
@@ -150,11 +153,11 @@ require("lspconfig")["null-ls"].setup {}
     config file that the plugin will use if it can't find a config file in the
     root directory. Set to `nil` by default.
 
-    Note that if you've set `formatter` to `eslint_d`, the plugin will use
-    `eslint_config_fallback` instead.
+    Note that if you've set `formatter` to `eslint` or `eslint_d`, the plugin
+    will use `eslint_config_fallback` instead.
 
-  Note that once you've enabled formatting, it'll run whenever you call either
-  of the following commands:
+  Once you've enabled formatting, it'll run whenever you call either of the
+  following commands:
 
   ```vim
   " runs asynchronously
