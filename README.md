@@ -133,6 +133,10 @@ require("lspconfig")["null-ls"].setup {}
   [ESLint](https://github.com/eslint/eslint), and
   [eslint_d](https://github.com/mantoni/eslint_d.js/) as formatters.
 
+  Prettier and prettier_d_slim support range formatting. All other formatters do
+  not (and would require upstream changes to add support, so it's not something
+  we can handle here).
+
   Please note that vanilla ESLint is an absurdly slow formatter and is not
   suitable for running on save.
 
@@ -165,6 +169,15 @@ require("lspconfig")["null-ls"].setup {}
 
   " blocks until formatting completes
   :lua vim.lsp.buf.formatting_sync()
+  ```
+
+  Prettier and prettier_d_slim support range formatting, which you can run by
+  visually selecting part of the buffer and calling the following command (the
+  part before `lua` is automatically filled in when you enter command mode from
+  visual mode):
+
+  ```vim
+  :'<,'>lua vim.lsp.buf.range_formatting()
   ```
 
   To avoid conflicts with existing LSP configurations, the plugin **will not**
@@ -229,6 +242,7 @@ nvim_lsp.tsserver.setup {
     on_attach = function(client, bufnr)
         -- disable tsserver formatting if you plan on formatting via null-ls
         client.resolved_capabilities.document_formatting = false
+        client.resolved_capabilities.document_range_formatting = false
 
         local ts_utils = require("nvim-lsp-ts-utils")
 
