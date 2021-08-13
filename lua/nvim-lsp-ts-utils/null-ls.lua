@@ -38,10 +38,11 @@ local is_fixable = function(problem, row)
         return false
     end
 
-    if problem.endLine ~= nil then
-        return problem.line - 1 <= row and problem.endLine - 1 >= row
+    if problem.endLine then
+        return problem.line <= row and problem.endLine >= row
     end
-    if problem.fix ~= nil then
+
+    if problem.fix then
         return problem.line - 1 == row
     end
 
@@ -59,6 +60,7 @@ local get_message_range = function(problem)
 end
 
 local get_fix_range = function(problem, params)
+    -- 1-indexed
     local row = problem.line
     local offset = problem.fix.range[1]
     local end_offset = problem.fix.range[2]
@@ -127,85 +129,40 @@ end
 
 local code_action_handler = function(params)
     local row = params.row
-    local indentation = string.match(params.content[row], "^%s+")
-    if not indentation then
-        indentation = ""
-    end
+    local indentation = params.content[row]:match("^%s+") or ""
 
     local rules, actions = {}, {}
     for _, message in ipairs(params.messages) do
-        if is_fixable(message, row - 1) then
+        if is_fixable(message, row) then
             if message.suggestions then
                 for _, suggestion in ipairs(message.suggestions) do
                     table.insert(actions, generate_suggestion_action(suggestion, message, params))
                 end
             end
+
             if message.fix then
                 table.insert(actions, generate_fix_action(message, params))
             end
-            if
-                message.ruleId
-                and o.get().eslint_enable_disable_comments
-                and not vim.tbl_contains(rules, message.ruleId)
-            then
-                table.insert(rules, message.ruleId)
+
+            if message.ruleId and o.get().eslint_enable_disable_comments and not rules[message.ruleId] then
+                rules[message.ruleId] = true
                 vim.list_extend(actions, generate_disable_actions(message, indentation, params))
             end
         end
     end
+
     return actions
 end
 
-local create_diagnostic = function(message)
-    local range = get_message_range(message)
+local on_output = function(params)
+    local output = params.output
 
-    return {
-        message = message.message,
-        code = message.ruleId ~= vim.NIL and message.ruleId,
-        row = range.row,
-        col = range.col,
-        end_row = range.end_row,
-        end_col = range.end_col,
-        -- eslint severity can be:
-        -- 1: warning
-        -- 2: error
-        -- lsp severity is the opposite
-        severity = message.severity == 1 and 2 or 1,
-        source = "eslint",
-    }
-end
-
-local diagnostic_handler = function(params)
-    local diagnostics = {}
-    if params.err then
-        params.messages = { { message = params.err } }
+    if not (output and output[1] and output[1].messages) then
+        return
     end
 
-    for _, message in ipairs(params.messages) do
-        table.insert(diagnostics, create_diagnostic(message))
-    end
-
-    return diagnostics
-end
-
-local on_output_factory = function(callback, handle_errors)
-    return function(params)
-        local output, err = params.output, params.err
-        if err and handle_errors then
-            return callback(params)
-        end
-
-        if not (output and output[1] and output[1].messages) then
-            return
-        end
-
-        params.messages = output[1].messages
-        return callback(params)
-    end
-end
-
-local eslint_enabled = function()
-    return o.get().eslint_enable_code_actions == true or o.get().eslint_enable_diagnostics == true
+    params.messages = output[1].messages
+    return code_action_handler(params)
 end
 
 M.setup = function()
@@ -218,56 +175,53 @@ M.setup = function()
         return
     end
 
-    local sources = {}
-    local add_source = function(method, generator)
-        table.insert(sources, { method = method, generator = generator })
-    end
-
-    if eslint_enabled() then
+    if o.get().eslint_enable_code_actions or o.get().eslint_enable_diagnostics then
         local eslint_bin = o.get().eslint_bin
-        local eslint_opts = {
-            command = u.resolve_bin(eslint_bin),
-            args = o.get().eslint_args,
-            format = "json_raw",
-            to_stdin = true,
-            check_exit_code = function(code)
-                return code <= 1
-            end,
-            use_cache = true,
-        }
+        local eslint_args = o.get().eslint_args
 
         if not u.config_file_exists(eslint_bin) then
             local fallback = o.get().eslint_config_fallback
             if not fallback then
                 u.debug_log("ESLint config file not found (config may still be valid; see diagnostics for errors)")
             else
-                table.insert(eslint_opts.args, "--config")
-                table.insert(eslint_opts.args, fallback)
+                table.insert(eslint_args, "--config")
+                table.insert(eslint_args, fallback)
             end
-        end
-
-        local make_eslint_opts = function(handler, method)
-            local opts = vim.deepcopy(eslint_opts)
-            opts.on_output = on_output_factory(handler, method == null_ls.methods.DIAGNOSTICS)
-            return opts
         end
 
         if o.get().eslint_enable_code_actions then
-            u.debug_log("enabling null-ls eslint code actions integration")
+            local generator_opts = {
+                command = u.resolve_bin(eslint_bin),
+                args = eslint_args,
+                format = "json_raw",
+                to_stdin = true,
+                check_exit_code = function(code)
+                    return code <= 1
+                end,
+                use_cache = true,
+                on_output = on_output,
+            }
 
-            local method = null_ls.methods.CODE_ACTION
-            add_source(method, null_ls.generator(make_eslint_opts(code_action_handler, method)))
+            u.debug_log("enabling null-ls eslint code actions integration")
+            null_ls.register({
+                name = eslint_bin,
+                filetypes = u.tsserver_fts,
+                method = null_ls.methods.CODE_ACTION,
+                generator = null_ls.generator(generator_opts),
+            })
         end
 
         if o.get().eslint_enable_diagnostics then
-            u.debug_log("enabling null-ls eslint diagnostics integration")
+            local builtin = null_ls.builtins.diagnostics[eslint_bin]
+            assert(builtin, eslint_bin .. " is not an available diagnostics source")
 
-            local method = null_ls.methods.DIAGNOSTICS
-            local opts = make_eslint_opts(diagnostic_handler, method)
+            builtin._opts.args = eslint_args
             if o.get().eslint_show_rule_id then
-                opts.diagnostics_format = "#{m} [#{c}]"
+                builtin._opts.diagnostics_format = "#{m} [#{c}]"
             end
-            add_source(method, null_ls.generator(opts))
+
+            u.debug_log("enabling null-ls eslint diagnostics integration")
+            null_ls.register(builtin)
         end
     end
 
@@ -301,14 +255,8 @@ M.setup = function()
         null_ls.register(builtin)
     end
 
-    if vim.tbl_count(sources) > 0 then
-        null_ls.register({
-            filetypes = u.tsserver_fts,
-            name = name,
-            sources = sources,
-        })
-        u.debug_log("successfully registered null-ls integrations")
-    end
+    null_ls.register_name(name)
+    u.debug_log("successfully registered null-ls integrations")
 end
 
 return M
