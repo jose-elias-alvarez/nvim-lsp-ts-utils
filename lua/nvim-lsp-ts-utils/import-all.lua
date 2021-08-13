@@ -55,6 +55,7 @@ local create_response_handler = function(imports)
         end
 
         local should_handle_action = function(action)
+            action = type(action.command) == "table" and action.command or action
             if action.command ~= APPLY_EDIT then
                 return false
             end
@@ -224,6 +225,7 @@ return a.async_void(function(bufnr)
     local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
     local edits, all_imports, messages = {}, {}, {}
     local push_edits = function(action)
+        action = type(action.command) == "table" and action.command or action
         for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
             table.insert(edits, edit)
         end
