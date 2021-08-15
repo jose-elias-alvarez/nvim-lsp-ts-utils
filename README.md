@@ -68,6 +68,19 @@ built-in LSP client.
   You can enable this feature by calling `setup_client` in your configuration (see
   below).
 
+- Filter `tsserver` diagnostics
+
+  Some of `tsserver` diagnostics may be annoying or can result in duplicated
+  messages, when used with a linter. For example, to disable the hint about
+  RequireJS modules, set `filter_out_diagnostics_by_code` to `{ 80001 }` and to
+  disable all hints, set `filter_out_diagnostics_by_severity` to `{ "hint" }`.
+
+  Similar to fixing invalid ranges, this function requires calling
+  `setup_client` in your configuration (see below).
+
+  Note: filtering out `tsserver` error about unresolved variables (error code
+  2304) will break `:TSLspImportAll` functionality.
+
 ### null-ls Integrations
 
 The plugin integrates with
@@ -280,9 +293,13 @@ nvim_lsp.tsserver.setup {
             update_imports_on_move = false,
             require_confirmation_on_move = false,
             watch_dir = nil,
+
+            -- filter diagnostics
+            filter_out_diagnostics_by_severity = {},
+            filter_out_diagnostics_by_code = {},
         }
 
-        -- required to fix code action ranges
+        -- required to fix code action ranges and filter diagnostics
         ts_utils.setup_client(client)
 
         -- no default maps, so you may want to define some here

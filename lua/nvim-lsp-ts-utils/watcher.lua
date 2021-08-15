@@ -132,8 +132,10 @@ M.start = function()
                 watching = true
                 u.debug_log("watching dir " .. file)
 
-                local callback =
-                    loop.watch_dir(file, { on_event = handle_event_factory(file), on_error = handle_error })
+                local callback = loop.watch_dir(
+                    file,
+                    { on_event = handle_event_factory(file), on_error = handle_error }
+                )
                 table.insert(unwatch_callbacks, callback)
             end
         end

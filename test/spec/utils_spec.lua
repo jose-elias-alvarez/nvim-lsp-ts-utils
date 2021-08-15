@@ -84,7 +84,9 @@ describe("utils", function()
         it("should call vim.cmd with formatted command", function()
             u.buf_command("MyCommand", "my_function()")
 
-            assert.stub(vim.cmd).was_called_with("command! -buffer MyCommand lua require'nvim-lsp-ts-utils'.my_function()")
+            assert.stub(vim.cmd).was_called_with(
+                "command! -buffer MyCommand lua require'nvim-lsp-ts-utils'.my_function()"
+            )
         end)
     end)
 
