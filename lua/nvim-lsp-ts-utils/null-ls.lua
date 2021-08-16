@@ -122,7 +122,7 @@ local generate_disable_actions = function(message, indentation, params)
 
     local file_title = "Disable ESLint rule " .. rule_id .. " for the entire file"
     local file_new_text = "/* eslint-disable " .. rule_id .. " */"
-    table.insert(actions, generate_edit_line_action(file_title, file_new_text, 0, params))
+    table.insert(actions, generate_edit_line_action(file_title, file_new_text, 1, params))
 
     return actions
 end
