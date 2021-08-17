@@ -37,6 +37,10 @@ local defaults = {
     formatter = "prettier",
     formatter_config_fallback = nil,
 
+    -- diagnostic filtering
+    filter_out_diagnostics_by_severity = {},
+    filter_out_diagnostics_by_code = {},
+
     -- deprecated (don't use)
     complete_parens = false,
     signature_help_in_parens = false,

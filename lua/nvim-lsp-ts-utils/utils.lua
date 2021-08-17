@@ -36,6 +36,13 @@ local config_file_formats = {
 
 local M = {}
 
+M.severities = {
+    error = 1,
+    warning = 2,
+    information = 3,
+    hint = 4,
+}
+
 M.tsserver_fts = {
     "javascript",
     "javascriptreact",
