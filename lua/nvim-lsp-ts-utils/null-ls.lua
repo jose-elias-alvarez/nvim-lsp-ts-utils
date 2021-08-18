@@ -216,6 +216,7 @@ M.setup = function()
             assert(builtin, eslint_bin .. " is not an available diagnostics source")
 
             builtin._opts.args = eslint_args
+            builtin._opts.command = u.resolve_bin(eslint_bin)
             if o.get().eslint_show_rule_id then
                 builtin._opts.diagnostics_format = "#{m} [#{c}]"
             end
@@ -238,6 +239,7 @@ M.setup = function()
             local original_args = type(args) == "function" and args(params) or args
             return vim.list_extend(original_args, extra_args)
         end
+        builtin._opts.command = u.resolve_bin(formatter)
 
         if not u.config_file_exists(formatter) then
             local fallback = is_eslint_formatter and o.get().eslint_config_fallback or o.get().formatter_config_fallback
