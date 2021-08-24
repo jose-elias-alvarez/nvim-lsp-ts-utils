@@ -179,17 +179,21 @@ M.setup = function()
         local eslint_bin = o.get().eslint_bin
         local eslint_args = o.get().eslint_args
 
+        local should_register = true
         if not u.config_file_exists(eslint_bin) then
             local fallback = o.get().eslint_config_fallback
             if not fallback then
                 u.debug_log("ESLint config file not found (config may still be valid; see diagnostics for errors)")
+                if o.get().eslint_disable_if_no_config then
+                    should_register = false
+                end
             else
                 table.insert(eslint_args, "--config")
                 table.insert(eslint_args, fallback)
             end
         end
 
-        if o.get().eslint_enable_code_actions then
+        if o.get().eslint_enable_code_actions and should_register then
             local generator_opts = {
                 command = u.resolve_bin(eslint_bin),
                 args = eslint_args,
@@ -211,7 +215,7 @@ M.setup = function()
             })
         end
 
-        if o.get().eslint_enable_diagnostics then
+        if o.get().eslint_enable_diagnostics and should_register then
             local builtin = null_ls.builtins.diagnostics[eslint_bin]
             assert(builtin, eslint_bin .. " is not an available diagnostics source")
 
@@ -241,20 +245,26 @@ M.setup = function()
         end
         builtin._opts.command = u.resolve_bin(formatter)
 
+        local should_register = true
         if not u.config_file_exists(formatter) then
             local fallback = is_eslint_formatter and o.get().eslint_config_fallback or o.get().formatter_config_fallback
 
             -- prettier works without a config, so we only want this for eslint and and friends
             if not fallback and is_eslint_formatter then
                 u.debug_log("failed to resolve ESLint config")
+                if o.get().eslint_disable_if_no_config then
+                    should_register = false
+                end
             elseif fallback then
                 table.insert(extra_args, "--config")
                 table.insert(extra_args, fallback)
             end
         end
 
-        u.debug_log("enabling null-ls formatting integration")
-        null_ls.register(builtin)
+        if should_register then
+            u.debug_log("enabling null-ls formatting integration")
+            null_ls.register(builtin)
+        end
     end
 
     null_ls.register_name(name)

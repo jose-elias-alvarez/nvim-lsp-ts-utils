@@ -120,6 +120,11 @@ require("lspconfig")["null-ls"].setup {}
     config file that the plugin will use if it can't find a config file in the
     root directory. Set to `nil` by default.
 
+  - `eslint_disable_if_no_config` (boolean): Disable the source if the plugin
+    can't find an ESLint config file in the root directory. Note that this
+    setting requires using a separate ESLint config file and will not work
+    properly when configuring ESLint inside `package.json`.
+
 - ESLint diagnostics
 
   Shows ESLint diagnostics for the current buffer as LSP diagnostics.
@@ -135,6 +140,8 @@ require("lspconfig")["null-ls"].setup {}
 
   - `eslint_show_rule_id` (boolean): shows the ESLint rule ID in diagnostics.
     Set to `false` by default.
+
+  - `eslint_disable_if_no_config` (boolean): same as ESLint code actions.
 
 - Formatting
 
@@ -171,7 +178,8 @@ require("lspconfig")["null-ls"].setup {}
     root directory. Set to `nil` by default.
 
     Note that if you've set `formatter` to `eslint` or `eslint_d`, the plugin
-    will use `eslint_config_fallback` instead.
+    will use `eslint_config_fallback` instead, and `eslint_disable_if_no_config`
+    applies.
 
   Once you've enabled formatting, it'll run whenever you call either of the
   following commands:
