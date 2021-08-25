@@ -86,6 +86,9 @@ M.on_move = function(source, target)
         -- opening directories won't work, so load first file in directory
         buffer_to_add = u.file.dir_file(target)
     end
+    if not buffer_to_add then
+        return
+    end
 
     local target_bufnr = fn.bufadd(buffer_to_add)
     fn.bufload(buffer_to_add)
