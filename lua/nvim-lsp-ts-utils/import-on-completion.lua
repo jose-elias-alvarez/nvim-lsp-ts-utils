@@ -1,45 +1,7 @@
-local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 
 local api = vim.api
 local lsp = vim.lsp
-
--- deprecated (too many edge cases, and fixing them is outside of the scope of the plugin)
-local add_parens = function(bufnr)
-    if vim.fn.mode() ~= "i" then
-        return
-    end
-
-    local invalid_next_chars = {
-        "(", -- prevent class.method()() but not func(class.method())
-        '"', -- prevent class["privateMethod()"]
-        "'",
-    }
-    local row, col = u.cursor.pos()
-
-    local next_char = string.sub(u.buffer.line(row), col + 1, col + 1)
-    if vim.tbl_contains(invalid_next_chars, next_char) then
-        return
-    end
-
-    u.buffer.insert_text(row - 1, col, "()", bufnr)
-    u.cursor.set(row, col + 1)
-
-    if o.get().signature_help_in_parens then
-        lsp.buf.signature_help()
-    end
-end
-
--- deprecated
-local should_add_parens = function(item)
-    if not o.get().complete_parens then
-        return false
-    end
-
-    return item.kind == 2 -- method
-        or item.kind == 3 -- function
-        or item.kind == 4 -- constructor
-end
 
 local should_fix_position = function(edits)
     local range = edits[1].range
@@ -85,11 +47,6 @@ M.handle = function()
     vim.defer_fn(function()
         last = nil
     end, 5000)
-
-    -- deprecated
-    if should_add_parens(item) then
-        add_parens(bufnr)
-    end
 
     lsp.buf_request(
         bufnr,

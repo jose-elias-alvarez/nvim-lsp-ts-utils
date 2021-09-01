@@ -42,10 +42,6 @@ local defaults = {
     filter_out_diagnostics_by_severity = {},
     filter_out_diagnostics_by_code = {},
 
-    -- deprecated (don't use)
-    complete_parens = false,
-    signature_help_in_parens = false,
-
     -- internal
     _initialized = false,
 }
