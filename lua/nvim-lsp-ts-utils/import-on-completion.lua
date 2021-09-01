@@ -91,18 +91,23 @@ M.handle = function()
         add_parens(bufnr)
     end
 
-    lsp.buf_request(bufnr, "completionItem/resolve", item, function(_, _, result)
-        if not (result and result.additionalTextEdits) then
-            return
-        end
-        local edits = result.additionalTextEdits
+    lsp.buf_request(
+        bufnr,
+        "completionItem/resolve",
+        item,
+        u.make_handler(function(_, result)
+            if not (result and result.additionalTextEdits) then
+                return
+            end
+            local edits = result.additionalTextEdits
 
-        -- when an edit's range includes the current line, the cursor won't move, which is annoying
-        local should_fix = should_fix_position(edits)
-        lsp.util.apply_text_edits(result.additionalTextEdits, bufnr)
-        if should_fix then
-            fix_position(edits)
-        end
-    end)
+            -- when an edit's range includes the current line, the cursor won't move, which is annoying
+            local should_fix = should_fix_position(edits)
+            lsp.util.apply_text_edits(result.additionalTextEdits, bufnr)
+            if should_fix then
+                fix_position(edits)
+            end
+        end)
+    )
 end
 return M

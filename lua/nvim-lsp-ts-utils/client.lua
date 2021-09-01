@@ -31,16 +31,23 @@ local validate_changes = function(changes)
     end
 end
 
-local edit_handler = function(_, _, workspace_edit)
-    if workspace_edit.edit and workspace_edit.edit.changes then
-        validate_changes(workspace_edit.edit.changes)
+local edit_handler = function(...)
+    local result_or_method = select(2, ...)
+    local is_new = type(result_or_method) == "table"
+    local result = is_new and result_or_method or select(3, ...)
+    if result.edit and result.edit.changes then
+        validate_changes(result.edit.changes)
     end
 
-    local status, result = pcall(lsp.util.apply_workspace_edit, workspace_edit.edit)
-    return { applied = status, failureReason = result }
+    local status, err = pcall(lsp.util.apply_workspace_edit, result.edit)
+    return { applied = status, failureReason = err }
 end
 
-local diagnostics_handler = function(err, method, result, client_id, buf_nr, config)
+local diagnostics_handler = function(...)
+    local config_or_client_id = select(4, ...)
+    local is_new = type(config_or_client_id) ~= "number"
+    local result = is_new and select(2, ...) or select(3, ...)
+
     local filter_out_diagnostics_by_severity = o.get().filter_out_diagnostics_by_severity
     local filter_out_diagnostics_by_code = o.get().filter_out_diagnostics_by_code
 
@@ -76,7 +83,21 @@ local diagnostics_handler = function(err, method, result, client_id, buf_nr, con
         result.diagnostics = filtered_diagnostics
     end
 
-    return lsp.handlers[PUBLISH_DIAGNOSTICS](err, method, result, client_id, buf_nr, config)
+    local config_idx = is_new and 4 or 6
+    local config = select(config_idx, ...) or {}
+
+    if is_new then
+        lsp.handlers[PUBLISH_DIAGNOSTICS](select(1, ...), select(2, ...), select(3, ...), config)
+    else
+        lsp.handlers[PUBLISH_DIAGNOSTICS](
+            select(1, ...),
+            select(2, ...),
+            select(3, ...),
+            select(4, ...),
+            select(5, ...),
+            config
+        )
+    end
 end
 
 local M = {}
