@@ -16,9 +16,14 @@ local fix_current = function()
     local params = lsp.util.make_range_params()
     params.context = { diagnostics = lsp.diagnostic.get_line_diagnostics() }
 
-    lsp.buf_request(0, "textDocument/codeAction", params, function(_, _, actions)
-        exec_first(actions)
-    end)
+    lsp.buf_request(
+        0,
+        "textDocument/codeAction",
+        params,
+        u.make_handler(function(_, actions)
+            exec_first(actions)
+        end)
+    )
 end
 
 return fix_current
