@@ -12,6 +12,7 @@ local exec_first = function(actions)
     lsp.buf.execute_command(type(action.command) == "table" and action.command or action)
 end
 
+-- deprecated
 local fix_current = function()
     local params = lsp.util.make_range_params()
     params.context = { diagnostics = lsp.diagnostic.get_line_diagnostics() }

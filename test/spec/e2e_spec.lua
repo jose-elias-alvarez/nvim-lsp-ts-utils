@@ -2,6 +2,7 @@ local null_ls = require("null-ls")
 
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
+local tu = require("test.utils")
 
 local api = vim.api
 local lsp = vim.lsp
@@ -94,7 +95,7 @@ describe("e2e", function()
             end)
 
             it("should apply eslint fix", function()
-                ts_utils.fix_current()
+                tu.apply_first_code_action()
                 lsp_wait()
 
                 -- check that eslint fix has been applied, replacing == with ===

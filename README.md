@@ -20,11 +20,6 @@ built-in LSP client.
   Async by default. A sync variant is available and exposed as
   `:TSLspOrganizeSync` (useful for running on save).
 
-- Fix current problem (exposed as `:TSLspFixCurrent`)
-
-  A simple way to apply the first available code action to the current line
-  without confirmation.
-
 - Rename file and update imports (exposed as `:TSLspRenameFile`)
 
   Enter a new path (based on the current file's path) and watch the magic
@@ -78,8 +73,7 @@ built-in LSP client.
   Similar to fixing invalid ranges, this function requires calling
   `setup_client` in your configuration (see below).
 
-  Note: filtering out `tsserver` error about unresolved variables (error code
-  2304) will break `:TSLspImportAll` functionality.
+  Note: filtering out `tsserver` error about unresolved variables (error code 2304) will break `:TSLspImportAll` functionality.
 
 ### null-ls Integrations
 
@@ -313,7 +307,6 @@ nvim_lsp.tsserver.setup {
         -- no default maps, so you may want to define some here
         local opts = { silent = true }
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", opts)
-        vim.api.nvim_buf_set_keymap(bufnr, "n", "qq", ":TSLspFixCurrent<CR>", opts)
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", opts)
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", opts)
     end
