@@ -268,14 +268,13 @@ nvim_lsp.tsserver.setup {
             eslint_enable_code_actions = true,
             eslint_enable_disable_comments = true,
             eslint_bin = "eslint",
-            eslint_config_fallback = nil,
             eslint_enable_diagnostics = false,
-            eslint_show_rule_id = false,
+            eslint_opts = {},
 
             -- formatting
             enable_formatting = false,
             formatter = "prettier",
-            formatter_config_fallback = nil,
+            formatter_opts = {},
 
             -- update imports on file move
             update_imports_on_move = false,
