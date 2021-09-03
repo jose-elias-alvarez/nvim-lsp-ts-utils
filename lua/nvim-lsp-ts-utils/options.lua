@@ -29,14 +29,12 @@ local defaults = {
     eslint_enable_code_actions = true,
     eslint_enable_disable_comments = true,
     eslint_bin = "eslint",
-    eslint_config_fallback = nil,
     eslint_enable_diagnostics = false,
-    eslint_show_rule_id = false,
-    eslint_disable_if_no_config = false,
+    eslint_opts = {},
     -- formatting
     enable_formatting = false,
     formatter = "prettier",
-    formatter_config_fallback = nil,
+    formatter_opts = {},
 
     -- diagnostic filtering
     filter_out_diagnostics_by_severity = {},

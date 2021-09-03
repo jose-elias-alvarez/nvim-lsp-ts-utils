@@ -177,31 +177,15 @@ M.setup = function()
 
     if o.get().eslint_enable_code_actions or o.get().eslint_enable_diagnostics then
         local eslint_bin = o.get().eslint_bin
-        local eslint_args = o.get().eslint_args
+        local command = u.resolve_bin(eslint_bin)
 
-        local should_register = true
-        if not u.config_file_exists(eslint_bin) then
-            local fallback = o.get().eslint_config_fallback
-            if not fallback then
-                u.debug_log("ESLint config file not found (config may still be valid; see diagnostics for errors)")
-                if o.get().eslint_disable_if_no_config then
-                    should_register = false
-                end
-            else
-                table.insert(eslint_args, "--config")
-                table.insert(eslint_args, fallback)
-            end
-        end
-
-        if o.get().eslint_enable_code_actions and should_register then
+        if o.get().eslint_enable_code_actions then
             local generator_opts = {
                 command = u.resolve_bin(eslint_bin),
-                args = eslint_args,
+                args = o.get().eslint_args,
                 format = "json_raw",
                 to_stdin = true,
-                check_exit_code = function(code)
-                    return code <= 1
-                end,
+                check_exit_code = { 0, 1 },
                 use_cache = true,
                 on_output = on_output,
             }
@@ -215,56 +199,24 @@ M.setup = function()
             })
         end
 
-        if o.get().eslint_enable_diagnostics and should_register then
+        if o.get().eslint_enable_diagnostics then
             local builtin = null_ls.builtins.diagnostics[eslint_bin]
-            assert(builtin, eslint_bin .. " is not an available diagnostics source")
-
-            builtin._opts.args = eslint_args
-            builtin._opts.command = u.resolve_bin(eslint_bin)
-            if o.get().eslint_show_rule_id then
-                builtin._opts.diagnostics_format = "#{m} [#{c}]"
-            end
+            local opts = vim.tbl_extend("keep", o.get().eslint_opts, { command = command, filetypes = u.tsserver_fts })
 
             u.debug_log("enabling null-ls eslint diagnostics integration")
-            null_ls.register(builtin)
+            null_ls.register(builtin.with(opts))
         end
     end
 
     if o.get().enable_formatting then
         local formatter = o.get().formatter
-        local is_eslint_formatter = formatter:find("eslint") ~= nil
+        local command = u.resolve_bin(formatter)
 
         local builtin = null_ls.builtins.formatting[formatter]
-        assert(builtin, formatter .. " is not an available formatter")
+        local opts = vim.tbl_extend("keep", o.get().formatter_opts, { command = command, filetypes = u.tsserver_fts })
 
-        local extra_args = {}
-        local args = builtin._opts.args
-        builtin._opts.args = function(params)
-            local original_args = type(args) == "function" and args(params) or args
-            return vim.list_extend(original_args, extra_args)
-        end
-        builtin._opts.command = u.resolve_bin(formatter)
-
-        local should_register = true
-        if not u.config_file_exists(formatter) then
-            local fallback = is_eslint_formatter and o.get().eslint_config_fallback or o.get().formatter_config_fallback
-
-            -- prettier works without a config, so we only want this for eslint and and friends
-            if not fallback and is_eslint_formatter then
-                u.debug_log("failed to resolve ESLint config")
-                if o.get().eslint_disable_if_no_config then
-                    should_register = false
-                end
-            elseif fallback then
-                table.insert(extra_args, "--config")
-                table.insert(extra_args, fallback)
-            end
-        end
-
-        if should_register then
-            u.debug_log("enabling null-ls formatting integration")
-            null_ls.register(builtin)
-        end
+        u.debug_log("enabling null-ls formatting integration")
+        null_ls.register(builtin.with(opts))
     end
 
     null_ls.register_name(name)

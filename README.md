@@ -110,15 +110,6 @@ require("lspconfig")["null-ls"].setup {}
     using [eslint_d](https://github.com/mantoni/eslint_d.js). `eslint` will add
     a noticeable delay to each code action.
 
-  - `eslint_config_fallback` (string, function): path to a fallback ESLint
-    config file that the plugin will use if it can't find a config file in the
-    root directory. Set to `nil` by default.
-
-  - `eslint_disable_if_no_config` (boolean): Disable the source if the plugin
-    can't find an ESLint config file in the root directory. Note that this
-    setting requires using a separate ESLint config file and will not work
-    properly when configuring ESLint inside `package.json`.
-
 - ESLint diagnostics
 
   Shows ESLint diagnostics for the current buffer as LSP diagnostics.
@@ -132,10 +123,9 @@ require("lspconfig")["null-ls"].setup {}
     ESLint code actions. Like code actions, using `eslint_d` will improve your
     experience.
 
-  - `eslint_show_rule_id` (boolean): shows the ESLint rule ID in diagnostics.
-    Set to `false` by default.
-
-  - `eslint_disable_if_no_config` (boolean): same as ESLint code actions.
+  - `eslint_opts` (table): allows modifying the options passed to the null-ls
+    diagnostics source, as described
+    [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
 
 - Formatting
 
@@ -167,13 +157,9 @@ require("lspconfig")["null-ls"].setup {}
     executable in `node_modules` and fall back to a system-wide executable,
     which must be available on your `$PATH`.
 
-  - `formatter_config_fallback` (string, function): path to a fallback formatter
-    config file that the plugin will use if it can't find a config file in the
-    root directory. Set to `nil` by default.
-
-    Note that if you've set `formatter` to `eslint` or `eslint_d`, the plugin
-    will use `eslint_config_fallback` instead, and `eslint_disable_if_no_config`
-    applies.
+  - `formatter_opts` (table): allows modifying the options passed to the null-ls
+    diagnostics source, as described
+    [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
 
   Once you've enabled formatting, it'll run whenever you call either of the
   following commands:
