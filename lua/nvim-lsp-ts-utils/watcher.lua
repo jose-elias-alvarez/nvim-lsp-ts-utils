@@ -123,21 +123,16 @@ M.start = function()
         local dir_files = p.scan_dir(root, {
             respect_gitignore = true,
             depth = 1,
-            add_dirs = true,
+            only_dirs = true,
         })
 
         local unwatch_callbacks, watching = {}, false
-        for _, file in ipairs(dir_files) do
-            if u.file.is_dir(file) then
-                watching = true
-                u.debug_log("watching dir " .. file)
+        for _, dir in ipairs(dir_files) do
+            watching = true
+            u.debug_log("watching dir " .. dir)
 
-                local callback = loop.watch_dir(
-                    file,
-                    { on_event = handle_event_factory(file), on_error = handle_error }
-                )
-                table.insert(unwatch_callbacks, callback)
-            end
+            local callback = loop.watch_dir(dir, { on_event = handle_event_factory(dir), on_error = handle_error })
+            table.insert(unwatch_callbacks, callback)
         end
 
         if not watching then

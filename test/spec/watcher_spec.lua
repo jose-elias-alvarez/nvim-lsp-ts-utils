@@ -107,7 +107,7 @@ describe("watcher", function()
 
                 assert.stub(p.scan_dir).was_called_with(
                     mock_root,
-                    { respect_gitignore = true, depth = 1, add_dirs = true }
+                    { respect_gitignore = true, depth = 1, only_dirs = true }
                 )
             end)
 
@@ -119,18 +119,8 @@ describe("watcher", function()
                 assert.equals(watcher.state.watching, false)
             end)
 
-            it("should not start watching if no dir found in scan_dir results", function()
-                p.scan_dir.returns({ "file1", "file2" })
-                u.file.is_dir.returns(false)
-
-                watcher.start()
-
-                assert.equals(watcher.state.watching, false)
-            end)
-
             it("should call watch_dir with file path and start watching", function()
                 p.scan_dir.returns({ "dir1", "dir2" })
-                u.file.is_dir.returns(true)
 
                 watcher.start()
 
@@ -143,7 +133,6 @@ describe("watcher", function()
                 local callback = stub.new()
                 loop.watch_dir.returns(callback)
                 p.scan_dir.returns({ "dir1", "dir2", "dir3" })
-                u.file.is_dir.returns(true)
 
                 watcher.start()
                 watcher.state.unwatch()
