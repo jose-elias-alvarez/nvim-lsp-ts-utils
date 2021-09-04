@@ -1,8 +1,5 @@
-local a = require("plenary.async_lib")
-
 local u = require("nvim-lsp-ts-utils.utils")
 local o = require("nvim-lsp-ts-utils.options")
-local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
 
 local lsp = vim.lsp
 local api = vim.api
@@ -198,7 +195,7 @@ local apply_edits = function(edits, bufnr)
     lsp.util.apply_text_edits(edits, bufnr)
 
     -- organize imports to merge separate import statements from the same file
-    organize_imports.async(bufnr, function()
+    require("nvim-lsp-ts-utils.organize-imports").async(bufnr, function()
         -- remove empty lines created by merge
         local empty_start, empty_end
         for i, line in ipairs(api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
@@ -216,83 +213,91 @@ local apply_edits = function(edits, bufnr)
     end)
 end
 
-return a.async_void(function(bufnr)
-    local diagnostics = get_diagnostics(bufnr)
-    if not diagnostics then
-        return
-    end
+return function(bufnr)
+    local a = require("plenary.async")
 
-    local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
-    local edits, all_imports, messages = {}, {}, {}
-    local push_edits = function(action)
-        action = type(action.command) == "table" and action.command or action
-        for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
-            table.insert(edits, edit)
+    local runner = function()
+        local diagnostics = get_diagnostics(bufnr)
+        if not diagnostics then
+            return
         end
+
+        local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
+        local edits, all_imports, messages = {}, {}, {}
+        local push_edits = function(action)
+            action = type(action.command) == "table" and action.command or action
+            for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
+                table.insert(edits, edit)
+            end
+        end
+
+        local response_handler = create_response_handler(all_imports)
+
+        local last_request_time = vim.loop.now()
+        local wait_for_request = function()
+            vim.wait(250, function()
+                return vim.loop.now() - last_request_time > 10
+            end, 5)
+            last_request_time = vim.loop.now()
+        end
+
+        local response_count = 0
+        local get_responses = function(diagnostic)
+            wait_for_request()
+
+            local responses = buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic))
+            response_count = response_count + 1
+            return responses
+        end
+
+        local futures = {}
+        local future_factory = function(diagnostic)
+            return function()
+                response_handler(get_responses(diagnostic))
+            end
+        end
+
+        for _, diagnostic in pairs(diagnostics) do
+            if not vim.tbl_contains(messages, diagnostic.message) then
+                table.insert(messages, diagnostic.message)
+                table.insert(futures, future_factory(diagnostic))
+            end
+        end
+
+        local expected_response_count = vim.tbl_count(futures)
+        vim.defer_fn(function()
+            if response_count < expected_response_count then
+                u.echo_warning("import all timed out")
+            end
+        end, o.get().import_all_timeout)
+
+        a.util.join(futures)
+
+        for k, imports in pairs(all_imports) do
+            local index = 1
+            if vim.tbl_count(imports) > 1 then
+                local choices = {}
+                for i, import in ipairs(imports) do
+                    table.insert(choices, string.format("%d %s", i, import.source))
+                end
+                index = vim.fn.confirm(
+                    string.format("Select an import source for %s:", k),
+                    table.concat(choices, "\n"),
+                    1,
+                    "Question"
+                )
+                if index == 0 then
+                    return
+                end
+            end
+            push_edits(imports[index].action)
+        end
+        return edits
     end
 
-    local response_handler = create_response_handler(all_imports)
-
-    local last_request_time = vim.loop.now()
-    local wait_for_request = function()
-        vim.wait(250, function()
-            return vim.loop.now() - last_request_time > 10
-        end, 5)
-        last_request_time = vim.loop.now()
-    end
-
-    local response_count = 0
-    local get_responses = function(diagnostic)
-        wait_for_request()
-
-        local responses = a.await(buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic)))
-        response_count = response_count + 1
-        return responses
-    end
-
-    local futures = {}
-    local future_factory = function(diagnostic)
-        return a.future(function()
-            response_handler(get_responses(diagnostic))
+    a.run(runner, function(edits)
+        vim.schedule(function()
+            apply_edits(edits, bufnr)
         end)
-    end
-
-    for _, diagnostic in pairs(diagnostics) do
-        if not vim.tbl_contains(messages, diagnostic.message) then
-            table.insert(messages, diagnostic.message)
-            table.insert(futures, future_factory(diagnostic))
-        end
-    end
-
-    local expected_response_count = vim.tbl_count(futures)
-    vim.defer_fn(function()
-        if response_count < expected_response_count then
-            u.echo_warning("import all timed out")
-        end
-    end, o.get().import_all_timeout)
-
-    a.await_all(futures)
-    for k, imports in pairs(all_imports) do
-        local index = 1
-        if vim.tbl_count(imports) > 1 then
-            local choices = {}
-            for i, import in ipairs(imports) do
-                table.insert(choices, string.format("%d %s", i, import.source))
-            end
-            index = vim.fn.confirm(
-                string.format("Select an import source for %s:", k),
-                table.concat(choices, "\n"),
-                1,
-                "Question"
-            )
-            if index == 0 then
-                return
-            end
-        end
-        push_edits(imports[index].action)
-    end
-
-    vim.schedule(function()
-        apply_edits(edits, bufnr)
     end)
-end)
+end
