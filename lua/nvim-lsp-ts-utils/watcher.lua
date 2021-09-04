@@ -115,10 +115,10 @@ M.start = function()
         return
     end
 
-    u.debug_log("attempting to watch root dir" .. root)
+    u.debug_log("attempting to watch root dir " .. root)
 
     if lsputil.find_git_ancestor(root) then
-        u.debug_log("git config found; scanning root dir")
+        u.debug_log("git root found; scanning")
 
         local dir_files = require("plenary.scandir").scan_dir(root, {
             respect_gitignore = true,

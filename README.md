@@ -205,8 +205,8 @@ require("lspconfig")["null-ls"].setup {}
 - Update imports on file move
 
   Watches the root directory for file move / rename events and updates imports
-  accordingly. The plugin will attempt to find a `.gitignore` file in the root
-  directory and watch all non-ignored directories.
+  accordingly. The plugin will attempt to determine if the current root
+  directory has a Git root and watch all non-ignored directories.
 
   Supports the following settings:
 
@@ -217,12 +217,14 @@ require("lspconfig")["null-ls"].setup {}
     confirmation before updating imports. Set to `false` by default.
 
   - `watch_dir` (string, nil): sets a fallback directory that the plugin will
-    watch for changes if it can't find a `.gitignore` in the root directory.
-    Path is relative to the current root directory. Set to `nil` by default.
+    watch for changes if it can't find a Git root from the current root
+    directory. Path is relative to the current root directory. Set to `nil` by
+    default.
 
-  Note that if the root directory is not recognized as a Git project and
-  `watch_dir` is `nil` or fails to resolve, the plugin will not enable file
-  watching.
+  Note that if the root directory does not have a Git root and `watch_dir` is
+  `nil` or fails to resolve, the plugin will not enable file watching. This is
+  to prevent performance issues from watching `node_modules` and irreversible
+  changes from modifying files not under version control.
 
 ## Setup
 
