@@ -32,8 +32,10 @@ end
 local M = {}
 
 M.manual = function(target, force)
+    local lsputil = require("lspconfig.util")
+
     local bufnr = api.nvim_get_current_buf()
-    local source = u.buffer.name(bufnr)
+    local source = api.nvim_buf_get_name(bufnr)
 
     local status
     if not target then
@@ -43,7 +45,7 @@ M.manual = function(target, force)
         end
     end
 
-    local exists = u.file.exists(target)
+    local exists = lsputil.path.exists(target)
     if exists and not force then
         local confirm = fn.confirm("File exists! Overwrite?", "&Yes\n&No")
         if confirm ~= 1 then
@@ -57,13 +59,17 @@ M.manual = function(target, force)
         vim.cmd("silent noautocmd w")
     end
 
-    u.file.mv(source, target)
+    local ok, err = vim.loop.fs_rename(source, target)
+    if not ok then
+        error(string.format("failed to move %s to %s: %s", source, target, err))
+    end
 
     vim.cmd("e " .. target)
     vim.cmd(bufnr .. "bdelete!")
 end
 
 M.on_move = function(source, target)
+    local lsputil = require("lspconfig.util")
     if source == target then
         return
     end
@@ -78,8 +84,8 @@ M.on_move = function(source, target)
     local original_win = api.nvim_get_current_win()
     local original_bufnr = api.nvim_get_current_buf()
 
-    local is_dir = u.file.extension(target) == "" and u.file.is_dir(target)
-    local source_bufnr = is_dir and nil or u.buffer.bufnr(source)
+    local is_dir = u.file.extension(target) == "" and lsputil.path.is_dir(target)
+    local source_bufnr = is_dir and nil or fn.bufadd(source)
 
     local buffer_to_add = target
     if is_dir then

@@ -1,9 +1,6 @@
-local p = require("plenary.scandir")
-
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 local loop = require("nvim-lsp-ts-utils.loop")
-local rename_file = require("nvim-lsp-ts-utils.rename-file")
 
 local defer = vim.defer_fn
 
@@ -44,13 +41,14 @@ local should_ignore_file = function(path)
 end
 
 local should_ignore_event = function(source, target)
+    local lsputil = require("lspconfig.util")
     -- ignore save
     if source == target then
         return true
     end
 
     -- ignore non-move events
-    local source_exists, target_exists = u.file.stat(source), u.file.stat(target)
+    local source_exists, target_exists = lsputil.path.exists(source), lsputil.path.exists(target)
     if source_exists then
         return true
     end
@@ -59,7 +57,7 @@ local should_ignore_event = function(source, target)
     end
 
     -- ignore type mismatches
-    if u.file.extension(source) == "" and target_exists.type ~= "directory" then
+    if u.file.extension(source) == "" and lsputil.path.is_dir(source) then
         return true
     end
 
@@ -67,8 +65,9 @@ local should_ignore_event = function(source, target)
 end
 
 local handle_event_factory = function(dir)
+    local lsputil = require("lspconfig.util")
     return function(filename)
-        local path = dir .. "/" .. filename
+        local path = lsputil.path.join(dir, filename)
         if should_ignore_file(path) then
             return
         end
@@ -93,7 +92,7 @@ local handle_event_factory = function(dir)
             u.debug_log("source: " .. source)
             u.debug_log("target: " .. target)
 
-            rename_file.on_move(source, target)
+            require("nvim-lsp-ts-utils.rename-file").on_move(source, target)
             s.source.reset()
         end
     end
@@ -105,6 +104,7 @@ local handle_error = function(err)
 end
 
 M.start = function()
+    local lsputil = require("lspconfig.util")
     if s.watching then
         return
     end
@@ -117,10 +117,10 @@ M.start = function()
 
     u.debug_log("attempting to watch root dir" .. root)
 
-    if u.config_file_exists("git") then
+    if lsputil.find_git_ancestor(root) then
         u.debug_log("git config found; scanning root dir")
 
-        local dir_files = p.scan_dir(root, {
+        local dir_files = require("plenary.scandir").scan_dir(root, {
             respect_gitignore = true,
             depth = 1,
             only_dirs = true,
@@ -156,8 +156,8 @@ M.start = function()
         return
     end
 
-    local watch_dir = root .. o.get().watch_dir
-    if not u.file.is_dir(watch_dir) then
+    local watch_dir = lsputil.path.join(root, o.get().watch_dir)
+    if not lsputil.path.is_dir(watch_dir) then
         u.debug_log("failed to resolve watch_dir " .. watch_dir .. "; watch aborted")
         return
     end

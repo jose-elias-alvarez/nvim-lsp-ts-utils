@@ -1,7 +1,8 @@
 local mock = require("luassert.mock")
 local stub = require("luassert.stub")
 
-local p = require("plenary.scandir")
+local lsputil = require("lspconfig.util")
+local scandir = require("plenary.scandir")
 
 local options = require("nvim-lsp-ts-utils.options")
 local utils = require("nvim-lsp-ts-utils.utils")
@@ -14,12 +15,21 @@ local loop = mock(_loop, true)
 
 describe("watcher", function()
     stub(vim, "defer_fn")
+    stub(scandir, "scan_dir")
+    stub(lsputil, "find_git_ancestor")
+    stub(lsputil.path, "is_dir")
+    stub(lsputil.path, "exists")
     local watcher = require("nvim-lsp-ts-utils.watcher")
 
     local mock_root = "/my/root/dir"
     after_each(function()
         vim.defer_fn:clear()
+        lsputil.find_git_ancestor:clear()
+        lsputil.path.is_dir:clear()
+        lsputil.path.exists:clear()
+        scandir.scan_dir:clear()
         u.buffer.root:clear()
+
         watcher.state.reset()
     end)
 
@@ -89,30 +99,27 @@ describe("watcher", function()
         end)
 
         describe("git project", function()
-            stub(p, "scan_dir")
-
             before_each(function()
                 u.buffer.root.returns(mock_root)
-                u.config_file_exists.returns(true)
+                lsputil.find_git_ancestor.returns(true)
             end)
             after_each(function()
                 loop.watch_dir:clear()
-                p.scan_dir:clear()
             end)
 
             it("should call scan_dir with root dir and args", function()
-                p.scan_dir.returns({})
+                scandir.scan_dir.returns({})
 
                 watcher.start()
 
-                assert.stub(p.scan_dir).was_called_with(
+                assert.stub(scandir.scan_dir).was_called_with(
                     mock_root,
                     { respect_gitignore = true, depth = 1, only_dirs = true }
                 )
             end)
 
             it("should not start watching if scan_dir result is empty", function()
-                p.scan_dir.returns({})
+                scandir.scan_dir.returns({})
 
                 watcher.start()
 
@@ -120,7 +127,7 @@ describe("watcher", function()
             end)
 
             it("should call watch_dir with file path and start watching", function()
-                p.scan_dir.returns({ "dir1", "dir2" })
+                scandir.scan_dir.returns({ "dir1", "dir2" })
 
                 watcher.start()
 
@@ -132,7 +139,7 @@ describe("watcher", function()
             it("should call callbacks on unwatch()", function()
                 local callback = stub.new()
                 loop.watch_dir.returns(callback)
-                p.scan_dir.returns({ "dir1", "dir2", "dir3" })
+                scandir.scan_dir.returns({ "dir1", "dir2", "dir3" })
 
                 watcher.start()
                 watcher.state.unwatch()
@@ -145,13 +152,12 @@ describe("watcher", function()
             local watch_dir = "/my/watch/dir"
             before_each(function()
                 o.get.returns({ watch_dir = watch_dir })
-                u.file.is_dir.returns(true)
+                lsputil.path.is_dir.returns(true)
                 u.buffer.root.returns(mock_root)
-                u.config_file_exists.returns(false)
+                lsputil.find_git_ancestor.returns(false)
             end)
             after_each(function()
                 o.get:clear()
-                u.file.is_dir:clear()
                 loop.watch_dir:clear()
             end)
 
@@ -164,11 +170,11 @@ describe("watcher", function()
             end)
 
             it("should return if watch_dir is not dir", function()
-                u.file.is_dir.returns(false)
+                lsputil.path.is_dir.returns(false)
 
                 watcher.start()
 
-                assert.stub(u.file.is_dir).was_called_with(mock_root .. watch_dir)
+                assert.stub(lsputil.path.is_dir).was_called_with(mock_root .. watch_dir)
                 assert.equals(watcher.state.watching, false)
             end)
 
@@ -192,7 +198,7 @@ describe("watcher", function()
             local on_error
             before_each(function()
                 o.get.returns({ watch_dir = "dir" })
-                u.file.is_dir.returns(true)
+                lsputil.path.is_dir.returns(true)
 
                 watcher.start()
                 on_error = loop.watch_dir.calls[1].refs[2].on_error
@@ -222,7 +228,7 @@ describe("watcher", function()
             before_each(function()
                 o.get.returns({ watch_dir = watch_dir })
                 u.is_tsserver_file.returns(true)
-                u.file.is_dir.returns(true)
+                lsputil.path.is_dir.returns(true)
 
                 watcher.start()
                 on_event = loop.watch_dir.calls[1].refs[2].on_event
@@ -271,10 +277,10 @@ describe("watcher", function()
             end)
 
             it("should call on_move with source and target and reset source", function()
-                local source = mock_root .. watch_dir .. "/" .. "file1.ts"
-                local target = mock_root .. watch_dir .. "/" .. "file2.ts"
-                u.file.stat.on_call_with(source).returns(nil)
-                u.file.stat.on_call_with(target).returns({})
+                local source = lsputil.path.join(mock_root, watch_dir, "file1.ts")
+                local target = lsputil.path.join(mock_root, watch_dir, "file2.ts")
+                lsputil.path.exists.on_call_with(source).returns(false)
+                lsputil.path.exists.on_call_with(target).returns(true)
 
                 on_event("file1.ts")
                 on_event("file2.ts")

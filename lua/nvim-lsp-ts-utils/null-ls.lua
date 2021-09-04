@@ -1,5 +1,3 @@
-local ok, null_ls = pcall(require, "null-ls")
-
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 
@@ -166,6 +164,7 @@ local on_output = function(params)
 end
 
 M.setup = function()
+    local ok, null_ls = pcall(require, "null-ls")
     if not ok then
         return
     end

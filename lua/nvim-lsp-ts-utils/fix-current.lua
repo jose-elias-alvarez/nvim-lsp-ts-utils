@@ -4,7 +4,7 @@ local lsp = vim.lsp
 
 local exec_first = function(actions)
     if not actions or not actions[1] then
-        u.print_no_actions_message()
+        print("No code actions available")
         return
     end
 

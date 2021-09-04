@@ -1,6 +1,8 @@
 local mock = require("luassert.mock")
 local stub = require("luassert.stub")
 
+local lsputil = require("lspconfig.util")
+
 local utils = require("nvim-lsp-ts-utils.utils")
 local options = require("nvim-lsp-ts-utils.options")
 
@@ -10,22 +12,30 @@ local o = mock(options, true)
 describe("rename_file", function()
     stub(vim, "cmd")
     stub(vim.fn, "confirm")
+    stub(vim.loop, "fs_rename")
     stub(vim.lsp, "get_active_clients")
     stub(vim.api, "nvim_get_current_buf")
+    stub(vim.api, "nvim_buf_get_name")
+    stub(lsputil.path, "exists")
+    stub(lsputil.path, "is_dir")
 
     local mock_source, mock_target = "source.ts", "target.ts"
     local bufnr = 44
     before_each(function()
         vim.api.nvim_get_current_buf.returns(bufnr)
-        u.buffer.name.returns(mock_source)
+        vim.api.nvim_buf_get_name.returns(mock_source)
+        vim.loop.fs_rename.returns(true, nil)
     end)
 
     after_each(function()
         vim.lsp.get_active_clients:clear()
         vim.fn.confirm:clear()
+        vim.loop.fs_rename:clear()
         vim.cmd:clear()
         vim.api.nvim_get_current_buf:clear()
-        u.buffer.name:clear()
+        vim.api.nvim_buf_get_name:clear()
+        lsputil.path.exists:clear()
+        lsputil.path.is_dir:clear()
         o.get:clear()
     end)
 
@@ -41,8 +51,6 @@ describe("rename_file", function()
         after_each(function()
             vim.fn.input:clear()
             vim.fn.getbufvar:clear()
-
-            u.file.exists:clear()
         end)
 
         describe("prompt", function()
@@ -65,7 +73,7 @@ describe("rename_file", function()
 
                 rename_file.manual()
 
-                assert.stub(u.file.exists).was_not_called()
+                assert.stub(lsputil.path.exists).was_not_called()
             end)
 
             it("should return if input returns empty string", function()
@@ -73,7 +81,7 @@ describe("rename_file", function()
 
                 rename_file.manual()
 
-                assert.stub(u.file.exists).was_not_called()
+                assert.stub(lsputil.path.exists).was_not_called()
             end)
 
             it("should return if input returns source", function()
@@ -81,7 +89,7 @@ describe("rename_file", function()
 
                 rename_file.manual()
 
-                assert.stub(u.file.exists).was_not_called()
+                assert.stub(lsputil.path.exists).was_not_called()
             end)
         end)
 
@@ -89,11 +97,11 @@ describe("rename_file", function()
             it("should check if target exists", function()
                 rename_file.manual(mock_target)
 
-                assert.stub(u.file.exists).was_called_with(mock_target)
+                assert.stub(lsputil.path.exists).was_called_with(mock_target)
             end)
 
             it("should confirm if target exists", function()
-                u.file.exists.returns(true)
+                lsputil.path.exists.returns(true)
 
                 rename_file.manual(mock_target)
 
@@ -101,7 +109,7 @@ describe("rename_file", function()
             end)
 
             it("should not confirm if force argument is set", function()
-                u.file.exists.returns(true)
+                lsputil.path.exists.returns(true)
 
                 rename_file.manual(mock_target, true)
 
@@ -110,7 +118,7 @@ describe("rename_file", function()
 
             it("should return if confirm returns ~= 1", function()
                 vim.fn.confirm.returns(2)
-                u.file.exists.returns(true)
+                lsputil.path.exists.returns(true)
 
                 rename_file.manual(mock_target)
 
@@ -127,10 +135,19 @@ describe("rename_file", function()
             assert.stub(vim.cmd).was_called_with("silent noautocmd w")
         end)
 
-        it("should call mv util with source and target", function()
+        it("should call fs_rename with source and target", function()
             rename_file.manual(mock_target, true)
 
-            assert.stub(u.file.mv).was_called_with(mock_source, mock_target)
+            assert.stub(vim.loop.fs_rename).was_called_with(mock_source, mock_target)
+        end)
+
+        it("should error if fs_rename returns error", function()
+            vim.loop.fs_rename.returns(false, "something went wrong")
+
+            local ok, err = pcall(rename_file.manual, mock_target, true)
+
+            assert.falsy(ok)
+            assert.truthy(err:find("something went wrong"))
         end)
 
         it("should open target and bdelete source", function()
@@ -167,7 +184,6 @@ describe("rename_file", function()
 
             o.get.returns({})
             u.file.extension.returns(nil)
-            u.file.is_dir.returns(nil)
         end)
 
         after_each(function()
@@ -183,7 +199,6 @@ describe("rename_file", function()
             vim.fn.getbufinfo:clear()
 
             u.file.extension:clear()
-            u.file.is_dir:clear()
             u.file.dir_file:clear()
         end)
 
@@ -214,7 +229,7 @@ describe("rename_file", function()
 
         it("should call dir_file if target is dir", function()
             u.file.extension.returns("")
-            u.file.is_dir.returns(true)
+            lsputil.path.is_dir.returns(true)
 
             rename_file.on_move(mock_source, mock_target)
 
@@ -248,7 +263,7 @@ describe("rename_file", function()
 
         it("should edit target if source file was focused", function()
             vim.api.nvim_get_current_buf.returns(original_bufnr)
-            u.buffer.bufnr.returns(original_bufnr)
+            vim.fn.bufadd.returns(original_bufnr)
 
             rename_file.on_move(mock_source, mock_target)
 
@@ -257,6 +272,7 @@ describe("rename_file", function()
 
         it("should delete source buffer if loaded", function()
             vim.api.nvim_buf_is_loaded.returns(true)
+            vim.fn.bufadd.returns(original_bufnr)
 
             rename_file.on_move(mock_source, mock_target)
 
@@ -265,6 +281,8 @@ describe("rename_file", function()
 
         describe("floating window", function()
             it("should get window config and source buffer info", function()
+                vim.fn.bufadd.returns(original_bufnr)
+
                 rename_file.on_move(mock_source, mock_target)
 
                 assert.stub(vim.api.nvim_win_get_config).was_called_with(original_win)
@@ -272,7 +290,6 @@ describe("rename_file", function()
             end)
 
             it("should load target buffer into source window", function()
-                u.buffer.bufnr.returns(original_bufnr)
                 vim.api.nvim_win_get_config.returns({ relative = "window" })
                 vim.fn.getbufinfo.returns({ { windows = { 5000 } } })
 

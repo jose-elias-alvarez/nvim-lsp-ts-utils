@@ -5,20 +5,35 @@ local lsp = vim.lsp
 
 local should_fix_position = function(edits)
     local range = edits[1].range
-    return range["end"].line == u.cursor.pos() - 1
+    local pos = api.nvim_win_get_cursor(0)
+    return range["end"].line == pos[1] - 1
 end
 
 local fix_position = function(edits)
     local new_text = edits[1].newText
     local _, new_lines = string.gsub(new_text, "\n", "")
 
-    local row, col = u.cursor.pos()
-    u.cursor.set(row + new_lines, col)
+    local pos = api.nvim_win_get_cursor(0)
+    local row, col = pos[1], pos[2]
+    api.nvim_win_set_cursor(0, { row + new_lines, col })
 end
 
 local M = {}
 M.enable = function()
-    u.buf_augroup("TSLspImportOnCompletion", "CompleteDone", "import_on_completion()")
+    api.nvim_exec(
+        string.format(
+            [[
+            augroup %s
+                autocmd! * <buffer>
+                autocmd %s <buffer> lua require'nvim-lsp-ts-utils'.%s
+            augroup END
+            ]],
+            "TSLspImportOnCompletion",
+            "CompleteDone",
+            "import_on_completion()"
+        ),
+        false
+    )
 end
 
 local last

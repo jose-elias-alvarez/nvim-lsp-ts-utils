@@ -1,5 +1,3 @@
-local u = require("nvim-lsp-ts-utils.utils")
-
 local lsp = vim.lsp
 local api = vim.api
 
@@ -9,7 +7,7 @@ local M = {}
 local make_params = function(bufnr)
     return {
         command = "_typescript.organizeImports",
-        arguments = { u.buffer.name(bufnr) },
+        arguments = { api.nvim_buf_get_name(bufnr) },
     }
 end
 

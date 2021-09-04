@@ -15,7 +15,7 @@ local get_diagnostics = function(bufnr)
     local diagnostics = lsp.diagnostic.get(bufnr)
 
     if not diagnostics or vim.tbl_isempty(diagnostics) then
-        u.print_no_actions_message()
+        print("No code actions available")
         return nil
     end
 
