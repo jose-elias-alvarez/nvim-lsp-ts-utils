@@ -65,13 +65,13 @@ built-in LSP client.
 
 - Filter `tsserver` diagnostics
 
-  Some of `tsserver` diagnostics may be annoying or can result in duplicated
-  messages, when used with a linter. For example, to disable the hint about
+  Some `tsserver` diagnostics may be annoying or can result in duplicated
+  messages when used with a linter. For example, to disable the hint about
   RequireJS modules, set `filter_out_diagnostics_by_code` to `{ 80001 }` and to
   disable all hints, set `filter_out_diagnostics_by_severity` to `{ "hint" }`.
 
-  Similar to fixing invalid ranges, this function requires calling
-  `setup_client` in your configuration (see below).
+  Like fixing invalid ranges, this function requires calling `setup_client` in
+  your configuration (see below).
 
   Note: filtering out `tsserver` error about unresolved variables (error code 2304) will break `:TSLspImportAll` functionality.
 
@@ -137,9 +137,9 @@ require("lspconfig")["null-ls"].setup {}
   [ESLint](https://github.com/eslint/eslint), and
   [eslint_d](https://github.com/mantoni/eslint_d.js/) as formatters.
 
-  Prettier and prettier_d_slim support range formatting. All other formatters do
-  not (and would require upstream changes to add support, so it's not something
-  we can handle here).
+  Prettier and prettier_d_slim support range formatting for `tsserver`
+  filetypes. All other formatters do not (and would require upstream changes to
+  add support, so it's not something we can handle here).
 
   Please note that vanilla ESLint is an absurdly slow formatter and is not
   suitable for running on save.
@@ -172,10 +172,10 @@ require("lspconfig")["null-ls"].setup {}
   :lua vim.lsp.buf.formatting_sync()
   ```
 
-  Prettier and prettier_d_slim support range formatting, which you can run by
-  visually selecting part of the buffer and calling the following command (the
-  part before `lua` is automatically filled in when you enter command mode from
-  visual mode):
+  Prettier and prettier_d_slim support range formatting for `tsserver`
+  filetypes, which you can run by visually selecting part of the buffer and
+  calling the following command (the part before `lua` is automatically filled
+  in when you enter command mode from visual mode):
 
   ```vim
   :'<,'>lua vim.lsp.buf.range_formatting()
@@ -307,8 +307,9 @@ Second, please check your configuration and make sure it's in line with the
 latest version of this document.
 
 Third, please try setting `debug = true` in `setup` and inspecting the output in
-`:messages`. null-ls has an identical `debug` option that you can use to help
-figure out issues related to null-ls features.
+`:messages`. null-ls has a related [`debug`
+option](https://github.com/jose-elias-alvarez/null-ls.nvim#how-to-enable-and-use-debug-mode)
+that you can use to help figure out issues related to null-ls features.
 
 If your issue relates to `eslint_d`, please try exiting Neovim, running
 `eslint_d stop` from your command line, then restarting Neovim. `eslint_d` can
