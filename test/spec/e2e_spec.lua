@@ -1,4 +1,4 @@
-local null_ls = require("null-ls")
+local has_null_ls, null_ls = pcall(require, "null-ls")
 
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
@@ -25,6 +25,8 @@ local lsp_wait = function(time)
 end
 
 describe("e2e", function()
+    assert(vim.fn.executable("typescript-language-server") > 0, "typescript-language-server is not installed")
+
     _G._TEST = true
     null_ls.setup()
 
@@ -35,14 +37,13 @@ describe("e2e", function()
         end,
     })
 
+    local has_eslint = vim.fn.executable("eslint") > 0
+    local has_prettier = vim.fn.executable("prettier") > 0
     ts_utils.setup({
-        watch_dir = "",
-        eslint_enable_code_actions = true,
-        eslint_enable_diagnostics = true,
-        enable_formatting = true,
+        eslint_enable_code_actions = has_eslint,
+        eslint_enable_diagnostics = has_eslint,
+        enable_formatting = has_prettier,
         update_imports_on_move = true,
-        eslint_config_fallback = "test/files/.eslintrc.js",
-        formatter_config_fallback = "test/files/.prettierrc",
     })
 
     after_each(function()
@@ -64,6 +65,16 @@ describe("e2e", function()
     end)
 
     describe("eslint", function()
+        if not has_null_ls then
+            print("skipping eslint tests (null-ls not installed)")
+            return
+        end
+
+        if not has_eslint then
+            print("skipping eslint tests (executable not found)")
+            return
+        end
+
         describe("diagnostics", function()
             it("should show eslint diagnostics", function()
                 edit_test_file("eslint-code-fix.js")
@@ -127,6 +138,16 @@ describe("e2e", function()
     end)
 
     describe("formatting", function()
+        if not has_null_ls then
+            print("skipping formatting tests (null-ls not installed)")
+            return
+        end
+
+        if not has_prettier then
+            print("skipping formatting tests (prettier executable not found)")
+            return
+        end
+
         it("should format file via lsp formatting", function()
             edit_test_file("formatting.ts")
             assert.equals(get_buf_content(1), [[import {User} from "./test-types"]])
