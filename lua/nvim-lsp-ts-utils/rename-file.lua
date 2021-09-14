@@ -8,7 +8,7 @@ local fn = vim.fn
 local rename_file = function(source, target)
     local client_found, request_ok
     for _, client in ipairs(lsp.get_active_clients()) do
-        if not client_found and client.name == "tsserver" then
+        if not client_found and (client.name == "tsserver" or client.name == 'typescript') then
             client_found = true
             request_ok = client.request("workspace/executeCommand", {
                 command = "_typescript.applyRenameFile",
