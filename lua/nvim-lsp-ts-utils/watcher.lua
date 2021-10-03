@@ -57,7 +57,7 @@ local should_ignore_event = function(source, target)
     end
 
     -- ignore type mismatches
-    if u.file.extension(source) == "" and lsputil.path.is_dir(source) then
+    if u.file.extension(source) == "" and target_exists ~= "directory" then
         return true
     end
 
