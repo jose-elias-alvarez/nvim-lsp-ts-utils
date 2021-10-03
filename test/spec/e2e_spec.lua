@@ -80,7 +80,7 @@ describe("e2e", function()
                 edit_test_file("eslint-code-fix.js")
                 lsp_wait()
 
-                local diagnostics = lsp.diagnostic.get()
+                local diagnostics = lsp.diagnostic.get(0)
 
                 assert.equals(vim.tbl_count(diagnostics), 1)
                 assert.equals(diagnostics[1].code, "eqeqeq")
