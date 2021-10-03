@@ -2,7 +2,7 @@ set hidden
 set noswapfile
 
 set rtp=$VIMRUNTIME
-set rtp+=../plenary.nvim
-set rtp+=../nvim-lspconfig
-set rtp+=../null-ls.nvim
-runtime! plugin/plenary.vim
+packadd plenary.nvim
+packadd nvim-lspconfig
+packadd nvim-lsp-ts-utils
+packadd null-ls.nvim
