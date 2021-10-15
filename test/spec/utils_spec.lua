@@ -1,7 +1,5 @@
 local stub = require("luassert.stub")
 
-local lsputil = require("lspconfig.util")
-
 local api = vim.api
 
 describe("utils", function()
@@ -93,28 +91,30 @@ describe("utils", function()
         end)
     end)
 
-    describe("resolve_bin", function()
+    describe("resolve_bin_factory", function()
         before_each(function()
-            stub(lsputil.path, "exists")
+            stub(vim.fn, "executable")
         end)
         after_each(function()
-            lsputil.path.exists:revert()
+            vim.fn.executable:revert()
         end)
 
         it("should return local bin path if local bin exists", function()
-            lsputil.path.exists.returns(true)
+            vim.fn.executable.returns(1)
 
-            local bin = u.resolve_bin("eslint")
+            local factory = u.resolve_bin_factory("eslint")
 
-            assert.truthy(string.find(bin, "node_modules/.bin"))
+            assert.truthy(
+                factory({ bufname = vim.fn.getcwd() .. "/test/files/test-types.ts" }):find("node_modules/.bin")
+            )
         end)
 
         it("should return cmd if local bin does not exist", function()
-            lsputil.path.exists.returns(false)
+            vim.fn.executable.returns(0)
 
-            local bin = u.resolve_bin("eslint")
+            local factory = u.resolve_bin_factory("eslint")
 
-            assert.equals(bin, "eslint")
+            assert.equals(factory({ bufname = "mock-file.js" }), "eslint")
         end)
     end)
 end)

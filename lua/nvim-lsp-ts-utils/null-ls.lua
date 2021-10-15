@@ -176,11 +176,11 @@ M.setup = function()
 
     if o.get().eslint_enable_code_actions or o.get().eslint_enable_diagnostics then
         local eslint_bin = o.get().eslint_bin
-        local command = u.resolve_bin(eslint_bin)
+        local command = u.resolve_bin_factory(eslint_bin)
 
         if o.get().eslint_enable_code_actions then
             local generator_opts = {
-                command = u.resolve_bin(eslint_bin),
+                command = command,
                 args = o.get().eslint_args,
                 format = "json_raw",
                 to_stdin = true,
@@ -200,7 +200,11 @@ M.setup = function()
 
         if o.get().eslint_enable_diagnostics then
             local builtin = null_ls.builtins.diagnostics[eslint_bin]
-            local opts = vim.tbl_extend("keep", o.get().eslint_opts, { command = command, filetypes = u.tsserver_fts })
+            local opts = vim.tbl_extend(
+                "keep",
+                o.get().eslint_opts,
+                { name = eslint_bin, command = command, filetypes = u.tsserver_fts }
+            )
 
             u.debug_log("enabling null-ls eslint diagnostics integration")
             null_ls.register(builtin.with(opts))
@@ -209,10 +213,14 @@ M.setup = function()
 
     if o.get().enable_formatting then
         local formatter = o.get().formatter
-        local command = u.resolve_bin(formatter)
+        local command = u.resolve_bin_factory(formatter)
 
         local builtin = null_ls.builtins.formatting[formatter]
-        local opts = vim.tbl_extend("keep", o.get().formatter_opts, { command = command, filetypes = u.tsserver_fts })
+        local opts = vim.tbl_extend(
+            "keep",
+            o.get().formatter_opts,
+            { name = formatter, command = command, filetypes = u.tsserver_fts }
+        )
 
         u.debug_log("enabling null-ls formatting integration")
         null_ls.register(builtin.with(opts))
