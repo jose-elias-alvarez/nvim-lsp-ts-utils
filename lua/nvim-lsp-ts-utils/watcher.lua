@@ -115,12 +115,11 @@ M.start = function()
         return
     end
 
-    u.debug_log("attempting to watch root dir " .. root)
+    local git_root = lsputil.find_git_ancestor(root)
+    if git_root then
+        u.debug_log("git root found at " .. git_root .. "; scanning")
 
-    if lsputil.find_git_ancestor(root) then
-        u.debug_log("git root found; scanning")
-
-        local dir_files = require("plenary.scandir").scan_dir(root, {
+        local dir_files = require("plenary.scandir").scan_dir(git_root, {
             respect_gitignore = true,
             depth = 1,
             only_dirs = true,
@@ -149,7 +148,7 @@ M.start = function()
         return
     end
 
-    u.debug_log("git config not found; falling back to watch_dir")
+    u.debug_log("git root not found; falling back to watch_dir")
 
     if not o.get().watch_dir then
         u.debug_log("watch_dir is not set; watch aborted")

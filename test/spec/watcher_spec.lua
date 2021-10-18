@@ -99,21 +99,23 @@ describe("watcher", function()
         end)
 
         describe("git project", function()
+            local git_root = "/git/root"
+
             before_each(function()
                 u.buffer.root.returns(mock_root)
-                lsputil.find_git_ancestor.returns(true)
+                lsputil.find_git_ancestor.returns(git_root)
             end)
             after_each(function()
                 loop.watch_dir:clear()
             end)
 
-            it("should call scan_dir with root dir and args", function()
+            it("should call scan_dir with git root and args", function()
                 scandir.scan_dir.returns({})
 
                 watcher.start()
 
                 assert.stub(scandir.scan_dir).was_called_with(
-                    mock_root,
+                    git_root,
                     { respect_gitignore = true, depth = 1, only_dirs = true }
                 )
             end)
