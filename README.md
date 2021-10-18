@@ -75,28 +75,37 @@ built-in LSP client.
 
   Note: filtering out `tsserver` error about unresolved variables (error code 2304) will break `:TSLspImportAll` functionality.
 
-### null-ls Integrations
+### ESLint Integrations
 
 The plugin integrates with
 [null-ls.nvim](https://github.com/jose-elias-alvarez/null-ls.nvim) to provide
-ESLint code actions, diagnostics, and formatting. To enable null-ls itself, you
-must install it via your plugin manager and add the following snippet to your
-LSP configuration:
+ESLint code actions and diagnostics.
+
+**NOTE:** null-ls wraps the ESLint CLI and may have trouble handling complex
+project structures. For cases (e.g. monorepos) where running `eslint $FILENAME`
+from the command line does not produce the expected output, I recommend the
+[ESLint language
+server](https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#eslint),
+which can also provide diagnostics, code actions, and ESLint formatting.
+
+To enable null-ls, install it via your plugin manager and add the following
+snippet to your LSP configuration:
 
 ```lua
 require("null-ls").config {}
 require("lspconfig")["null-ls"].setup {}
 ```
 
-- ESLint code actions
+- Code actions
 
-  Adds actions to fix ESLint issues or disable the violated rule for the current
-  line / file.
+  Adds actions to fix ESLint issues when a fix exists or disable the violated
+  rule for the current line / file.
 
   Supports the following settings:
 
   - `eslint_enable_code_actions` (boolean): enables ESLint code actions. Set to
-    `true` by default.
+    `true` by default (so installing and setting up null-ls will automatically
+    enable code actions).
 
   - `eslint_enable_disable_comments` (boolean): enables ESLint code actions to
     disable the violated rule for the current line / file. Set to `true` by
@@ -110,9 +119,9 @@ require("lspconfig")["null-ls"].setup {}
     using [eslint_d](https://github.com/mantoni/eslint_d.js). `eslint` will add
     a noticeable delay to each code action.
 
-- ESLint diagnostics
+- Diagnostics
 
-  Shows ESLint diagnostics for the current buffer as LSP diagnostics.
+  Shows ESLint diagnostics for the current buffer.
 
   Supports the following settings:
 
@@ -127,78 +136,77 @@ require("lspconfig")["null-ls"].setup {}
     diagnostics source, as described
     [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
 
-- Formatting
+### Formatting
 
-  Provides formatting via null-ls.
+The plugin can also provide formatting via null-ls (see above for setup
+instructions) and supports [Prettier](https://github.com/prettier/prettier),
+[prettierd](https://github.com/fsouza/prettierd),
+[prettier_d_slim](https://github.com/mikew/prettier_d_slim),
+[ESLint](https://github.com/eslint/eslint), and
+[eslint_d](https://github.com/mantoni/eslint_d.js/)
 
-  The plugin supports [Prettier](https://github.com/prettier/prettier),
-  [prettierd](https://github.com/fsouza/prettierd),
-  [prettier_d_slim](https://github.com/mikew/prettier_d_slim),
-  [ESLint](https://github.com/eslint/eslint), and
-  [eslint_d](https://github.com/mantoni/eslint_d.js/) as formatters.
+Prettier and prettier_d_slim support range formatting for `tsserver`
+filetypes. All other formatters do not (and would require upstream changes to
+add support, so it's not something we can handle here).
 
-  Prettier and prettier_d_slim support range formatting for `tsserver`
-  filetypes. All other formatters do not (and would require upstream changes to
-  add support, so it's not something we can handle here).
+Please note that vanilla ESLint is an absurdly slow formatter and is not
+suitable for running on save.
 
-  Please note that vanilla ESLint is an absurdly slow formatter and is not
-  suitable for running on save.
+Supports the following settings:
 
-  Supports the following settings:
+- `enable_formatting` (boolean): enables formatting. Set to `false` by
+  default.
 
-  - `enable_formatting` (boolean): enables formatting. Set to `false` by
-    default.
+- `formatter` (string): sets the executable used for formatting. Set to
+  `prettier` by default. Must be one of `prettier`, `prettierd`,
+  `prettier_d_slim`, `eslint`, or `eslint_d`.
 
-  - `formatter` (string): sets the executable used for formatting. Set to
-    `prettier` by default. Must be one of `prettier`, `prettierd`,
-    `prettier_d_slim`, `eslint`, or `eslint_d`.
+  Like `eslint_bin`, the plugin will look for a local
+  executable in `node_modules` and fall back to a system-wide executable,
+  which must be available on your `$PATH`.
 
-    Like `eslint_bin`, the plugin will look for a local
-    executable in `node_modules` and fall back to a system-wide executable,
-    which must be available on your `$PATH`.
+- `formatter_opts` (table): allows modifying the options passed to the null-ls
+  diagnostics source, as described
+  [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
 
-  - `formatter_opts` (table): allows modifying the options passed to the null-ls
-    diagnostics source, as described
-    [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
+Once you've enabled formatting, it'll run whenever you call either of the
+following commands:
 
-  Once you've enabled formatting, it'll run whenever you call either of the
-  following commands:
+```vim
+" runs asynchronously
+:lua vim.lsp.buf.formatting()
 
-  ```vim
-  " runs asynchronously
-  :lua vim.lsp.buf.formatting()
+" blocks until formatting completes
+:lua vim.lsp.buf.formatting_sync()
+```
 
-  " blocks until formatting completes
-  :lua vim.lsp.buf.formatting_sync()
-  ```
+Prettier and prettier_d_slim support range formatting for `tsserver`
+filetypes, which you can run by visually selecting part of the buffer and
+calling the following command (the part before `lua` is automatically filled
+in when you enter command mode from visual mode):
 
-  Prettier and prettier_d_slim support range formatting for `tsserver`
-  filetypes, which you can run by visually selecting part of the buffer and
-  calling the following command (the part before `lua` is automatically filled
-  in when you enter command mode from visual mode):
+```vim
+:'<,'>lua vim.lsp.buf.range_formatting()
+```
 
-  ```vim
-  :'<,'>lua vim.lsp.buf.range_formatting()
-  ```
+To avoid conflicts with existing LSP configurations, the plugin **will not**
+set up any formatting-related commands or autocommands. If you don't already
+have an LSP formatting setup, I recommend adding the following snippet to your
+`tsserver` `on_attach` callback:
 
-  To avoid conflicts with existing LSP configurations, the plugin **will not**
-  set up any formatting-related commands or autocommands. If you don't already
-  have an LSP formatting setup, I recommend adding the following snippet to your
-  `tsserver` `on_attach` callback:
+```lua
+on_attach = function(client)
+  -- disable tsserver formatting
+  client.resolved_capabilities.document_formatting = false
 
-  ```lua
-  on_attach = function(client)
-    -- disable tsserver formatting
-    client.resolved_capabilities.document_formatting = false
+  -- define an alias
+  vim.cmd("command -buffer Formatting lua vim.lsp.buf.formatting()")
+  vim.cmd("command -buffer FormattingSync lua vim.lsp.buf.formatting_sync()")
 
-    -- define an alias
-    vim.cmd("command -buffer Formatting lua vim.lsp.buf.formatting()")
-    vim.cmd("command -buffer FormattingSync lua vim.lsp.buf.formatting_sync()")
-
-    -- format on save
-    vim.cmd("autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_sync()")
-  end
-  ```
+  -- format on save
+  vim.cmd("autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_sync()")
+end
+```
 
 ### Experimental Features
 
@@ -326,7 +334,7 @@ information.
 Clone the repository, run `npm install` in the `test` directory, then run `make test` in the root of the project to run the test suite. The suite has the same
 requirements as the plugin.
 
-## Other Recommended Plugins
+## Recommended Plugins / Servers
 
 - [JoosepAlviste/nvim-ts-context-commentstring](https://github.com/JoosepAlviste/nvim-ts-context-commentstring):
   Sets `commentstring` intelligently based on the cursor's position in the file,
@@ -337,3 +345,10 @@ requirements as the plugin.
 
 - [RRethy/nvim-treesitter-textsubjects](https://github.com/RRethy/nvim-treesitter-textsubjects):
   Adds useful "smart" text objects that adapt to the current context.
+
+- The [ESLint language
+  server](https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#eslint):
+  Provides ESLint code actions, diagnostics, and formatting. Requires more setup
+  (and installing another executable), but it uses the ESLint Node API, which is
+  better about resolving executables and configuration files in complex project
+  structures.
