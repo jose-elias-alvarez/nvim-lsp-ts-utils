@@ -323,9 +323,8 @@ information.
 
 ## Tests
 
-Run `make test` in the root of the project to run the test suite. The suite has
-the same requirements as the plugin, and running the full suite requires having
-`eslint` and `prettier` on your `$PATH`.
+Clone the repository, run `npm install` in the `test` directory, then run `make test` in the root of the project to run the test suite. The suite has the same
+requirements as the plugin.
 
 ## Other Recommended Plugins
 

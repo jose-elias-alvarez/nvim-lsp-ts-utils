@@ -1,4 +1,4 @@
-local has_null_ls, null_ls = pcall(require, "null-ls")
+local null_ls = require("null-ls")
 
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
@@ -37,12 +37,10 @@ describe("e2e", function()
         end,
     })
 
-    local has_eslint = vim.fn.executable("eslint") > 0
-    local has_prettier = vim.fn.executable("prettier") > 0
     ts_utils.setup({
-        eslint_enable_code_actions = has_eslint,
-        eslint_enable_diagnostics = has_eslint,
-        enable_formatting = has_prettier,
+        eslint_enable_code_actions = true,
+        eslint_enable_diagnostics = true,
+        enable_formatting = true,
         update_imports_on_move = true,
     })
 
@@ -65,16 +63,6 @@ describe("e2e", function()
     end)
 
     describe("eslint", function()
-        if not has_null_ls then
-            print("skipping eslint tests (null-ls not installed)")
-            return
-        end
-
-        if not has_eslint then
-            print("skipping eslint tests (executable not found)")
-            return
-        end
-
         describe("diagnostics", function()
             it("should show eslint diagnostics", function()
                 edit_test_file("eslint-code-fix.js")
@@ -113,6 +101,12 @@ describe("e2e", function()
                 assert.equals(get_buf_content(2), [[  if (typeof user.name === "string") {]])
             end)
         end)
+
+        it("should use local executable", function()
+            local generator = require("null-ls.generators").get_available("typescript", null_ls.methods.DIAGNOSTICS)[1]
+
+            assert.equals(generator.opts.command, vim.fn.getcwd() .. "/test/node_modules/.bin/eslint")
+        end)
     end)
 
     describe("organize_imports", function()
@@ -138,16 +132,6 @@ describe("e2e", function()
     end)
 
     describe("formatting", function()
-        if not has_null_ls then
-            print("skipping formatting tests (null-ls not installed)")
-            return
-        end
-
-        if not has_prettier then
-            print("skipping formatting tests (prettier executable not found)")
-            return
-        end
-
         it("should format file via lsp formatting", function()
             edit_test_file("formatting.ts")
             assert.equals(get_buf_content(1), [[import {User} from "./test-types"]])
@@ -157,6 +141,12 @@ describe("e2e", function()
             lsp_wait()
 
             assert.equals(get_buf_content(1), [[import { User } from './test-types';]])
+        end)
+
+        it("should use local executable", function()
+            local generator = require("null-ls.generators").get_available("typescript", null_ls.methods.FORMATTING)[1]
+
+            assert.equals(generator.opts.command, vim.fn.getcwd() .. "/test/node_modules/.bin/prettier")
         end)
     end)
 end)
