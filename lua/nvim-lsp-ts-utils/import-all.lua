@@ -297,7 +297,7 @@ return function(bufnr)
 
     a.run(runner, function(edits)
         vim.schedule(function()
-            apply_edits(edits, bufnr)
+            apply_edits(edits or {}, bufnr)
         end)
     end)
 end
