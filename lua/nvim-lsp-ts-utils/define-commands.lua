@@ -9,7 +9,6 @@ local define_commands = function()
         buf_command("TSLspRenameFile", "rename_file()")
         buf_command("TSLspOrganize", "organize_imports()")
         buf_command("TSLspOrganizeSync", "organize_imports_sync()")
-        buf_command("TSLspRenameFile", "rename_file()")
         buf_command("TSLspFixCurrent", "fix_current()")
         buf_command("TSLspImportAll", "import_all()")
     end
