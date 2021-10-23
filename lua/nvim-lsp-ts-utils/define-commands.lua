@@ -1,7 +1,7 @@
 local o = require("nvim-lsp-ts-utils.options")
 
 local buf_command = function(name, fn)
-    vim.cmd(string.format("command! -buffer %s lua require'nvim-lsp-ts-utils'.%s", name, fn))
+    vim.cmd(string.format("command! -buffer %s lua R'nvim-lsp-ts-utils'.%s", name, fn))
 end
 
 local define_commands = function()
@@ -12,6 +12,7 @@ local define_commands = function()
         buf_command("TSLspRenameFile", "rename_file()")
         buf_command("TSLspFixCurrent", "fix_current()")
         buf_command("TSLspImportAll", "import_all()")
+        buf_command("TSInlayHints", "inlay_hints()")
     end
 end
 
