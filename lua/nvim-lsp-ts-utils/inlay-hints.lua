@@ -3,7 +3,7 @@ local M = {}
 M.ns = vim.api.nvim_create_namespace("ts-inlay-hints")
 
 local function handler(err, result, ctx)
-    if not err and result then
+    if not err and result and M.state._enabled then
         vim.api.nvim_buf_clear_namespace(ctx.bufnr, 0, 0, -1)
 
         local hints = result.inlayHints or {}
@@ -40,11 +40,41 @@ local function handler(err, result, ctx)
     end
 end
 
+M.state = {
+    _enabled = false,
+
+    enable = function()
+        M.state._enabled = true
+        local params = {
+            textDocument = vim.lsp.util.make_text_document_params(),
+        }
+        vim.lsp.buf_request(0, "typescript/inlayHints", params, handler)
+    end,
+
+    disable = function(bufnr)
+        M.state._enabled = false
+        vim.api.nvim_buf_clear_namespace(bufnr, M.ns, 0, -1)
+    end,
+
+    toggle = function()
+        if M.state._enabled then
+            M.state.disable()
+        else
+            M.state.enable()
+        end
+    end,
+}
+
 function M.inlay_hints()
-    local params = {
-        textDocument = vim.lsp.util.make_text_document_params(),
-    }
-    vim.lsp.buf_request(0, "typescript/inlayHints", params, handler)
+    M.state.enable()
+end
+
+function M.disable_inlay_hints()
+    M.state.disable()
+end
+
+function M.toggle_inlay_hints()
+    M.state.toggle()
 end
 
 return M

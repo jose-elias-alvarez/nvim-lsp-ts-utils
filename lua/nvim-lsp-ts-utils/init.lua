@@ -29,6 +29,8 @@ M.import_on_completion = import_on_completion.handle
 M.import_all = import_all
 
 M.inlay_hints = inlay_hints.inlay_hints
+M.disable_inlay_hints = inlay_hints.disable_inlay_hints
+M.toggle_inlay_hints = inlay_hints.toggle_inlay_hints
 
 M.setup = function(user_options)
     o.setup(user_options)
