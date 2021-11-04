@@ -63,7 +63,7 @@ built-in LSP client.
   You can enable this feature by calling `setup_client` in your configuration (see
   below).
 
-- Inlay hints (exposed as `:TSInlayHints`/`:TSDisableInlayHints`/`:TSToggleInlayHints`)
+- Inlay hints (exposed as `:TSLspInlayHints`/`:TSLspDisableInlayHints`/`:TSLspToggleInlayHints`)
 
   `tsserver` has added experimental support for inlay hints from Typescript v4.4.2
   Note that init_options need to be set for this feature to work. Please see [Setup](#setup)
@@ -72,7 +72,7 @@ built-in LSP client.
 
   - `auto_inlay_hints` (boolean): Set inlay hints on every new buffer visited
     automatically. Note that it would stop doing so if `:TSDisableInlayHints` is
-    called, and will continue if `:TSInlayHints` is called. If false, `:TSInlayHints`
+    called, and will continue if `:TSLspInlayHints` is called. If false, `:TSInlayHints`
     needs to be called for every buffer to see it's inlay hints.
     Defaults to True.
 
