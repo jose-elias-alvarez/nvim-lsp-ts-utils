@@ -8,7 +8,7 @@ M.state = {
 function M.setup_autocommands()
     vim.cmd([[
        augroup TSInlayHints
-       au BufEnter,BufWinEnter,TabEnter,BufWritePost *.ts :lua require'nvim-lsp-ts-utils'.autocmd_fun()
+       au BufEnter,BufWinEnter,TabEnter,BufWritePost *.ts,*.js,*.tsx,*.jsx :lua require'nvim-lsp-ts-utils'.autocmd_fun()
        augroup END
    ]])
 end
