@@ -30,6 +30,8 @@ M.echo_warning = function(message)
     api.nvim_echo({ { "nvim-lsp-ts-utils: " .. message, "WarningMsg" } }, true, {})
 end
 
+-- The init_options that are passed to lspconfig while setting up tsserver. The
+-- configuration seen below is needed for inlay hints to work properly.
 M.init_options = {
     hostInfo = "neovim",
     preferences = {
