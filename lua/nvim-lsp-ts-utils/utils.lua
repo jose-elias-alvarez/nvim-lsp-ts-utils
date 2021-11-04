@@ -30,6 +30,19 @@ M.echo_warning = function(message)
     api.nvim_echo({ { "nvim-lsp-ts-utils: " .. message, "WarningMsg" } }, true, {})
 end
 
+M.init_options = {
+    hostInfo = "neovim",
+    preferences = {
+        includeInlayParameterNameHints = "all",
+        includeInlayParameterNameHintsWhenArgumentMatchesName = true,
+        includeInlayFunctionParameterTypeHints = true,
+        includeInlayVariableTypeHints = true,
+        includeInlayPropertyDeclarationTypeHints = true,
+        includeInlayFunctionLikeReturnTypeHints = true,
+        includeInlayEnumMemberValueHints = true,
+    },
+}
+
 M.debug_log = function(target, force)
     if not o.get().debug and not force then
         return
