@@ -66,6 +66,7 @@ built-in LSP client.
 - Inlay hints (exposed as `:TSInlayHints`/`:TSDisableInlayHints`/`:TSToggleInlayHints`)
 
   `tsserver` has added experimental support for inlay hints from Typescript v4.4.2
+  Note that init_options need to be set for this feature to work. Please see [Setup](#setup)
 
   Supports the following settings:
 
@@ -73,9 +74,11 @@ built-in LSP client.
     automatically. Note that it would stop doing so if `:TSDisableInlayHints` is
     called, and will continue if `:TSInlayHints` is called. If false, `:TSInlayHints`
     needs to be called for every buffer to see it's inlay hints.
+    Defaults to True.
 
   - `inlay_hints_highlight ` (string): Highlight group to be used for the inlay
-    hints. Defaults to "Comment".
+    hints. 
+    Defaults to "Comment".
 
 - Filter `tsserver` diagnostics
 
