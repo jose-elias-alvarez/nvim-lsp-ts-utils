@@ -31,11 +31,14 @@ M.import_all = import_all
 M.inlay_hints = inlay_hints.inlay_hints
 M.disable_inlay_hints = inlay_hints.disable_inlay_hints
 M.toggle_inlay_hints = inlay_hints.toggle_inlay_hints
+M.autocmd_fun = inlay_hints.autocmd_fun
 
 M.setup = function(user_options)
     o.setup(user_options)
     null_ls.setup()
     define_commands()
+
+    inlay_hints.setup_autocommands()
 
     if o.get().enable_import_on_completion then
         import_on_completion.enable()

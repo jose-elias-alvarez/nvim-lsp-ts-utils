@@ -1,9 +1,20 @@
 local M = {}
 
-M.ns = vim.api.nvim_create_namespace("ts-inlay-hints")
+M.state = {
+    enabled = false,
+    ns = vim.api.nvim_create_namespace("ts-inlay-hints"),
+}
+
+function M.setup_autocommands()
+    vim.cmd([[
+       augroup TSInlayHints
+       au BufEnter,BufWinEnter,TabEnter,BufWritePost *.ts :lua require'nvim-lsp-ts-utils'.autocmd_fun()
+       augroup END
+   ]])
+end
 
 local function handler(err, result, ctx)
-    if not err and result and M.state._enabled then
+    if not err and result and M.state.enabled then
         vim.api.nvim_buf_clear_namespace(ctx.bufnr, 0, 0, -1)
 
         local hints = result.inlayHints or {}
@@ -30,7 +41,7 @@ local function handler(err, result, ctx)
             for _, hint in ipairs(value) do
                 vim.api.nvim_buf_set_extmark(
                     ctx.bufnr,
-                    M.ns,
+                    M.state.ns,
                     line,
                     -1,
                     { virt_text_pos = "eol", virt_text = { { hint.text, "Comment" } }, hl_mode = "combine" }
@@ -40,41 +51,41 @@ local function handler(err, result, ctx)
     end
 end
 
-M.state = {
-    _enabled = false,
-
-    enable = function()
-        M.state._enabled = true
-        local params = {
-            textDocument = vim.lsp.util.make_text_document_params(),
-        }
-        vim.lsp.buf_request(0, "typescript/inlayHints", params, handler)
-    end,
-
-    disable = function(bufnr)
-        M.state._enabled = false
-        vim.api.nvim_buf_clear_namespace(bufnr, M.ns, 0, -1)
-    end,
-
-    toggle = function()
-        if M.state._enabled then
-            M.state.disable()
-        else
-            M.state.enable()
-        end
-    end,
-}
-
-function M.inlay_hints()
-    M.state.enable()
+local function show()
+    local params = {
+        textDocument = vim.lsp.util.make_text_document_params(),
+    }
+    vim.lsp.buf_request(0, "typescript/inlayHints", params, handler)
 end
 
-function M.disable_inlay_hints()
-    M.state.disable()
+local function hide(bufnr)
+    vim.api.nvim_buf_clear_namespace(bufnr, M.state.ns, 0, -1)
+end
+
+function M.autocmd_fun()
+    if M.state.enabled then
+        show()
+        return
+    end
+    hide()
+end
+
+function M.inlay_hints()
+    M.state.enabled = true
+    show()
+end
+
+function M.disable_inlay_hints(bufnr)
+    M.state.enabled = false
+    hide(bufnr)
 end
 
 function M.toggle_inlay_hints()
-    M.state.toggle()
+    if M.state.enabled then
+        M.disable_inlay_hints()
+    else
+        M.inlay_hints()
+    end
 end
 
 return M
