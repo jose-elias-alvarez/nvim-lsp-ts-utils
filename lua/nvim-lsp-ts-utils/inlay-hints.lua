@@ -1,3 +1,5 @@
+local o = require("nvim-lsp-ts-utils.options")
+
 local M = {}
 
 M.state = {
@@ -44,7 +46,11 @@ local function handler(err, result, ctx)
                     M.state.ns,
                     line,
                     -1,
-                    { virt_text_pos = "eol", virt_text = { { hint.text, "Comment" } }, hl_mode = "combine" }
+                    {
+                        virt_text_pos = "eol",
+                        virt_text = { { hint.text, o.get().inlay_hints_highlight } },
+                        hl_mode = "combine",
+                    }
                 )
             end
         end

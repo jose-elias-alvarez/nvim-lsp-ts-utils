@@ -41,7 +41,10 @@ M.setup = function(user_options)
     null_ls.setup()
     define_commands()
 
-    inlay_hints.setup_autocommands()
+    if o.get().auto_inlay_hints then
+        inlay_hints.setup_autocommands()
+        inlay_hints.inlay_hints()
+    end
 
     if o.get().enable_import_on_completion then
         import_on_completion.enable()
