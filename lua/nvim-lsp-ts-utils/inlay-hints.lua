@@ -41,17 +41,11 @@ local function handler(err, result, ctx)
         for key, value in pairs(parsed) do
             local line = tonumber(key)
             for _, hint in ipairs(value) do
-                vim.api.nvim_buf_set_extmark(
-                    ctx.bufnr,
-                    M.state.ns,
-                    line,
-                    -1,
-                    {
-                        virt_text_pos = "eol",
-                        virt_text = { { hint.text, o.get().inlay_hints_highlight } },
-                        hl_mode = "combine",
-                    }
-                )
+                vim.api.nvim_buf_set_extmark(ctx.bufnr, M.state.ns, line, -1, {
+                    virt_text_pos = "eol",
+                    virt_text = { { hint.text, o.get().inlay_hints_highlight } },
+                    hl_mode = "combine",
+                })
             end
         end
     end
