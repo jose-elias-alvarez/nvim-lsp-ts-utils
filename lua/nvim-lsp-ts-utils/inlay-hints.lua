@@ -15,9 +15,13 @@ function M.setup_autocommands()
    ]])
 end
 
+local function hide(bufnr)
+    vim.api.nvim_buf_clear_namespace(bufnr, M.state.ns, 0, -1)
+end
+
 local function handler(err, result, ctx)
     if not err and result and M.state.enabled then
-        vim.api.nvim_buf_clear_namespace(ctx.bufnr, 0, 0, -1)
+        hide(ctx.bufnr)
 
         local hints = result.inlayHints or {}
         local parsed = {}
@@ -56,10 +60,6 @@ local function show()
         textDocument = vim.lsp.util.make_text_document_params(),
     }
     vim.lsp.buf_request(0, "typescript/inlayHints", params, handler)
-end
-
-local function hide(bufnr)
-    vim.api.nvim_buf_clear_namespace(bufnr, M.state.ns, 0, -1)
 end
 
 function M.autocmd_fun()
