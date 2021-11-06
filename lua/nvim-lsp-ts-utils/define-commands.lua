@@ -11,6 +11,10 @@ local define_commands = function()
         buf_command("TSLspOrganizeSync", "organize_imports_sync()")
         buf_command("TSLspFixCurrent", "fix_current()")
         buf_command("TSLspImportAll", "import_all()")
+        -- Inlay hints
+        buf_command("TSLspInlayHints", "inlay_hints()")
+        buf_command("TSLspDisableInlayHints", "disable_inlay_hints()")
+        buf_command("TSLspToggleInlayHints", "toggle_inlay_hints()")
     end
 end
 

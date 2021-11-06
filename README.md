@@ -63,6 +63,23 @@ built-in LSP client.
   You can enable this feature by calling `setup_client` in your configuration (see
   below).
 
+- Inlay hints (exposed as `:TSLspInlayHints`/`:TSLspDisableInlayHints`/`:TSLspToggleInlayHints`)
+
+  `tsserver` has added experimental support for inlay hints from Typescript v4.4.2
+  Note that init_options need to be set for this feature to work. Please see [Setup](#setup)
+
+  Supports the following settings:
+
+  - `auto_inlay_hints` (boolean): Set inlay hints on every new buffer visited
+    automatically. Note that it would stop doing so if `:TSDisableInlayHints` is
+    called, and will continue if `:TSLspInlayHints` is called. If false, `:TSInlayHints`
+    needs to be called for every buffer to see it's inlay hints.
+    Defaults to True.
+
+  - `inlay_hints_highlight ` (string): Highlight group to be used for the inlay
+    hints. 
+    Defaults to "Comment".
+
 - Filter `tsserver` diagnostics
 
   Some `tsserver` diagnostics may be annoying or can result in duplicated
@@ -250,6 +267,10 @@ require("lspconfig")["null-ls"].setup {}
 
 -- make sure to only run this once!
 nvim_lsp.tsserver.setup {
+    -- Only needed for inlayHints. Merge this table with your settings or copy
+    -- it from the source if you want to add your own init_options.
+	init_options = require("nvim-lsp-ts-utils").init_options,
+    --
     on_attach = function(client, bufnr)
         -- disable tsserver formatting if you plan on formatting via null-ls
         client.resolved_capabilities.document_formatting = false
@@ -295,6 +316,10 @@ nvim_lsp.tsserver.setup {
             -- filter diagnostics
             filter_out_diagnostics_by_severity = {},
             filter_out_diagnostics_by_code = {},
+
+            -- inlay hints
+            auto_inlay_hints = true,
+            inlay_hints_highlight = "Comment",
         }
 
         -- required to fix code action ranges and filter diagnostics
