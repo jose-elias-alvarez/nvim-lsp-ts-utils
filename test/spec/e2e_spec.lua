@@ -1,4 +1,5 @@
 local null_ls = require("null-ls")
+local lspconfig = require("lspconfig")
 
 local ts_utils = require("nvim-lsp-ts-utils")
 local import_all = require("nvim-lsp-ts-utils.import-all")
@@ -20,17 +21,18 @@ local get_buf_content = function(line)
     return line and content[line] or content
 end
 
-local lsp_wait = function(time)
-    vim.wait(time or 400)
+local lsp_wait = function(wait_time)
+    vim.wait(wait_time or 400)
 end
 
 describe("e2e", function()
     assert(vim.fn.executable("typescript-language-server") > 0, "typescript-language-server is not installed")
 
     _G._TEST = true
-    null_ls.setup()
+    null_ls.config({})
+    lspconfig["null-ls"].setup({})
 
-    require("lspconfig").tsserver.setup({
+    lspconfig.tsserver.setup({
         on_attach = function(client)
             client.resolved_capabilities.document_formatting = false
             ts_utils.setup_client(client)
@@ -138,7 +140,7 @@ describe("e2e", function()
             lsp_wait()
 
             lsp.buf.formatting()
-            lsp_wait()
+            lsp_wait(500)
 
             assert.equals(get_buf_content(1), [[import { User } from './test-types';]])
         end)
