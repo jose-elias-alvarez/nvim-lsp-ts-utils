@@ -102,7 +102,7 @@ ESLint code actions and diagnostics.
 project structures. For cases (e.g. monorepos) where running `eslint $FILENAME`
 from the command line does not produce the expected output, I recommend the
 [ESLint language
-server](https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#eslint),
+server](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#eslint),
 which can also provide diagnostics, code actions, and ESLint formatting.
 
 To enable null-ls, install it via your plugin manager and add the following
@@ -373,7 +373,7 @@ requirements as the plugin.
   Adds useful "smart" text objects that adapt to the current context.
 
 - The [ESLint language
-  server](https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#eslint):
+  server](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#eslint):
   Provides ESLint code actions, diagnostics, and formatting. Requires more setup
   (and installing another executable), but it uses the ESLint Node API, which is
   better about resolving executables and configuration files in complex project
