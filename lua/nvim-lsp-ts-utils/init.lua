@@ -4,7 +4,6 @@ local client = require("nvim-lsp-ts-utils.client")
 local define_commands = require("nvim-lsp-ts-utils.define-commands")
 local organize_imports = require("nvim-lsp-ts-utils.organize-imports")
 local import_all = require("nvim-lsp-ts-utils.import-all")
-local fix_current = require("nvim-lsp-ts-utils.fix-current")
 local rename_file = require("nvim-lsp-ts-utils.rename-file")
 local import_on_completion = require("nvim-lsp-ts-utils.import-on-completion")
 local watcher = require("nvim-lsp-ts-utils.watcher")
@@ -15,8 +14,6 @@ local utils = require("nvim-lsp-ts-utils.utils")
 local M = {}
 M.organize_imports = organize_imports.async
 M.organize_imports_sync = organize_imports.sync
-
-M.fix_current = fix_current
 
 M.rename_file = rename_file.manual
 M.start_watcher = watcher.start
