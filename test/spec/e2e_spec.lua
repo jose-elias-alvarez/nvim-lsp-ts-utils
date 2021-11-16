@@ -29,7 +29,7 @@ describe("e2e", function()
     assert(vim.fn.executable("typescript-language-server") > 0, "typescript-language-server is not installed")
 
     _G._TEST = true
-    null_ls.config({})
+    null_ls.config({ debug = true })
     lspconfig["null-ls"].setup({})
 
     lspconfig.tsserver.setup({
@@ -70,18 +70,17 @@ describe("e2e", function()
                 edit_test_file("eslint-code-fix.js")
                 lsp_wait()
 
-                local diagnostics = lsp.diagnostic.get(0)
+                local diagnostics = vim.diagnostic.get(0)
 
                 assert.equals(vim.tbl_count(diagnostics), 1)
                 assert.equals(diagnostics[1].code, "eqeqeq")
                 assert.equals(diagnostics[1].message, "Expected '===' and instead saw '=='.")
                 assert.equals(diagnostics[1].source, "eslint")
 
-                local range = diagnostics[1].range
-                assert.equals(range["start"].line, 1)
-                assert.equals(range["start"].character, 23)
-                assert.equals(range["end"].line, 1)
-                assert.equals(range["end"].character, 25)
+                assert.equals(diagnostics[1].lnum, 1)
+                assert.equals(diagnostics[1].col, 23)
+                assert.equals(diagnostics[1].end_lnum, 1)
+                assert.equals(diagnostics[1].end_col, 25)
             end)
         end)
 
