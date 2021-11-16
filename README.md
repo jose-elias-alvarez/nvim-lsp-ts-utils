@@ -65,20 +65,20 @@ built-in LSP client.
 
 - Inlay hints (exposed as `:TSLspInlayHints`/`:TSLspDisableInlayHints`/`:TSLspToggleInlayHints`)
 
-  `tsserver` has added experimental support for inlay hints from Typescript v4.4.2
-  Note that init_options need to be set for this feature to work. Please see [Setup](#setup)
+  `tsserver` has added experimental support for inlay hints as of Typescript
+  v4.4.2. Note that init_options need to be set for this feature to work. Please
+  see [Setup](#setup) for instructions.
 
   Supports the following settings:
 
   - `auto_inlay_hints` (boolean): Set inlay hints on every new buffer visited
     automatically. Note that it would stop doing so if `:TSDisableInlayHints` is
-    called, and will continue if `:TSLspInlayHints` is called. If false, `:TSInlayHints`
-    needs to be called for every buffer to see it's inlay hints.
+    called, and will continue if `:TSLspInlayHints` is called. If false,
+    `:TSInlayHints` needs to be called for every buffer to see its inlay hints.
     Defaults to True.
 
-  - `inlay_hints_highlight ` (string): Highlight group to be used for the inlay
-    hints. 
-    Defaults to "Comment".
+  - `inlay_hints_highlight` (string): Highlight group to be used for the inlay
+    hints. Defaults to "Comment".
 
 - Filter `tsserver` diagnostics
 
@@ -259,17 +259,17 @@ Install using your favorite plugin manager and add to your
 An example showing the available settings and their defaults:
 
 ```lua
-local nvim_lsp = require("lspconfig")
+local lspconfig = require("lspconfig")
 
 -- enable null-ls integration (optional)
-require("null-ls").config {}
-require("lspconfig")["null-ls"].setup {}
+require("null-ls").config({})
+lspconfig["null-ls"].setup({})
 
 -- make sure to only run this once!
-nvim_lsp.tsserver.setup {
+lspconfig.tsserver.setup({
     -- Only needed for inlayHints. Merge this table with your settings or copy
     -- it from the source if you want to add your own init_options.
-	init_options = require("nvim-lsp-ts-utils").init_options,
+    init_options = require("nvim-lsp-ts-utils").init_options,
     --
     on_attach = function(client, bufnr)
         -- disable tsserver formatting if you plan on formatting via null-ls
@@ -279,7 +279,7 @@ nvim_lsp.tsserver.setup {
         local ts_utils = require("nvim-lsp-ts-utils")
 
         -- defaults
-        ts_utils.setup {
+        ts_utils.setup({
             debug = false,
             disable_commands = false,
             enable_import_on_completion = false,
@@ -320,7 +320,7 @@ nvim_lsp.tsserver.setup {
             -- inlay hints
             auto_inlay_hints = true,
             inlay_hints_highlight = "Comment",
-        }
+        })
 
         -- required to fix code action ranges and filter diagnostics
         ts_utils.setup_client(client)
@@ -330,8 +330,8 @@ nvim_lsp.tsserver.setup {
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gs", ":TSLspOrganize<CR>", opts)
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gr", ":TSLspRenameFile<CR>", opts)
         vim.api.nvim_buf_set_keymap(bufnr, "n", "gi", ":TSLspImportAll<CR>", opts)
-    end
-}
+    end,
+})
 ```
 
 ## Troubleshooting
