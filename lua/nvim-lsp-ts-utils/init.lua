@@ -25,6 +25,9 @@ M.setup_client = client.setup
 M.import_on_completion = import_on_completion.handle
 
 M.import_all = import_all
+M.import_current = function()
+    import_all(vim.api.nvim_get_current_buf(), vim.lsp.diagnostic.get_line_diagnostics())
+end
 
 M.inlay_hints = inlay_hints.inlay_hints
 M.disable_inlay_hints = inlay_hints.disable_inlay_hints

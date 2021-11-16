@@ -47,6 +47,11 @@ built-in LSP client.
   which will prompt you to choose from the available options when there's a
   conflict.
 
+- Import missing import under cursor (exposed as `:TSLspImportCurrent`)
+
+  Adds the missing import under the cursor. Affected by the same options as
+  `:TSLspImportAll`.
+
 - Import on completion
 
   Adds missing imports on completion confirm (`<C-y>`) when using the built-in

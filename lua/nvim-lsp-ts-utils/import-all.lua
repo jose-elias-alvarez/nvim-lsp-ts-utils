@@ -213,11 +213,11 @@ local apply_edits = function(edits, bufnr)
     end)
 end
 
-return function(bufnr)
+return function(bufnr, diagnostics)
     local a = require("plenary.async")
 
     local runner = function()
-        local diagnostics = get_diagnostics(bufnr)
+        diagnostics = diagnostics or get_diagnostics(bufnr)
         if not diagnostics then
             return
         end

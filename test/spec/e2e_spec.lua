@@ -2,7 +2,6 @@ local null_ls = require("null-ls")
 local lspconfig = require("lspconfig")
 
 local ts_utils = require("nvim-lsp-ts-utils")
-local import_all = require("nvim-lsp-ts-utils.import-all")
 local tu = require("test.utils")
 
 local api = vim.api
@@ -57,7 +56,7 @@ describe("e2e", function()
         end)
 
         it("should import both missing types", function()
-            import_all()
+            ts_utils.import_all()
             lsp_wait()
 
             assert.equals(get_buf_content(1), [[import { User, UserNotification } from "./test-types";]])
