@@ -11,16 +11,6 @@ describe("config", function()
 
             assert.equals(o.get().debug, true)
         end)
-
-        it("should get option by running function", function()
-            o.setup({
-                eslint_config_fallback = function()
-                    return ".eslintrc.js"
-                end,
-            })
-
-            assert.equals(o.get().eslint_config_fallback, ".eslintrc.js")
-        end)
     end)
 
     describe("reset", function()
@@ -40,46 +30,6 @@ describe("config", function()
             o.setup({ debug = false })
 
             assert.equals(o.get().debug, true)
-        end)
-
-        it("should throw if simple config type does not match", function()
-            local ok, err = pcall(o.setup, { debug = "true" })
-
-            assert.equals(ok, false)
-            assert.matches("expected boolean", err)
-        end)
-
-        it("should set config value with table override", function()
-            o.setup({ watch_dir = "src/" })
-
-            assert.equals(o.get().watch_dir, "src/")
-        end)
-
-        it("should throw if table override config type does not match", function()
-            local ok, err = pcall(o.setup, { watch_dir = true })
-
-            assert.equals(ok, false)
-            assert.matches("expected string, nil", err)
-        end)
-
-        it("should throw if config value is private", function()
-            local ok, err = pcall(o.setup, { _initialized = true })
-
-            assert.equals(ok, false)
-            assert.matches("expected nil", err)
-        end)
-
-        it("should set config value with function override", function()
-            o.setup({ eslint_bin = "eslint" })
-
-            assert.equals(o.get().eslint_bin, "eslint")
-        end)
-
-        it("should throw if function override config type does not match", function()
-            local ok, err = pcall(o.setup, { eslint_bin = "something-else" })
-
-            assert.equals(ok, false)
-            assert.matches("expected eslint, eslint_d", err)
         end)
     end)
 end)

@@ -11,10 +11,15 @@ M.apply_first_code_action = function()
         0,
         "textDocument/codeAction",
         params,
-        u.make_handler(function(actions)
-            local action = actions[1].result[1]
+        u.make_handler(function(results)
+            local action
+            for _, result in pairs(results) do
+                if not vim.tbl_isempty(result.result) then
+                    action = result.result[1]
+                end
+            end
 
-            assert(action, "no actions available")
+            assert.truthy(action)
             lsp.buf.execute_command(type(action.command) == "table" and action.command or action)
         end)
     )

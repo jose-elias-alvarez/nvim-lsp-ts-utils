@@ -70,35 +70,6 @@ M.file = {
     end,
 }
 
-M.resolve_bin_factory = function(cmd)
-    local lsputil = require("lspconfig.util")
-
-    return function(params)
-        local local_bin
-        local cwd = lsputil.find_git_ancestor(params.bufname) or vim.fn.getcwd()
-        lsputil.path.traverse_parents(params.bufname, function(dir)
-            local_bin = lsputil.path.join(dir, "node_modules", ".bin", cmd)
-            if vim.fn.executable(local_bin) > 0 then
-                return true
-            end
-
-            local_bin = nil
-            -- stop at cwd
-            if dir == cwd then
-                return true
-            end
-        end)
-
-        if local_bin then
-            M.debug_log("using local executable " .. local_bin)
-            return local_bin
-        end
-
-        M.debug_log("could not find local executable; using system executable " .. cmd)
-        return cmd
-    end
-end
-
 M.buffer = {
     root = function(bufname)
         local lsputil = require("lspconfig.util")

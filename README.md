@@ -10,9 +10,6 @@ built-in LSP client.
 
 - [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
 
-- [null-ls](https://github.com/jose-elias-alvarez/null-ls.nvim) for ESLint
-  integrations and formatting (optional)
-
 ## Features
 
 - Organize imports (exposed as `:TSLspOrganize`)
@@ -71,19 +68,19 @@ built-in LSP client.
 - Inlay hints (exposed as `:TSLspInlayHints`/`:TSLspDisableInlayHints`/`:TSLspToggleInlayHints`)
 
   `tsserver` has added experimental support for inlay hints as of Typescript
-  v4.4.2. Note that init_options need to be set for this feature to work. Please
-  see [Setup](#setup) for instructions.
+  v4.4.2. Note that you need to set `init_options` for this feature to work.
+  Please see [Setup](#setup) for instructions.
 
   Supports the following settings:
 
   - `auto_inlay_hints` (boolean): Set inlay hints on every new buffer visited
-    automatically. Note that it would stop doing so if `:TSDisableInlayHints` is
-    called, and will continue if `:TSLspInlayHints` is called. If false,
-    `:TSInlayHints` needs to be called for every buffer to see its inlay hints.
-    Defaults to True.
+    automatically. Note that it would stop doing so if you call
+    `:TSDisableInlayHints` and will continue if you call `:TSLspInlayHints`. If
+    false, you need to call `:TSInlayHints` for every buffer to see its inlay
+    hints. Defaults to `true`.
 
-  - `inlay_hints_highlight` (string): Highlight group to be used for the inlay
-    hints. Defaults to "Comment".
+  - `inlay_hints_highlight` (string): Highlight group used for inlay hints.
+    Defaults to "Comment".
 
 - Filter `tsserver` diagnostics
 
@@ -95,140 +92,8 @@ built-in LSP client.
   Like fixing invalid ranges, this function requires calling `setup_client` in
   your configuration (see below).
 
-  Note: filtering out `tsserver` error about unresolved variables (error code 2304) will break `:TSLspImportAll` functionality.
-
-### ESLint Integrations
-
-The plugin integrates with
-[null-ls.nvim](https://github.com/jose-elias-alvarez/null-ls.nvim) to provide
-ESLint code actions and diagnostics.
-
-**NOTE:** null-ls wraps the ESLint CLI and may have trouble handling complex
-project structures. For cases (e.g. monorepos) where running `eslint $FILENAME`
-from the command line does not produce the expected output, I recommend the
-[ESLint language
-server](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#eslint),
-which can also provide diagnostics, code actions, and ESLint formatting.
-
-To enable null-ls, install it via your plugin manager and add the following
-snippet to your LSP configuration:
-
-```lua
-require("null-ls").config {}
-require("lspconfig")["null-ls"].setup {}
-```
-
-- Code actions
-
-  Adds actions to fix ESLint issues when a fix exists or disable the violated
-  rule for the current line / file.
-
-  Supports the following settings:
-
-  - `eslint_enable_code_actions` (boolean): enables ESLint code actions. Set to
-    `true` by default (so installing and setting up null-ls will automatically
-    enable code actions).
-
-  - `eslint_enable_disable_comments` (boolean): enables ESLint code actions to
-    disable the violated rule for the current line / file. Set to `true` by
-    default.
-
-  - `eslint_bin` (string): sets the binary used to get ESLint output. Looks for
-    a local executable in `node_modules` and falls back to a system-wide
-    executable, which must be available on your `$PATH`.
-
-    Uses `eslint` by default for compatibility, but I highly, highly recommend
-    using [eslint_d](https://github.com/mantoni/eslint_d.js). `eslint` will add
-    a noticeable delay to each code action.
-
-- Diagnostics
-
-  Shows ESLint diagnostics for the current buffer.
-
-  Supports the following settings:
-
-  - `eslint_enable_diagnostics` (boolean): enables ESLint diagnostics for the
-    current buffer on `tsserver` attach. Set to `false` by default.
-
-  - `eslint_bin` and `eslint_config_fallback`: applies the same settings as
-    ESLint code actions. Like code actions, using `eslint_d` will improve your
-    experience.
-
-  - `eslint_opts` (table): allows modifying the options passed to the null-ls
-    diagnostics source, as described
-    [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
-
-### Formatting
-
-The plugin can also provide formatting via null-ls (see above for setup
-instructions) and supports [Prettier](https://github.com/prettier/prettier),
-[prettierd](https://github.com/fsouza/prettierd),
-[prettier_d_slim](https://github.com/mikew/prettier_d_slim),
-[ESLint](https://github.com/eslint/eslint), and
-[eslint_d](https://github.com/mantoni/eslint_d.js/)
-
-Prettier and prettier_d_slim support range formatting for `tsserver`
-filetypes. All other formatters do not (and would require upstream changes to
-add support, so it's not something we can handle here).
-
-Please note that vanilla ESLint is an absurdly slow formatter and is not
-suitable for running on save.
-
-Supports the following settings:
-
-- `enable_formatting` (boolean): enables formatting. Set to `false` by
-  default.
-
-- `formatter` (string): sets the executable used for formatting. Set to
-  `prettier` by default. Must be one of `prettier`, `prettierd`,
-  `prettier_d_slim`, `eslint`, or `eslint_d`.
-
-  Like `eslint_bin`, the plugin will look for a local
-  executable in `node_modules` and fall back to a system-wide executable,
-  which must be available on your `$PATH`.
-
-- `formatter_opts` (table): allows modifying the options passed to the null-ls
-  diagnostics source, as described
-  [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
-
-Once you've enabled formatting, it'll run whenever you call either of the
-following commands:
-
-```vim
-" runs asynchronously
-:lua vim.lsp.buf.formatting()
-
-" blocks until formatting completes
-:lua vim.lsp.buf.formatting_sync()
-```
-
-Prettier and prettier_d_slim support range formatting for `tsserver`
-filetypes, which you can run by visually selecting part of the buffer and
-calling the following command (the part before `lua` is automatically filled
-in when you enter command mode from visual mode):
-
-```vim
-:'<,'>lua vim.lsp.buf.range_formatting()
-```
-
-To avoid conflicts with existing LSP configurations, the plugin **will not**
-set up any formatting-related commands or autocommands. If you don't already
-have an LSP formatting setup, I recommend adding the following snippet to your
-`tsserver` `on_attach` callback:
-
-```lua
-on_attach = function(client)
-  -- disable tsserver formatting
-  client.resolved_capabilities.document_formatting = false
-
-  -- define an alias
-  vim.cmd("command -buffer Formatting lua vim.lsp.buf.formatting()")
-  vim.cmd("command -buffer FormattingSync lua vim.lsp.buf.formatting_sync()")
-
-  -- format on save
-  vim.cmd("autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_sync()")
-end
-```
+  Note: filtering out error code 2304 (unused variables) will break
+  `:TSLspImportAll` functionality.
 
 ### Experimental Features
 
@@ -266,21 +131,12 @@ An example showing the available settings and their defaults:
 ```lua
 local lspconfig = require("lspconfig")
 
--- enable null-ls integration (optional)
-require("null-ls").config({})
-lspconfig["null-ls"].setup({})
-
--- make sure to only run this once!
 lspconfig.tsserver.setup({
-    -- Only needed for inlayHints. Merge this table with your settings or copy
+    -- Needed for inlayHints. Merge this table with your settings or copy
     -- it from the source if you want to add your own init_options.
     init_options = require("nvim-lsp-ts-utils").init_options,
     --
     on_attach = function(client, bufnr)
-        -- disable tsserver formatting if you plan on formatting via null-ls
-        client.resolved_capabilities.document_formatting = false
-        client.resolved_capabilities.document_range_formatting = false
-
         local ts_utils = require("nvim-lsp-ts-utils")
 
         -- defaults
@@ -291,7 +147,7 @@ lspconfig.tsserver.setup({
 
             -- import all
             import_all_timeout = 5000, -- ms
-            -- lower numbers indicate higher priority
+            -- lower numbers = higher priority
             import_all_priorities = {
                 same_file = 1, -- add to existing import statement
                 local_files = 2, -- git files or files with relative path markers
@@ -301,23 +157,6 @@ lspconfig.tsserver.setup({
             import_all_scan_buffers = 100,
             import_all_select_source = false,
 
-            -- eslint
-            eslint_enable_code_actions = true,
-            eslint_enable_disable_comments = true,
-            eslint_bin = "eslint",
-            eslint_enable_diagnostics = false,
-            eslint_opts = {},
-
-            -- formatting
-            enable_formatting = false,
-            formatter = "prettier",
-            formatter_opts = {},
-
-            -- update imports on file move
-            update_imports_on_move = false,
-            require_confirmation_on_move = false,
-            watch_dir = nil,
-
             -- filter diagnostics
             filter_out_diagnostics_by_severity = {},
             filter_out_diagnostics_by_code = {},
@@ -325,6 +164,11 @@ lspconfig.tsserver.setup({
             -- inlay hints
             auto_inlay_hints = true,
             inlay_hints_highlight = "Comment",
+
+            -- update imports on file move
+            update_imports_on_move = false,
+            require_confirmation_on_move = false,
+            watch_dir = nil,
         })
 
         -- required to fix code action ranges and filter diagnostics
@@ -339,47 +183,134 @@ lspconfig.tsserver.setup({
 })
 ```
 
+## Integrations via null-ls
+
+You may want to set up integrations via
+[null-ls.nvim](https://github.com/jose-elias-alvarez/null-ls.nvim) to provide
+formatting, diagnostics, and code actions.
+
+null-ls includes these integrations out-of-the-box, so they don't depend on this
+plugin, but since I consider them an integral part of the TypeScript development
+experience, I'm including instructions here for ESLint and Prettier, two common
+options.
+
+### Setting up null-ls
+
+To enable null-ls and set up integrations, install it via your plugin manager
+and add the following snippet to your LSP configuration:
+
+```lua
+local null_ls = require("null-ls")
+null_ls.config({
+    sources = {
+        null_ls.builtins.diagnostics.eslint, -- eslint or eslint_d
+        null_ls.builtins.code_actions.eslint -- eslint or eslint_d
+        null_ls.builtins.formatting.prettier -- prettier, eslint, eslint_d, or prettierd
+    },
+})
+
+require("lspconfig")["null-ls"].setup({})
+```
+
+null-ls provides other built-in sources for the JavaScript ecosystem. I've
+included some alternatives above, and you can see the full list
+[here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md).
+To set up more sources, add them to the `sources` table in `null_ls.config`.
+
+To learn about formatting files and setting up formatting on save, check out the
+[null-ls FAQ](https://github.com/jose-elias-alvarez/null-ls.nvim#faq). To see
+the full list of configuration options, see the [config
+documentation](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/CONFIG.md).
+
+### Configuring sources
+
+null-ls allows configuring built-in sources via the `with` method, which you can
+learn about
+[here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md#configuration).
+
+For example, to configure `eslint` to use a project-local executable from
+`node_modules` when available but fall back to a global executable, use this
+configuration:
+
+```lua
+local null_ls = require("null-ls")
+null_ls.config({
+    sources = {
+        null_ls.builtins.diagnostics.eslint.with({
+            prefer_local = "node_modules/.bin",
+        }),
+    },
+})
+```
+
+To configure `eslint` to _only_ run when a project-local executable is available
+in `node_modules`, use the following:
+
+```lua
+local null_ls = require("null-ls")
+null_ls.config({
+    sources = {
+        null_ls.builtins.diagnostics.eslint.with({
+            only_local = "node_modules/.bin",
+        }),
+    },
+})
+```
+
+You can use the same options for `prettier` or any other built-in source.
+
+### ESLint Notes
+
+- Vanilla `eslint` is absurdly slow and you'll see a noticeable delay on each
+  action when using it. If possible, I highly, highly recommend using
+  [eslint_d](https://github.com/mantoni/eslint_d.js). It works out-of-the-box
+  for diagnostics and code actions and can also work as a formatter via
+  [eslint-plugin-prettier](https://github.com/prettier/eslint-plugin-prettier#recommended-configuration).
+
+- Since null-ls wraps the ESLint CLI, it may have trouble handling complex
+  project structures. For these cases (e.g. monorepos), I recommend the [ESLint
+  language
+  server](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#eslint),
+  which can also provide diagnostics, code actions, and ESLint formatting.
+
 ## Troubleshooting
 
-First, please make sure you are running the latest version of this plugin and
-its dependencies.
-
-Second, please check your configuration and make sure it's in line with the
-latest version of this document.
-
-Third, please try setting `debug = true` in `setup` and inspecting the output in
-`:messages`. null-ls has a related [`debug`
-option](https://github.com/jose-elias-alvarez/null-ls.nvim#how-to-enable-and-use-debug-mode)
-that you can use to help figure out issues related to null-ls features.
-
-If your issue relates to `eslint_d`, please try exiting Neovim, running
-`eslint_d stop` from your command line, then restarting Neovim. `eslint_d` can
-get "stuck" on a particular configuration when switching between projects, so
-this step can resolve a lot of issues.
+1. Make sure you are running the latest version of this plugin and its
+   dependencies.
+2. Check your configuration and make sure it's in line with the latest version
+   of this document.
+3. Set `debug = true` in your config and inspect the output in `:messages` to
+   see if it matches what you expect.
 
 If those options don't help, please open up an issue and provide the requested
 information.
 
+If you have a question or issue related to null-ls, please post a discussion
+question or open an issue on the [null-ls
+repository](https://github.com/jose-elias-alvarez/null-ls.nvim).
+
 ## Tests
 
-Clone the repository, run `npm install` in the `test` directory, then run `make test` in the root of the project to run the test suite. The suite has the same
-requirements as the plugin.
+- `git clone https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils`
+- `cd test && npm install`
+- `cd .. && make test`
 
-## Recommended Plugins / Servers
+Once set up, run `make test` in the root directory of the repository. The suite
+has the same requirements as the plugin and includes null-ls integration tests
+if it's installed.
+
+## Recommended Plugins
 
 - [JoosepAlviste/nvim-ts-context-commentstring](https://github.com/JoosepAlviste/nvim-ts-context-commentstring):
-  Sets `commentstring` intelligently based on the cursor's position in the file,
+  sets `commentstring` intelligently based on the cursor's position in the file,
   meaning JSX comments work as you'd expect.
 
-- [windwp/nvim-ts-autotag](https://github.com/windwp/nvim-ts-autotag): Uses
+- [windwp/nvim-ts-autotag](https://github.com/windwp/nvim-ts-autotag): uses
   Treesitter to automatically close and rename JSX tags.
 
 - [RRethy/nvim-treesitter-textsubjects](https://github.com/RRethy/nvim-treesitter-textsubjects):
-  Adds useful "smart" text objects that adapt to the current context.
+  adds useful "smart" text objects that adapt to the current context.
 
 - The [ESLint language
   server](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#eslint):
-  Provides ESLint code actions, diagnostics, and formatting. Requires more setup
-  (and installing another executable), but it uses the ESLint Node API, which is
-  better about resolving executables and configuration files in complex project
-  structures.
+  provides ESLint code actions, diagnostics, and formatting.

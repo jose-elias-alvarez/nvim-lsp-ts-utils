@@ -90,31 +90,4 @@ describe("utils", function()
             end)
         end)
     end)
-
-    describe("resolve_bin_factory", function()
-        before_each(function()
-            stub(vim.fn, "executable")
-        end)
-        after_each(function()
-            vim.fn.executable:revert()
-        end)
-
-        it("should return local bin path if local bin exists", function()
-            vim.fn.executable.returns(1)
-
-            local factory = u.resolve_bin_factory("eslint")
-
-            assert.truthy(
-                factory({ bufname = vim.fn.getcwd() .. "/test/files/test-types.ts" }):find("node_modules/.bin")
-            )
-        end)
-
-        it("should return cmd if local bin does not exist", function()
-            vim.fn.executable.returns(0)
-
-            local factory = u.resolve_bin_factory("eslint")
-
-            assert.equals(factory({ bufname = "mock-file.js" }), "eslint")
-        end)
-    end)
 end)
