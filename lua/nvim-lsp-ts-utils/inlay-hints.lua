@@ -21,11 +21,15 @@ end
 
 local function handler(err, result, ctx)
     if not err and result and M.state.enabled then
-        hide(ctx.bufnr)
+        local bufnr = ctx.bufnr
+        if not vim.api.nvim_buf_is_loaded(bufnr) then
+            return
+        end
+
+        hide(bufnr)
 
         local hints = result.inlayHints or {}
         local parsed = {}
-
         for _, value in ipairs(hints) do
             local pos = value.position
             local line_str = tostring(pos.line)
@@ -42,14 +46,17 @@ local function handler(err, result, ctx)
             end
         end
 
+        local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
         for key, value in pairs(parsed) do
             local line = tonumber(key)
-            for _, hint in ipairs(value) do
-                vim.api.nvim_buf_set_extmark(ctx.bufnr, M.state.ns, line, -1, {
-                    virt_text_pos = "eol",
-                    virt_text = { { hint.text, o.get().inlay_hints_highlight } },
-                    hl_mode = "combine",
-                })
+            if lines[line + 1] then
+                for _, hint in ipairs(value) do
+                    vim.api.nvim_buf_set_extmark(ctx.bufnr, M.state.ns, line, -1, {
+                        virt_text_pos = "eol",
+                        virt_text = { { hint.text, o.get().inlay_hints_highlight } },
+                        hl_mode = "combine",
+                    })
+                end
             end
         end
     end
