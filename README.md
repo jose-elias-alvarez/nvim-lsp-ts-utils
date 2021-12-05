@@ -201,21 +201,19 @@ and add the following snippet to your LSP configuration:
 
 ```lua
 local null_ls = require("null-ls")
-null_ls.config({
+null_ls.setup({
     sources = {
         null_ls.builtins.diagnostics.eslint, -- eslint or eslint_d
         null_ls.builtins.code_actions.eslint, -- eslint or eslint_d
         null_ls.builtins.formatting.prettier -- prettier, eslint, eslint_d, or prettierd
     },
 })
-
-require("lspconfig")["null-ls"].setup({})
 ```
 
 null-ls provides other built-in sources for the JavaScript ecosystem. I've
 included some alternatives above, and you can see the full list
 [here](https://github.com/jose-elias-alvarez/null-ls.nvim/blob/main/doc/BUILTINS.md).
-To set up more sources, add them to the `sources` table in `null_ls.config`.
+To set up more sources, add them to the `sources` table in `null_ls.setup`.
 
 To learn about formatting files and setting up formatting on save, check out the
 [null-ls FAQ](https://github.com/jose-elias-alvarez/null-ls.nvim#faq). To see
@@ -234,7 +232,7 @@ configuration:
 
 ```lua
 local null_ls = require("null-ls")
-null_ls.config({
+null_ls.setup({
     sources = {
         null_ls.builtins.diagnostics.eslint.with({
             prefer_local = "node_modules/.bin",
@@ -248,7 +246,7 @@ in `node_modules`, use the following:
 
 ```lua
 local null_ls = require("null-ls")
-null_ls.config({
+null_ls.setup({
     sources = {
         null_ls.builtins.diagnostics.eslint.with({
             only_local = "node_modules/.bin",
