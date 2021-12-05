@@ -215,6 +215,7 @@ end
 
 return function(bufnr, diagnostics)
     local a = require("plenary.async")
+    bufnr = bufnr or api.nvim_get_current_buf()
 
     local runner = function()
         diagnostics = diagnostics or get_diagnostics(bufnr)
