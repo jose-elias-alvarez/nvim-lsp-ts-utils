@@ -36,14 +36,13 @@ describe("e2e", function()
     })
 
     if has_null_ls then
-        null_ls.config({
+        null_ls.setup({
             sources = {
                 null_ls.builtins.diagnostics.eslint.with({ only_local = "node_modules/.bin" }),
                 null_ls.builtins.code_actions.eslint.with({ only_local = "node_modules/.bin" }),
                 null_ls.builtins.formatting.prettier.with({ only_local = "node_modules/.bin" }),
             },
         })
-        lspconfig["null-ls"].setup({})
     end
 
     ts_utils.setup({})
