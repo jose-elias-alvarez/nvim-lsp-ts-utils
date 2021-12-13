@@ -20,20 +20,7 @@ end
 
 local M = {}
 M.enable = function()
-    api.nvim_exec(
-        string.format(
-            [[
-            augroup %s
-                autocmd! * <buffer>
-                autocmd %s <buffer> lua require'nvim-lsp-ts-utils'.%s
-            augroup END
-            ]],
-            "TSLspImportOnCompletion",
-            "CompleteDone",
-            "import_on_completion()"
-        ),
-        false
-    )
+    u.buf_autocmd("TSLspImportOnCompletion", "CompleteDone", "import_on_completion()")
 end
 
 local last

@@ -40,6 +40,7 @@ M.autocmd_fun = inlay_hints.autocmd_fun
 
 M.init_options = utils.init_options
 
+-- setup should be called on attach, so everything here should be buffer-local or idempotent
 M.setup = function(user_options)
     if vim.fn.has("nvim-0.6.0") == 0 then
         u.echo_warning("nvim-lsp-ts-utils requires nvim 0.6.0+")

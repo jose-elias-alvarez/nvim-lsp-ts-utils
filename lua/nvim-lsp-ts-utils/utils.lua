@@ -147,4 +147,21 @@ M.get_tsserver_client = function()
     end
 end
 
+M.buf_autocmd = function(name, event, func)
+    api.nvim_exec(
+        string.format(
+            [[
+            augroup %s
+                autocmd! * <buffer>
+                autocmd %s <buffer> lua require'nvim-lsp-ts-utils'.%s
+            augroup END
+            ]],
+            name,
+            event,
+            func
+        ),
+        false
+    )
+end
+
 return M

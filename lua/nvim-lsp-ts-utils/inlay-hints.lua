@@ -1,4 +1,5 @@
 local o = require("nvim-lsp-ts-utils.options")
+local u = require("nvim-lsp-ts-utils.utils")
 
 local api = vim.api
 
@@ -10,12 +11,11 @@ M.state = {
 }
 
 function M.setup_autocommands()
-    vim.cmd([[
-       augroup TSInlayHints
-           autocmd!
-           autocmd BufEnter,BufWinEnter,TabEnter,BufWritePost,TextChanged,TextChangedI *.ts,*.js,*.tsx,*.jsx :lua require'nvim-lsp-ts-utils'.autocmd_fun()
-       augroup END
-   ]])
+    u.buf_autocmd(
+        "TSLspImportOnCompletion",
+        "BufEnter,BufWinEnter,TabEnter,BufWritePost,TextChanged,TextChangedI",
+        "autocmd_fun()"
+    )
 end
 
 local function hide(bufnr)
