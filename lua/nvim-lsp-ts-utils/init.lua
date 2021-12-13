@@ -41,10 +41,6 @@ M.autocmd_fun = inlay_hints.autocmd_fun
 M.init_options = utils.init_options
 
 M.setup = function(user_options)
-    if o.get()._initialized then
-        return
-    end
-
     if vim.fn.has("nvim-0.6.0") == 0 then
         u.echo_warning("nvim-lsp-ts-utils requires nvim 0.6.0+")
         return

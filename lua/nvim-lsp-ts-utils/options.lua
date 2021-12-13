@@ -38,6 +38,10 @@ local options = vim.deepcopy(defaults)
 local M = {}
 
 M.setup = function(user_options)
+    if options._initialized then
+        return
+    end
+
     options = vim.tbl_extend("force", options, user_options)
     options._initialized = true
 end

@@ -1,31 +1,28 @@
 local o = require("nvim-lsp-ts-utils.options")
 
-local api = vim.api
-
 local M = {}
 
 M.state = {
     enabled = false,
-    ns = api.nvim_create_namespace("ts-inlay-hints"),
+    ns = vim.api.nvim_create_namespace("ts-inlay-hints"),
 }
 
 function M.setup_autocommands()
     vim.cmd([[
        augroup TSInlayHints
-           autocmd!
-           autocmd BufEnter,BufWinEnter,TabEnter,BufWritePost,TextChanged,TextChangedI *.ts,*.js,*.tsx,*.jsx :lua require'nvim-lsp-ts-utils'.autocmd_fun()
+       au BufEnter,BufWinEnter,TabEnter,BufWritePost,TextChanged,TextChangedI *.ts,*.js,*.tsx,*.jsx :lua require'nvim-lsp-ts-utils'.autocmd_fun()
        augroup END
    ]])
 end
 
 local function hide(bufnr)
-    api.nvim_buf_clear_namespace(bufnr, M.state.ns, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, M.state.ns, 0, -1)
 end
 
 local function handler(err, result, ctx)
     if not err and result and M.state.enabled then
         local bufnr = ctx.bufnr
-        if not api.nvim_buf_is_loaded(bufnr) then
+        if not vim.api.nvim_buf_is_loaded(bufnr) then
             return
         end
 
@@ -49,12 +46,12 @@ local function handler(err, result, ctx)
             end
         end
 
-        local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
         for key, value in pairs(parsed) do
             local line = tonumber(key)
             if lines[line + 1] then
                 for _, hint in ipairs(value) do
-                    api.nvim_buf_set_extmark(ctx.bufnr, M.state.ns, line, -1, {
+                    vim.api.nvim_buf_set_extmark(ctx.bufnr, M.state.ns, line, -1, {
                         virt_text_pos = "eol",
                         virt_text = { { hint.text, o.get().inlay_hints_highlight } },
                         hl_mode = "combine",
