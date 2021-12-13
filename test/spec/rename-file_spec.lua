@@ -309,7 +309,7 @@ describe("rename_file", function()
             vim.uri_from_fname.returns(mock_uri)
 
             mock_client = { request = request, name = "tsserver" }
-            vim.lsp.get_active_clients.returns({ mock_client })
+            u.get_tsserver_client.returns(mock_client)
         end)
 
         after_each(function()
@@ -321,9 +321,6 @@ describe("rename_file", function()
         it("should loop over clients and call client.request with command if name matches", function()
             rename_file.manual(mock_target, true)
 
-            assert.stub(vim.lsp.get_active_clients).was_called()
-            assert.stub(vim.uri_from_fname).was_called_with(mock_source)
-            assert.stub(vim.uri_from_fname).was_called_with(mock_target)
             assert.stub(request).was_called_with("workspace/executeCommand", {
                 command = "_typescript.applyRenameFile",
                 arguments = {
@@ -336,7 +333,7 @@ describe("rename_file", function()
         end)
 
         it("should echo warning if no client found", function()
-            mock_client.name = nil
+            u.get_tsserver_client.returns(nil)
 
             rename_file.manual(mock_target, true)
 

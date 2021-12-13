@@ -1,6 +1,7 @@
 local o = require("nvim-lsp-ts-utils.options")
 
 local api = vim.api
+local lsp = vim.lsp
 
 local M = {}
 
@@ -113,6 +114,14 @@ M.make_handler = function(fn)
             local bufnr = select(5, ...)
             local config = select(6, ...)
             fn(err, result, { method = method, client_id = client_id, bufnr = bufnr }, config)
+        end
+    end
+end
+
+M.get_tsserver_client = function()
+    for _, client in ipairs(lsp.get_active_clients()) do
+        if client.name == "tsserver" or client.name == "typescript" then
+            return client
         end
     end
 end

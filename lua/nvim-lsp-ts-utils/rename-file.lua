@@ -1,30 +1,27 @@
 local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 
-local lsp = vim.lsp
 local api = vim.api
 local fn = vim.fn
 
 local rename_file = function(source, target)
-    local client_found, request_ok
-    for _, client in ipairs(lsp.get_active_clients()) do
-        if not client_found and (client.name == "tsserver" or client.name == "typescript") then
-            client_found = true
-            request_ok = client.request("workspace/executeCommand", {
-                command = "_typescript.applyRenameFile",
-                arguments = {
-                    {
-                        sourceUri = vim.uri_from_fname(source),
-                        targetUri = vim.uri_from_fname(target),
-                    },
-                },
-            })
-        end
+    local client = u.get_tsserver_client()
+    if not client then
+        u.echo_warning("failed to rename file: tsserver not running")
+        return
     end
 
-    if not client_found then
-        u.echo_warning("failed to rename file: tsserver not running")
-    elseif not request_ok then
+    local request_ok = client.request("workspace/executeCommand", {
+        command = "_typescript.applyRenameFile",
+        arguments = {
+            {
+                sourceUri = vim.uri_from_fname(source),
+                targetUri = vim.uri_from_fname(target),
+            },
+        },
+    })
+
+    if not request_ok then
         u.echo_warning("failed to rename file: tsserver request failed")
     end
 end
