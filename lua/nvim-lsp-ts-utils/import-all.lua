@@ -8,35 +8,32 @@ local CODE_ACTION = "textDocument/codeAction"
 local APPLY_EDIT = "_typescript.applyWorkspaceEdit"
 local rel_path_pattern = "^[.]+/"
 
-local get_diagnostics = function(bufnr)
-    local diagnostics = lsp.diagnostic.get(bufnr)
+local get_diagnostics = function(bufnr, client_id)
+    local diagnostics = u.diagnostics.to_lsp(vim.diagnostic.get(bufnr, {
+        namespace = lsp.diagnostic.get_namespace(client_id),
+    }))
 
-    if not diagnostics or vim.tbl_isempty(diagnostics) then
-        print("No code actions available")
-        return nil
-    end
-
-    local filtered = {}
-    for _, diagnostic in pairs(diagnostics) do
-        if diagnostic.source == "typescript" then
-            table.insert(filtered, diagnostic)
+    local messages = {}
+    -- filter for uniqueness
+    diagnostics = vim.tbl_map(function(diagnostic)
+        if not messages[diagnostic.message] then
+            messages[diagnostic.message] = true
+            return diagnostic
         end
-    end
-    return filtered
+    end, diagnostics)
+
+    return diagnostics
 end
 
-local make_params = function(entry)
+local make_params = function(diagnostic)
     local params = lsp.util.make_range_params()
-    params.range = entry.range
-    params.context = { diagnostics = { entry } }
-
-    -- caught by null-ls
-    params._null_ls_ignore = true
+    params.range = diagnostic.range
+    params.context = { diagnostics = { diagnostic } }
 
     return params
 end
 
-local create_response_handler = function(imports)
+local response_handler_factory = function(callback)
     local priorities = o.get().import_all_priorities
     local to_scan, scanned = o.get().import_all_scan_buffers, 0
     local git_output = u.get_command_output("git", { "ls-files", "--cached", "--others", "--exclude-standard" })
@@ -47,10 +44,7 @@ local create_response_handler = function(imports)
     end
 
     return function(responses)
-        if not responses then
-            return
-        end
-
+        local imports = {}
         local should_handle_action = function(action)
             action = type(action.command) == "table" and action.command or action
             if action.command ~= APPLY_EDIT then
@@ -147,13 +141,11 @@ local create_response_handler = function(imports)
 
         local parse_action = function(action)
             local title = action.title
-            local target, source = title:match("%b''"), title:match('%b""')
+            local target, source = title:match([['(%S+)'.+"(%S+)"]])
             if not (target and source) then
                 return
             end
 
-            target = target:sub(2, -2)
-            source = source:sub(2, -2)
             imports[target] = imports[target] or {}
             if o.get().import_all_select_source then
                 -- don't push same source twice
@@ -175,15 +167,13 @@ local create_response_handler = function(imports)
             end
         end
 
-        for _, response in ipairs(responses) do
-            for _, result in pairs(response) do
-                for _, action in pairs(result) do
-                    if should_handle_action(action) then
-                        parse_action(action)
-                    end
-                end
+        for _, action in ipairs(responses or {}) do
+            if should_handle_action(action) then
+                parse_action(action)
             end
         end
+
+        callback(imports)
     end
 end
 
@@ -214,65 +204,28 @@ local apply_edits = function(edits, bufnr)
 end
 
 return function(bufnr, diagnostics)
-    local a = require("plenary.async")
     bufnr = bufnr or api.nvim_get_current_buf()
 
-    local runner = function()
-        diagnostics = diagnostics or get_diagnostics(bufnr)
-        if not diagnostics then
-            return
-        end
+    local client = u.get_tsserver_client()
+    if not client then
+        print("No code actions available")
+        return
+    end
 
-        local buf_request_all = a.wrap(vim.lsp.buf_request_all, 4)
-        local edits, all_imports, messages = {}, {}, {}
+    diagnostics = diagnostics or get_diagnostics(bufnr, client.id)
+    if vim.tbl_isempty(diagnostics) then
+        print("No code actions available")
+        return
+    end
+
+    local response_handler = response_handler_factory(function(all_imports)
+        local edits = {}
         local push_edits = function(action)
             action = type(action.command) == "table" and action.command or action
             for _, edit in ipairs(action.arguments[1].documentChanges[1].edits) do
                 table.insert(edits, edit)
             end
         end
-
-        local response_handler = create_response_handler(all_imports)
-
-        local last_request_time = vim.loop.now()
-        local wait_for_request = function()
-            vim.wait(250, function()
-                return vim.loop.now() - last_request_time > 10
-            end, 5)
-            last_request_time = vim.loop.now()
-        end
-
-        local response_count = 0
-        local get_responses = function(diagnostic)
-            wait_for_request()
-
-            local responses = buf_request_all(bufnr, CODE_ACTION, make_params(diagnostic))
-            response_count = response_count + 1
-            return responses
-        end
-
-        local futures = {}
-        local future_factory = function(diagnostic)
-            return function()
-                response_handler(get_responses(diagnostic))
-            end
-        end
-
-        for _, diagnostic in pairs(diagnostics) do
-            if not vim.tbl_contains(messages, diagnostic.message) then
-                table.insert(messages, diagnostic.message)
-                table.insert(futures, future_factory(diagnostic))
-            end
-        end
-
-        local expected_response_count = vim.tbl_count(futures)
-        vim.defer_fn(function()
-            if response_count < expected_response_count then
-                u.echo_warning("import all timed out")
-            end
-        end, o.get().import_all_timeout)
-
-        a.util.join(futures)
 
         for k, imports in pairs(all_imports) do
             local index = 1
@@ -293,12 +246,44 @@ return function(bufnr, diagnostics)
             end
             push_edits(imports[index].action)
         end
-        return edits
-    end
 
-    a.run(runner, function(edits)
+        if vim.tbl_isempty(edits) then
+            print("No code actions available")
+            return
+        end
+
         vim.schedule(function()
-            apply_edits(edits or {}, bufnr)
+            apply_edits(edits, bufnr)
         end)
     end)
+
+    -- stagger requests to prevent tsserver issues
+    local last_request_time = vim.loop.now()
+    local wait_for_request = function()
+        vim.wait(250, function()
+            return vim.loop.now() - last_request_time > 10
+        end, 5)
+        last_request_time = vim.loop.now()
+    end
+
+    local expected_response_count, response_count, responses = vim.tbl_count(diagnostics), 0, {}
+    local get_response = function(diagnostic)
+        local handler = function(_, response)
+            responses = vim.list_extend(responses, response)
+            response_count = response_count + 1
+            if response_count == expected_response_count then
+                response_handler(responses)
+            end
+        end
+
+        wait_for_request()
+        client.request(CODE_ACTION, make_params(diagnostic), handler, bufnr)
+    end
+    vim.tbl_map(get_response, diagnostics)
+
+    vim.defer_fn(function()
+        if response_count < expected_response_count then
+            u.echo_warning("import all timed out")
+        end
+    end, o.get().import_all_timeout)
 end

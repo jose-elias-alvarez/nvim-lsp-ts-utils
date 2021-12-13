@@ -117,6 +117,28 @@ M.make_handler = function(fn)
     end
 end
 
+M.diagnostics = {
+    to_lsp = function(diagnostics)
+        return vim.tbl_map(function(diagnostic)
+            return vim.tbl_extend("error", {
+                range = {
+                    start = {
+                        line = diagnostic.lnum,
+                        character = diagnostic.col,
+                    },
+                    ["end"] = {
+                        line = diagnostic.end_lnum,
+                        character = diagnostic.end_col,
+                    },
+                },
+                severity = diagnostic.severity,
+                message = diagnostic.message,
+                source = diagnostic.source,
+            }, diagnostic.user_data and (diagnostic.user_data.lsp or {}) or {})
+        end, diagnostics)
+    end,
+}
+
 M.get_tsserver_client = function()
     for _, client in ipairs(lsp.get_active_clients()) do
         if client.name == "tsserver" or client.name == "typescript" then

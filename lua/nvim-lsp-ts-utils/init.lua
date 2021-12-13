@@ -1,4 +1,5 @@
 local o = require("nvim-lsp-ts-utils.options")
+local u = require("nvim-lsp-ts-utils.utils")
 
 local client = require("nvim-lsp-ts-utils.client")
 local define_commands = require("nvim-lsp-ts-utils.define-commands")
@@ -25,7 +26,11 @@ M.import_on_completion = import_on_completion.handle
 
 M.import_all = import_all
 M.import_current = function()
-    import_all(vim.api.nvim_get_current_buf(), vim.lsp.diagnostic.get_line_diagnostics())
+    local bufnr = vim.api.nvim_get_current_buf()
+    local lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+
+    local line_diagnostics = vim.diagnostic.get(bufnr, { lnum = lnum })
+    import_all(bufnr, u.diagnostics.to_lsp(line_diagnostics))
 end
 
 M.inlay_hints = inlay_hints.inlay_hints
@@ -37,6 +42,11 @@ M.init_options = utils.init_options
 
 M.setup = function(user_options)
     if o.get()._initialized then
+        return
+    end
+
+    if vim.fn.has("nvim-0.6.0") == 0 then
+        u.echo_warning("nvim-lsp-ts-utils requires nvim 0.6.0+")
         return
     end
 
