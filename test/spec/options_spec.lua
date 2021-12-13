@@ -1,4 +1,4 @@
-describe("config", function()
+describe("options", function()
     local o = require("nvim-lsp-ts-utils.options")
 
     after_each(function()
@@ -24,10 +24,8 @@ describe("config", function()
     end)
 
     describe("setup", function()
-        it("should only setup once", function()
+        it("should set option", function()
             o.setup({ debug = true })
-
-            o.setup({ debug = false })
 
             assert.equals(o.get().debug, true)
         end)

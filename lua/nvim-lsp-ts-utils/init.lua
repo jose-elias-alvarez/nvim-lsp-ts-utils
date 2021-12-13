@@ -36,6 +36,10 @@ M.autocmd_fun = inlay_hints.autocmd_fun
 M.init_options = utils.init_options
 
 M.setup = function(user_options)
+    if o.get()._initialized then
+        return
+    end
+
     o.setup(user_options)
     define_commands()
 
