@@ -78,7 +78,6 @@ M.buffer = {
 
         return lsputil.root_pattern("tsconfig.json", "package.json", "jsconfig.json")(bufname)
             or lsputil.root_pattern(".git")(bufname)
-            or _G._TEST and vim.fn.getcwd()
     end,
 }
 

@@ -7,7 +7,6 @@ local import_all = require("nvim-lsp-ts-utils.import-all")
 local rename_file = require("nvim-lsp-ts-utils.rename-file")
 local import_on_completion = require("nvim-lsp-ts-utils.import-on-completion")
 local watcher = require("nvim-lsp-ts-utils.watcher")
-local null_ls = require("nvim-lsp-ts-utils.null-ls")
 local inlay_hints = require("nvim-lsp-ts-utils.inlay-hints")
 local utils = require("nvim-lsp-ts-utils.utils")
 
@@ -38,7 +37,6 @@ M.init_options = utils.init_options
 
 M.setup = function(user_options)
     o.setup(user_options)
-    null_ls.setup()
     define_commands()
 
     if o.get().auto_inlay_hints then

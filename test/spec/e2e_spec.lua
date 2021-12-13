@@ -1,16 +1,11 @@
-local has_null_ls, null_ls = pcall(require, "null-ls")
 local lspconfig = require("lspconfig")
 
 local ts_utils = require("nvim-lsp-ts-utils")
-local tu = require("test.utils")
 
 local api = vim.api
-local lsp = vim.lsp
-
-local base_path = "test/files/"
 
 local edit_test_file = function(name)
-    vim.cmd("e " .. base_path .. name)
+    vim.cmd("e " .. "test/files/" .. name)
 end
 
 local get_buf_content = function(line)
@@ -27,24 +22,12 @@ end
 describe("e2e", function()
     assert(vim.fn.executable("typescript-language-server") > 0, "typescript-language-server is not installed")
 
-    _G._TEST = true
     lspconfig.tsserver.setup({
         on_attach = function(client)
             client.resolved_capabilities.document_formatting = false
             ts_utils.setup_client(client)
         end,
     })
-
-    if has_null_ls then
-        null_ls.setup({
-            sources = {
-                null_ls.builtins.diagnostics.eslint.with({ only_local = "node_modules/.bin" }),
-                null_ls.builtins.code_actions.eslint.with({ only_local = "node_modules/.bin" }),
-                null_ls.builtins.formatting.prettier.with({ only_local = "node_modules/.bin" }),
-            },
-        })
-    end
-
     ts_utils.setup({})
 
     after_each(function()
@@ -84,81 +67,6 @@ describe("e2e", function()
             lsp_wait()
 
             assert.equals(get_buf_content(1), [[import { User } from "./test-types";]])
-        end)
-    end)
-
-    describe("eslint", function()
-        if not has_null_ls then
-            print("null-ls not installed; skipping eslint tests")
-            return
-        end
-
-        describe("diagnostics", function()
-            it("should show eslint diagnostics", function()
-                edit_test_file("eslint-code-fix.js")
-                lsp_wait()
-
-                local diagnostics = vim.diagnostic.get(0)
-
-                assert.equals(vim.tbl_count(diagnostics), 1)
-                assert.equals(diagnostics[1].code, "eqeqeq")
-                assert.equals(diagnostics[1].message, "Expected '===' and instead saw '=='.")
-                assert.equals(diagnostics[1].source, "eslint")
-
-                assert.equals(diagnostics[1].lnum, 1)
-                assert.equals(diagnostics[1].col, 23)
-                assert.equals(diagnostics[1].end_lnum, 1)
-                assert.equals(diagnostics[1].end_col, 25)
-            end)
-        end)
-
-        describe("code actions", function()
-            before_each(function()
-                -- file contains ==, which is a violation of eqeqeq
-                edit_test_file("eslint-code-fix.js")
-                lsp_wait()
-
-                -- jump to line containing error
-                vim.cmd("2")
-            end)
-
-            it("should apply eslint fix", function()
-                tu.apply_first_code_action()
-                lsp_wait()
-
-                -- check that eslint fix has been applied, replacing == with ===
-                assert.equals(get_buf_content(2), [[  if (typeof user.name === "string") {]])
-            end)
-        end)
-
-        it("should use local executable", function()
-            local generator = require("null-ls.generators").get_available("typescript", null_ls.methods.DIAGNOSTICS)[1]
-
-            assert.equals(generator.opts._last_command, vim.fn.getcwd() .. "/test/node_modules/.bin/eslint")
-        end)
-    end)
-
-    describe("formatting", function()
-        if not has_null_ls then
-            print("null-ls not installed; skipping formatting tests")
-            return
-        end
-
-        it("should format file via lsp formatting", function()
-            edit_test_file("formatting.ts")
-            assert.equals(get_buf_content(1), [[import {User} from "./test-types"]])
-            lsp_wait()
-
-            lsp.buf.formatting()
-            lsp_wait(500)
-
-            assert.equals(get_buf_content(1), [[import { User } from './test-types';]])
-        end)
-
-        it("should use local executable", function()
-            local generator = require("null-ls.generators").get_available("typescript", null_ls.methods.FORMATTING)[1]
-
-            assert.equals(generator.opts._last_command, vim.fn.getcwd() .. "/test/node_modules/.bin/prettier")
         end)
     end)
 end)
