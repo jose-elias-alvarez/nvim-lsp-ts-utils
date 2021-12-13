@@ -5,6 +5,8 @@ built-in LSP client.
 
 ## Requirements
 
+- Neovim 0.6.0+
+
 - [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig), which you are
   (probably) already using to configure `typescript-language-server`
 
@@ -294,8 +296,7 @@ repository](https://github.com/jose-elias-alvarez/null-ls.nvim).
 - `cd .. && make test`
 
 Once set up, run `make test` in the root directory of the repository. The suite
-has the same requirements as the plugin and includes null-ls integration tests
-if it's installed.
+has the same requirements as the plugin.
 
 ## Recommended Plugins
 
