@@ -30,6 +30,10 @@ built-in LSP client.
   whether it's an import action. Also organizes imports afterwards to merge
   imports from the same source.
 
+  **Note**: `:TSLspImportAll` depends on `tsserver` diagnostics, meaning that the
+  function won't work for JavaScript files unless you set `"checkJs": true` inside
+  `tsconfig.json` / `jsconfig.json`.
+
   By default, the command will resolve conflicting imports by checking other
   imports in the same file and other open buffers. In Git repositories, it will
   check project files to improve accuracy. You can alter the weight given to
