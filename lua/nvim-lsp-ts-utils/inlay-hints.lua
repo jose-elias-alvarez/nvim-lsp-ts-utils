@@ -2,62 +2,91 @@ local o = require("nvim-lsp-ts-utils.options")
 local u = require("nvim-lsp-ts-utils.utils")
 
 local api = vim.api
-
+local INLAY_HINTS_METHOD = "typescript/inlayHints"
 local M = {}
 
-M.state = {
-    enabled = false,
-    ns = api.nvim_create_namespace("ts-inlay-hints"),
-}
+local ns = api.nvim_create_namespace("ts-inlay-hints")
+M.ns = ns
 
-function M.setup_autocommands()
-    u.buf_autocmd(
-        "TSLspImportOnCompletion",
-        "BufEnter,BufWinEnter,TabEnter,BufWritePost,TextChanged,TextChangedI",
-        "autocmd_fun()"
-    )
+-- enabled[bufnr] = false
+M.enabled = {}
+
+local function buf_enabled(bufnr)
+    if bufnr ~= nil then
+        if bufnr == 0 then
+            bufnr = api.nvim_get_current_buf()
+        end
+        if M.enabled[bufnr] == nil then
+            M.enabled[bufnr] = false
+        end
+        return M.enabled[bufnr]
+    end
 end
 
-local function hide(bufnr)
-    api.nvim_buf_clear_namespace(bufnr, M.state.ns, 0, -1)
+local function set_enabled(bufnr, enabled)
+    if bufnr == 0 then
+        bufnr = api.nvim_get_current_buf()
+    end
+    M.enabled[bufnr] = enabled
+end
+
+-- end_line is inclusive
+local function del_hints(bufnr, start_line, end_line)
+    for _, tuple in ipairs(api.nvim_buf_get_extmarks(bufnr, ns, { start_line, 0 }, { end_line, -1 }, {})) do
+        api.nvim_buf_del_extmark(bufnr, ns, tuple[1])
+    end
+end
+
+local function del_all_hints()
+    for bufnr, _ in pairs(M.enabled) do
+        api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+    end
+    M.enabled = {}
 end
 
 local function handler(err, result, ctx)
-    if not err and result and M.state.enabled then
-        local bufnr = ctx.bufnr
+    local bufnr = ctx.bufnr
+    if not err and result and buf_enabled(bufnr) then
         if not api.nvim_buf_is_loaded(bufnr) then
             return
         end
-
-        hide(bufnr)
 
         local hints = result.inlayHints or {}
         local parsed = {}
         for _, value in ipairs(hints) do
             local pos = value.position
-            local line_str = tostring(pos.line)
+            local line = pos.line
 
-            if parsed[line_str] then
-                table.insert(parsed[line_str], value)
-                table.sort(parsed[line_str], function(a, b)
+            if parsed[line] then
+                table.insert(parsed[line], value)
+                table.sort(parsed[line], function(a, b)
                     return a.position.character < b.position.character
                 end)
             else
-                parsed[line_str] = {
+                parsed[line] = {
                     value,
                 }
             end
         end
 
-        local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-        for key, value in pairs(parsed) do
-            local line = tonumber(key)
-            if lines[line + 1] then
+        local lines_cnt = vim.fn.line("$")
+        for line, value in pairs(parsed) do
+            if line < lines_cnt then
+                -- overwrite old extmarks
+                del_hints(bufnr, line, line)
+
                 for _, hint in ipairs(value) do
-                    api.nvim_buf_set_extmark(ctx.bufnr, M.state.ns, line, -1, {
+                    local format_opts = o.get().inlay_hints_format[hint.kind]
+                    api.nvim_buf_set_extmark(ctx.bufnr, ns, line, -1, {
                         virt_text_pos = "eol",
-                        virt_text = { { hint.text, o.get().inlay_hints_highlight } },
+                        virt_text = {
+                            {
+                                format_opts.text and format_opts.text(hint.text) or hint.text,
+                                { o.get().inlay_hints_highlight, format_opts.highlight },
+                            },
+                        },
                         hl_mode = "combine",
+                        priority = o.get().inlay_hints_priority,
                     })
                 end
             end
@@ -65,36 +94,64 @@ local function handler(err, result, ctx)
     end
 end
 
-local function show()
-    local params = {
-        textDocument = vim.lsp.util.make_text_document_params(),
-    }
-    vim.lsp.buf_request(0, "typescript/inlayHints", params, handler)
-end
+function M.inlay_hints(bufnr)
+    bufnr = bufnr or api.nvim_get_current_buf()
 
-function M.autocmd_fun()
-    if M.state.enabled then
-        show()
+    if buf_enabled(bufnr) then
+        -- forbid duplicate enable
         return
     end
-    hide()
-end
+    set_enabled(bufnr, true)
 
-function M.inlay_hints()
-    M.state.enabled = true
-    show()
+    local params = { textDocument = vim.lsp.util.make_text_document_params() }
+    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
+
+    local throttle = o.get().inlay_hints_throttle
+    local function inlay_hints_request(start, new_end)
+        params = vim.lsp.util.make_given_range_params({ start + 1, 0 }, { new_end + 1, 0 })
+        vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
+    end
+    if throttle > 0 then
+        inlay_hints_request = u.throttle_fn(throttle, vim.schedule_wrap(inlay_hints_request))
+    end
+
+    local attached = api.nvim_buf_attach(bufnr, false, {
+        on_lines = function(_, _, _, start, old_end, new_end)
+            if u.get_tsserver_client() ~= nil and buf_enabled(bufnr) then
+                -- clear old extmarks, this should not be throttled
+                del_hints(bufnr, start, old_end)
+
+                inlay_hints_request(start, new_end)
+            else
+                -- detach buffer
+                return true
+            end
+        end,
+        on_detach = function(_, _)
+            M.disable_inlay_hints(bufnr)
+        end,
+    })
+
+    if not attached then
+        set_enabled(bufnr, false)
+        u.debug_log(string.format("failed to attach buffer %s to setup inlay hints", api.nvim_buf_get_name(bufnr)))
+    end
 end
 
 function M.disable_inlay_hints(bufnr)
-    M.state.enabled = false
-    hide(bufnr)
+    if bufnr ~= nil then
+        set_enabled(bufnr, false)
+        api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+    else
+        del_all_hints()
+    end
 end
 
-function M.toggle_inlay_hints()
-    if M.state.enabled then
-        M.disable_inlay_hints()
+function M.toggle_inlay_hints(bufnr)
+    if buf_enabled(bufnr) then
+        M.disable_inlay_hints(bufnr)
     else
-        M.inlay_hints()
+        M.inlay_hints(bufnr)
     end
 end
 

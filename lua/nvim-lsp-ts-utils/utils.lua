@@ -164,4 +164,22 @@ M.buf_autocmd = function(name, event, func)
     )
 end
 
+M.throttle_fn = function(ms, fn)
+    local last_time = 0
+    local timer = vim.loop.new_timer()
+    return function(...)
+        local now = vim.loop.now()
+        local args = {...}
+        if now - last_time > ms then
+            last_time = now
+            fn(unpack(args))
+        end
+        timer:stop()
+        timer:start(ms - now + last_time, 0, function()
+            last_time = vim.loop.now()
+            fn(unpack(args))
+        end)
+    end
+end
+
 return M

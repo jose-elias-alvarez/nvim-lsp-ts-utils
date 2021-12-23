@@ -51,7 +51,6 @@ M.setup = function(user_options)
     define_commands()
 
     if o.get().auto_inlay_hints then
-        inlay_hints.setup_autocommands()
         inlay_hints.inlay_hints()
     end
 

@@ -28,6 +28,18 @@ local defaults = {
     -- inlay hints
     auto_inlay_hints = true,
     inlay_hints_highlight = "Comment",
+    inlay_hints_priority = 200,
+    inlay_hints_throttle = vim.o.updatetime,
+    inlay_hints_format = {
+        Type = {
+            highlight = nil,
+            text = function(text)
+                return "->" .. text:sub(2)
+            end,
+        },
+        Parameter = { highlight = nil, text = nil },
+        Enum = { highlight = nil, text = nil },
+    },
 
     -- internal
     _initialized = false,

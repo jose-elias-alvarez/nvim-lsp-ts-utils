@@ -170,6 +170,18 @@ lspconfig.tsserver.setup({
             -- inlay hints
             auto_inlay_hints = true,
             inlay_hints_highlight = "Comment",
+            inlay_hints_priority = 200, -- priority of the hint extmarks
+            inlay_hints_throttle = vim.o.updatetime, -- throttle the inlay hint request, set to 0 for no throttle
+            inlay_hints_format = { -- format options for individual hint kind
+                Type = {
+                    highlight = nil,
+                    text = function(text)
+                        return "->" .. text:sub(2)
+                    end,
+                },
+                Parameter = {},
+                Enum = {},
+            },
 
             -- update imports on file move
             update_imports_on_move = false,
