@@ -169,7 +169,7 @@ M.throttle_fn = function(ms, fn)
     local timer = vim.loop.new_timer()
     return function(...)
         local now = vim.loop.now()
-        local args = {...}
+        local args = { ... }
         if now - last_time > ms then
             last_time = now
             fn(unpack(args))
