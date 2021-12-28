@@ -11,23 +11,26 @@ M.ns = ns
 -- enabled[bufnr] = false
 M.enabled = {}
 
+local function resolve_bufnr(bufnr)
+    if bufnr == 0 then
+        bufnr = api.nvim_get_current_buf()
+    end
+    return bufnr
+end
+
 local function buf_enabled(bufnr)
+    bufnr = resolve_bufnr(bufnr)
     if bufnr ~= nil then
-        if bufnr == 0 then
-            bufnr = api.nvim_get_current_buf()
-        end
-        if M.enabled[bufnr] == nil then
-            M.enabled[bufnr] = false
-        end
         return M.enabled[bufnr]
     end
 end
 
-local function set_enabled(bufnr, enabled)
-    if bufnr == 0 then
-        bufnr = api.nvim_get_current_buf()
-    end
-    M.enabled[bufnr] = enabled
+local function set_buf_enabled(bufnr)
+    M.enabled[resolve_bufnr(bufnr)] = true
+end
+
+local function set_buf_disabled(bufnr)
+    M.enabled[resolve_bufnr(bufnr)] = false
 end
 
 -- end_line is inclusive
@@ -69,7 +72,7 @@ local function handler(err, result, ctx)
             end
         end
 
-        local lines_cnt = vim.fn.line("$")
+        local lines_cnt = api.nvim_buf_line_count(bufnr)
         for line, value in pairs(parsed) do
             if line < lines_cnt then
                 -- overwrite old extmarks
@@ -95,13 +98,13 @@ local function handler(err, result, ctx)
 end
 
 function M.inlay_hints(bufnr)
-    bufnr = bufnr or api.nvim_get_current_buf()
+    bufnr = resolve_bufnr(bufnr or 0)
 
     if buf_enabled(bufnr) then
         -- forbid duplicate enable
         return
     end
-    set_enabled(bufnr, true)
+    set_buf_enabled(bufnr)
 
     local params = { textDocument = vim.lsp.util.make_text_document_params() }
     vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
@@ -133,21 +136,24 @@ function M.inlay_hints(bufnr)
     })
 
     if not attached then
-        set_enabled(bufnr, false)
+        set_buf_disabled(bufnr)
         u.debug_log(string.format("failed to attach buffer %s to setup inlay hints", api.nvim_buf_get_name(bufnr)))
     end
 end
 
+-- Disable inlay hints for the given buffer, if nil passed, disable all inlay hints
 function M.disable_inlay_hints(bufnr)
     if bufnr ~= nil then
-        set_enabled(bufnr, false)
+        set_buf_disabled(bufnr)
         api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
     else
         del_all_hints()
     end
 end
 
+-- Toggle inlay hints for a buffer, defaults to current buffer
 function M.toggle_inlay_hints(bufnr)
+    bufnr = resolve_bufnr(bufnr or 0)
     if buf_enabled(bufnr) then
         M.disable_inlay_hints(bufnr)
     else
