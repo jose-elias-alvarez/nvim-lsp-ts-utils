@@ -109,14 +109,12 @@ function M.inlay_hints(bufnr)
     local params = { textDocument = vim.lsp.util.make_text_document_params() }
     vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
 
-    local throttle = o.get().inlay_hints_throttle
+    local throttle = vim.o.updatetime
     local function inlay_hints_request(start, new_end)
         params = vim.lsp.util.make_given_range_params({ start + 1, 0 }, { new_end + 1, 0 })
         vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
     end
-    if throttle > 0 then
-        inlay_hints_request = u.throttle_fn(throttle, vim.schedule_wrap(inlay_hints_request))
-    end
+    inlay_hints_request = u.throttle_fn(throttle, vim.schedule_wrap(inlay_hints_request))
 
     local attached = api.nvim_buf_attach(bufnr, false, {
         on_lines = function(_, _, _, start, old_end, new_end)

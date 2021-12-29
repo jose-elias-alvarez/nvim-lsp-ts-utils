@@ -88,7 +88,14 @@ built-in LSP client.
   - `inlay_hints_highlight` (string): Highlight group used for inlay hints.
     Defaults to "Comment".
 
-- Filter `tsserver` diagnostics
+  - `inlay_hints_priority` (number): Priority of the hint extmarks. Change
+    this value if the inlay hints conflict with other extmarks. Defaults to
+    200.
+
+  - `inlay_hints_format` (table): Format options for individual kind of inlay
+    hints. See [Setup](#setup) section for default settings and example.
+
+-  Filter `tsserver` diagnostics
 
   Some `tsserver` diagnostics may be annoying or can result in duplicated
   messages when used with a linter. For example, to disable the hint about
@@ -171,16 +178,17 @@ lspconfig.tsserver.setup({
             auto_inlay_hints = true,
             inlay_hints_highlight = "Comment",
             inlay_hints_priority = 200, -- priority of the hint extmarks
-            inlay_hints_throttle = vim.o.updatetime, -- throttle the inlay hint request, set to 0 for no throttle
             inlay_hints_format = { -- format options for individual hint kind
-                Type = {
-                    highlight = nil,
-                    text = function(text)
-                        return "->" .. text:sub(2)
-                    end,
-                },
+                Type = {},
                 Parameter = {},
                 Enum = {},
+                -- Example format customization for `Type` kind:
+                -- Type = {
+                --     highlight = "Comment",
+                --     text = function(text)
+                --         return "->" .. text:sub(2)
+                --     end,
+                -- },
             },
 
             -- update imports on file move
