@@ -47,50 +47,66 @@ local function del_all_hints()
     M.enabled = {}
 end
 
-local function handler(err, result, ctx)
-    local bufnr = ctx.bufnr
-    if not err and result and buf_enabled(bufnr) then
-        if not api.nvim_buf_is_loaded(bufnr) then
-            return
-        end
-
-        local hints = result.inlayHints or {}
-        local parsed = {}
-        for _, value in ipairs(hints) do
-            local pos = value.position
-            local line = pos.line
-
-            if parsed[line] then
-                table.insert(parsed[line], value)
-                table.sort(parsed[line], function(a, b)
-                    return a.position.character < b.position.character
-                end)
-            else
-                parsed[line] = {
-                    value,
-                }
+local function make_handler(start, old_end)
+    return function(err, result, ctx)
+        local bufnr = ctx.bufnr
+        if not err and result and buf_enabled(bufnr) then
+            if not api.nvim_buf_is_loaded(bufnr) then
+                -- clear old extmarks
+                del_hints(bufnr, start, old_end)
+                return
             end
-        end
 
-        local lines_cnt = api.nvim_buf_line_count(bufnr)
-        for line, value in pairs(parsed) do
-            if line < lines_cnt then
-                -- overwrite old extmarks
-                del_hints(bufnr, line, line)
+            local hints = result.inlayHints or {}
+            local parsed = {}
+            for _, value in ipairs(hints) do
+                local pos = value.position
+                local line = pos.line
 
-                for _, hint in ipairs(value) do
-                    local format_opts = o.get().inlay_hints_format[hint.kind]
-                    api.nvim_buf_set_extmark(ctx.bufnr, ns, line, -1, {
-                        virt_text_pos = "eol",
-                        virt_text = {
-                            {
-                                format_opts.text and format_opts.text(hint.text) or hint.text,
-                                { o.get().inlay_hints_highlight, format_opts.highlight },
+                if parsed[line] then
+                    table.insert(parsed[line], value)
+                    table.sort(parsed[line], function(a, b)
+                        return a.position.character < b.position.character
+                    end)
+                else
+                    parsed[line] = {
+                        value,
+                    }
+                end
+            end
+
+            for i = start, old_end do
+                if not parsed[i] then
+                    del_hints(bufnr, i, i)
+                end
+            end
+
+            local lines_cnt = api.nvim_buf_line_count(bufnr)
+            for line, value in pairs(parsed) do
+                if line < lines_cnt then
+                    local old_hints = api.nvim_buf_get_extmarks(bufnr, ns, { line, 0 }, { line, -1 }, {})
+                    table.sort(old_hints, function(a, b)
+                        return a[3] < b[3]
+                    end)
+                    for i = #value + 1, #old_hints do
+                        api.nvim_buf_del_extmark(bufnr, ns, old_hints[i][1])
+                    end
+
+                    for i, hint in ipairs(value) do
+                        local format_opts = o.get().inlay_hints_format[hint.kind]
+                        api.nvim_buf_set_extmark(ctx.bufnr, ns, line, -1, {
+                            id = old_hints[i] and old_hints[i][1] or nil, -- reuse existing id if possible
+                            virt_text_pos = "eol",
+                            virt_text = {
+                                {
+                                    format_opts.text and format_opts.text(hint.text) or hint.text,
+                                    { o.get().inlay_hints_highlight, format_opts.highlight },
+                                },
                             },
-                        },
-                        hl_mode = "combine",
-                        priority = o.get().inlay_hints_priority,
-                    })
+                            hl_mode = "combine",
+                            priority = o.get().inlay_hints_priority,
+                        })
+                    end
                 end
             end
         end
@@ -107,22 +123,19 @@ function M.inlay_hints(bufnr)
     set_buf_enabled(bufnr)
 
     local params = { textDocument = vim.lsp.util.make_text_document_params() }
-    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
+    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler(0, -1))
 
     local throttle = vim.o.updatetime
-    local function inlay_hints_request(start, new_end)
+    local function inlay_hints_request(start, old_end, new_end)
         params = vim.lsp.util.make_given_range_params({ start + 1, 0 }, { new_end + 1, 0 })
-        vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, handler)
+        vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler(start, old_end))
     end
     inlay_hints_request = u.throttle_fn(throttle, vim.schedule_wrap(inlay_hints_request))
 
     local attached = api.nvim_buf_attach(bufnr, false, {
         on_lines = function(_, _, _, start, old_end, new_end)
             if u.get_tsserver_client() ~= nil and buf_enabled(bufnr) then
-                -- clear old extmarks, this should not be throttled
-                del_hints(bufnr, start, old_end)
-
-                inlay_hints_request(start, new_end)
+                inlay_hints_request(start, old_end, new_end)
             else
                 -- detach buffer
                 return true
