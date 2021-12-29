@@ -30,7 +30,7 @@ local function set_buf_enabled(bufnr)
 end
 
 local function set_buf_disabled(bufnr)
-    M.enabled[resolve_bufnr(bufnr)] = false
+    M.enabled[resolve_bufnr(bufnr)] = nil
 end
 
 -- end_line is inclusive
