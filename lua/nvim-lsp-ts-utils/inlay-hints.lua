@@ -47,15 +47,22 @@ local function del_all_hints()
     M.enabled = {}
 end
 
-local function make_handler(start, old_end)
+local function make_handler(handler_ctx)
     return function(err, result, ctx)
         local bufnr = ctx.bufnr
-        if not err and result and buf_enabled(bufnr) then
-            if not api.nvim_buf_is_loaded(bufnr) then
-                -- clear old extmarks
-                del_hints(bufnr, start, old_end)
-                return
-            end
+        local event = handler_ctx.event
+        if
+            not err
+            and result
+            and buf_enabled(bufnr)
+            and event
+            -- No tick in params means a whole update
+            and (not ctx.params.tick or event.tick == ctx.params.tick)
+            and api.nvim_buf_is_loaded(bufnr)
+        then
+            local start = event.start
+            local old_end = event.old_end
+            handler_ctx.event = nil
 
             local hints = result.inlayHints or {}
             local parsed = {}
@@ -75,7 +82,7 @@ local function make_handler(start, old_end)
                 end
             end
 
-            for i = start, old_end do
+            for i = start, old_end - 1 do
                 if not parsed[i] then
                     del_hints(bufnr, i, i)
                 end
@@ -123,19 +130,33 @@ function M.inlay_hints(bufnr)
     set_buf_enabled(bufnr)
 
     local params = { textDocument = vim.lsp.util.make_text_document_params() }
-    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler(0, -1))
+    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler({ event = { start = 0, old_end = -1 } }))
 
     local throttle = vim.o.updatetime
-    local function inlay_hints_request(start, old_end, new_end)
-        params = vim.lsp.util.make_given_range_params({ start + 1, 0 }, { new_end + 1, 0 })
-        vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler(start, old_end))
+    local function inlay_hints_request(ctx)
+        if ctx.event then
+            params = vim.lsp.util.make_given_range_params({ ctx.event.start + 1, 0 }, { ctx.event.new_end + 2, 0 })
+            -- Attach tick in params so that we can identify the newest response
+            params.tick = ctx.event.tick
+            vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler(ctx))
+        end
     end
     inlay_hints_request = u.throttle_fn(throttle, vim.schedule_wrap(inlay_hints_request))
 
+    local ctx = { event = nil }
+
     local attached = api.nvim_buf_attach(bufnr, false, {
-        on_lines = function(_, _, _, start, old_end, new_end)
+        on_lines = function(_, _, tick, start, old_end, new_end)
+            local old_event = ctx.event or {}
+            ctx.event = {
+                tick = tick,
+                start = math.min(old_event.start or start, start),
+                old_end = math.max(old_event.old_end or old_end, old_end),
+                new_end = math.max(old_event.new_end or new_end, new_end),
+            }
+
             if u.get_tsserver_client() ~= nil and buf_enabled(bufnr) then
-                inlay_hints_request(start, old_end, new_end)
+                inlay_hints_request(ctx)
             else
                 -- detach buffer
                 return true
