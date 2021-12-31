@@ -295,12 +295,8 @@ repository](https://github.com/jose-elias-alvarez/null-ls.nvim).
 
 ## Tests
 
-- `git clone https://github.com/jose-elias-alvarez/nvim-lsp-ts-utils`
-- `cd test && npm install`
-- `cd .. && make test`
-
-Once set up, run `make test` in the root directory of the repository. The suite
-has the same requirements as the plugin.
+Clone the repository and run `make test`. The suite has the same requirements as
+the plugin.
 
 ## Recommended Plugins
 
