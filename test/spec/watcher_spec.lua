@@ -176,7 +176,7 @@ describe("watcher", function()
 
                 watcher.start()
 
-                assert.stub(lsputil.path.is_dir).was_called_with(mock_root .. watch_dir)
+                assert.stub(lsputil.path.is_dir).was_called_with(lsputil.path.join(mock_root, watch_dir))
                 assert.equals(watcher.state.watching, false)
             end)
 
@@ -258,7 +258,7 @@ describe("watcher", function()
             it("should set source if not set", function()
                 on_event("file.ts")
 
-                assert.equals(watcher.state.source.get(), mock_root .. watch_dir .. "/" .. "file.ts")
+                assert.equals(watcher.state.source.get(), lsputil.path.join(mock_root, watch_dir, "file.ts"))
             end)
 
             it("should reset source in defer callback", function()
