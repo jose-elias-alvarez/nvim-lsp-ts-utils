@@ -177,6 +177,24 @@ local response_handler_factory = function(callback)
     end
 end
 
+-- if a module has more than one import edit returns true
+local should_reorder = function(edits)
+    local modules = {}
+    for _, edit in ipairs(edits) do
+        if edit.newText then
+            for module in string.gmatch(edit.newText, "import.*from (.+)[;\n]?") do
+                local import = module:gsub("\n", "")
+                if modules[import] then
+                    return true
+                end
+                modules[import] = true
+                break
+            end
+        end
+    end
+    return false
+end
+
 local apply_edits = function(edits, bufnr)
     if vim.tbl_count(edits) == 0 then
         return
@@ -184,23 +202,25 @@ local apply_edits = function(edits, bufnr)
 
     lsp.util.apply_text_edits(edits, bufnr)
 
-    -- organize imports to merge separate import statements from the same file
-    require("nvim-lsp-ts-utils.organize-imports").async(bufnr, function()
-        -- remove empty lines created by merge
-        local empty_start, empty_end
-        for i, line in ipairs(api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
-            if not empty_end and empty_start and line ~= "" then
-                empty_end = i - 1
-                break
+    if should_reorder(edits) then
+        -- organize imports to merge separate import statements from the same file
+        require("nvim-lsp-ts-utils.organize-imports").async(bufnr, function()
+            -- remove empty lines created by merge
+            local empty_start, empty_end
+            for i, line in ipairs(api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+                if not empty_end and empty_start and line ~= "" then
+                    empty_end = i - 1
+                    break
+                end
+                if not empty_start and line == "" then
+                    empty_start = i
+                end
             end
-            if not empty_start and line == "" then
-                empty_start = i
+            if empty_start and empty_end and empty_start < empty_end then
+                api.nvim_buf_set_lines(bufnr, empty_start, empty_end, false, {})
             end
-        end
-        if empty_start and empty_end and empty_start < empty_end then
-            api.nvim_buf_set_lines(bufnr, empty_start, empty_end, false, {})
-        end
-    end)
+        end)
+    end
 end
 
 return function(bufnr, diagnostics)
