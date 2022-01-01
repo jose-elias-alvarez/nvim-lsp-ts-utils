@@ -60,8 +60,8 @@ local function make_handler(handler_ctx)
             and (not ctx.params.tick or event.tick == ctx.params.tick)
             and api.nvim_buf_is_loaded(bufnr)
         then
-            local start = event.start
-            local old_end = event.old_end
+            local start_line = event.start_line
+            local end_line = event.end_line
             handler_ctx.event = nil
 
             local hints = result.inlayHints or {}
@@ -82,7 +82,7 @@ local function make_handler(handler_ctx)
                 end
             end
 
-            for i = start, old_end - 1 do
+            for i = start_line, end_line do
                 if not parsed[i] then
                     del_hints(bufnr, i, i)
                 end
@@ -130,12 +130,15 @@ function M.inlay_hints(bufnr)
     set_buf_enabled(bufnr)
 
     local params = { textDocument = vim.lsp.util.make_text_document_params() }
-    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler({ event = { start = 0, old_end = -1 } }))
+    vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler({ event = { start_line = 0, end_line = -1 } }))
 
     local throttle = vim.o.updatetime
     local function inlay_hints_request(ctx)
         if ctx.event then
-            params = vim.lsp.util.make_given_range_params({ ctx.event.start + 1, 0 }, { ctx.event.new_end + 2, 0 })
+            params = vim.lsp.util.make_given_range_params(
+                { ctx.event.start_line + 1, 0 },
+                { ctx.event.end_line + 2, 0 }
+            )
             -- Attach tick in params so that we can identify the newest response
             params.tick = ctx.event.tick
             vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler(ctx))
@@ -150,9 +153,8 @@ function M.inlay_hints(bufnr)
             local old_event = ctx.event or {}
             ctx.event = {
                 tick = tick,
-                start = math.min(old_event.start or start, start),
-                old_end = math.max(old_event.old_end or old_end, old_end),
-                new_end = math.max(old_event.new_end or new_end, new_end),
+                start_line = math.min(old_event.start_line or 0, start),
+                end_line = math.max(old_event.end_line or 0, old_end, new_end),
             }
 
             if u.get_tsserver_client() ~= nil and buf_enabled(bufnr) then
