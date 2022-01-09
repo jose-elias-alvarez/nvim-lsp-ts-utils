@@ -28,6 +28,7 @@ local defaults = {
     -- inlay hints
     auto_inlay_hints = true,
     inlay_hints_highlight = "Comment",
+    inlay_hints_throttle = 150,
     inlay_hints_priority = 200,
     inlay_hints_format = {
         Type = { highlight = nil, text = nil },

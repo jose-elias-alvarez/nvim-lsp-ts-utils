@@ -132,7 +132,7 @@ function M.inlay_hints(bufnr)
     local params = { textDocument = vim.lsp.util.make_text_document_params() }
     vim.lsp.buf_request(bufnr, INLAY_HINTS_METHOD, params, make_handler({ event = { start_line = 0, end_line = -1 } }))
 
-    local throttle = vim.o.updatetime
+    local throttle = o.get().inlay_hints_throttle
     local function inlay_hints_request(ctx)
         if ctx.event then
             params = vim.lsp.util.make_given_range_params(

@@ -92,6 +92,9 @@ built-in LSP client.
     this value if the inlay hints conflict with other extmarks. Defaults to
     200.
 
+  - `inlay_hints_throttle` (number): Throttle time of inlay hints requests in ms.
+    Defaults to 150.
+
   - `inlay_hints_format` (table): Format options for individual kind of inlay
     hints. See [Setup](#setup) section for default settings and example.
 
@@ -178,6 +181,7 @@ lspconfig.tsserver.setup({
             auto_inlay_hints = true,
             inlay_hints_highlight = "Comment",
             inlay_hints_priority = 200, -- priority of the hint extmarks
+            inlay_hints_throttle = 150, -- throttle the inlay hint request
             inlay_hints_format = { -- format options for individual hint kind
                 Type = {},
                 Parameter = {},
