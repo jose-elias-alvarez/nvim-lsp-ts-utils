@@ -177,19 +177,22 @@ local response_handler_factory = function(callback)
     end
 end
 
--- if a module has more than one import edit returns true
 local should_reorder = function(edits)
     local modules = {}
     for _, edit in ipairs(edits) do
         if edit.newText then
-            for module in string.gmatch(edit.newText, "import.*from (.+)[;\n]?") do
-                local import = module:gsub("\n", "")
-                if modules[import] then
-                    return true
-                end
-                modules[import] = true
-                break
+            local module = string.match(edit.newText, "import.*from (.+)[;\n]?")
+
+            if not module then
+                return
             end
+
+            local import = module:gsub("\n", "")
+            if modules[import] then
+                return true
+            end
+
+            modules[import] = true
         end
     end
     return false
@@ -202,7 +205,7 @@ local apply_edits = function(edits, bufnr)
 
     lsp.util.apply_text_edits(edits, bufnr)
 
-    if should_reorder(edits) then
+    if o.get().always_organize_imports or should_reorder(edits) then
         -- organize imports to merge separate import statements from the same file
         require("nvim-lsp-ts-utils.organize-imports").async(bufnr, function()
             -- remove empty lines created by merge

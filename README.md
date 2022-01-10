@@ -61,6 +61,17 @@ built-in LSP client.
   LSP `omnifunc`. Enable by setting `enable_import_on_completion` to `true`
   inside `setup` (see below).
 
+- Avoid organizing imports
+
+  By default `always_organize_imports` is set to `true`, every call to
+  `:TSLspImportAll` or `:TSLspImportCurrent` will also run `:TSLspOrganize`
+  to fix possible duplicated imports.
+
+  If `always_organize_imports` is set to `false`, it will only run
+  `:TSLspOrganize` in situations where is necessary: i.e. two new imports
+  from the same module.
+
+
 - Fix invalid ranges
 
   `tsserver` uses non-compliant ranges in some code actions (most notably "Move
@@ -162,6 +173,8 @@ lspconfig.tsserver.setup({
             },
             import_all_scan_buffers = 100,
             import_all_select_source = false,
+            -- if false will avoid orginizing imports
+            always_organize_imports = true,
 
             -- filter diagnostics
             filter_out_diagnostics_by_severity = {},

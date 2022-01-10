@@ -12,6 +12,7 @@ local defaults = {
     },
     import_all_select_source = false,
     import_all_scan_buffers = 100,
+    always_organize_imports = true,
 
     -- completion
     enable_import_on_completion = false,
