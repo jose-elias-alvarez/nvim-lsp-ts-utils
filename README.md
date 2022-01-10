@@ -173,7 +173,7 @@ lspconfig.tsserver.setup({
             },
             import_all_scan_buffers = 100,
             import_all_select_source = false,
-            -- if false will avoid orginizing imports
+            -- if false will avoid organizing imports
             always_organize_imports = true,
 
             -- filter diagnostics
