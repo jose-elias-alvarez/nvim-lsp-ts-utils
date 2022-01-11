@@ -187,12 +187,12 @@ local should_reorder = function(edits)
                 return
             end
 
-            local import = module:gsub("\n", "")
-            if modules[import] then
+            local source = vim.trim(module)
+            if modules[source] then
                 return true
             end
 
-            modules[import] = true
+            modules[source] = true
         end
     end
     return false
