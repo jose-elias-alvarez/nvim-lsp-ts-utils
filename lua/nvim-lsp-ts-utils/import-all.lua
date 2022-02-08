@@ -203,7 +203,7 @@ local apply_edits = function(edits, bufnr)
         return
     end
 
-    lsp.util.apply_text_edits(edits, bufnr)
+    lsp.util.apply_text_edits(edits, bufnr, "utf-16")
 
     if o.get().always_organize_imports or should_reorder(edits) then
         -- organize imports to merge separate import statements from the same file

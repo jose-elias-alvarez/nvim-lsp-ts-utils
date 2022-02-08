@@ -62,7 +62,7 @@ M.handle = function()
 
             -- when an edit's range includes the current line, the cursor won't move, which is annoying
             local should_fix = should_fix_position(edits)
-            lsp.util.apply_text_edits(result.additionalTextEdits, bufnr)
+            lsp.util.apply_text_edits(result.additionalTextEdits, bufnr, "utf-16")
             if should_fix then
                 fix_position(edits)
             end
