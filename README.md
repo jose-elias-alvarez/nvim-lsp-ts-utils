@@ -350,3 +350,10 @@ the plugin.
 - The [ESLint language
   server](https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#eslint):
   provides ESLint code actions, diagnostics, and formatting.
+
+## Sponsors
+
+Thanks to everyone who sponsors my projects and makes continued development /
+maintenance possible!
+
+<!-- sponsors --><!-- sponsors -->
