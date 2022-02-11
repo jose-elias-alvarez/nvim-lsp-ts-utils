@@ -71,7 +71,6 @@ built-in LSP client.
   `:TSLspOrganize` in situations where is necessary: i.e. two new imports
   from the same module.
 
-
 - Fix invalid ranges
 
   `tsserver` uses non-compliant ranges in some code actions (most notably "Move
@@ -100,8 +99,7 @@ built-in LSP client.
     Defaults to "Comment".
 
   - `inlay_hints_priority` (number): Priority of the hint extmarks. Change
-    this value if the inlay hints conflict with other extmarks. Defaults to
-    200.
+    this value if the inlay hints conflict with other extmarks. Defaults to 200.
 
   - `inlay_hints_throttle` (number): Throttle time of inlay hints requests in ms.
     Defaults to 150.
@@ -109,18 +107,18 @@ built-in LSP client.
   - `inlay_hints_format` (table): Format options for individual kind of inlay
     hints. See [Setup](#setup) section for default settings and example.
 
--  Filter `tsserver` diagnostics
+- Filter `tsserver` diagnostics
 
-  Some `tsserver` diagnostics may be annoying or can result in duplicated
-  messages when used with a linter. For example, to disable the hint about
-  RequireJS modules, set `filter_out_diagnostics_by_code` to `{ 80001 }` and to
-  disable all hints, set `filter_out_diagnostics_by_severity` to `{ "hint" }`.
+Some `tsserver` diagnostics may be annoying or can result in duplicated
+messages when used with a linter. For example, to disable the hint about
+RequireJS modules, set `filter_out_diagnostics_by_code` to `{ 80001 }` and to
+disable all hints, set `filter_out_diagnostics_by_severity` to `{ "hint" }`.
 
-  Like fixing invalid ranges, this function requires calling `setup_client` in
-  your configuration (see below).
+Like fixing invalid ranges, this function requires calling `setup_client` in
+your configuration (see below).
 
-  Note: filtering out error code 2304 (unused variables) will break
-  `:TSLspImportAll` functionality.
+Note: filtering out error code 2304 (unused variables) will break
+`:TSLspImportAll` functionality.
 
 ### Experimental Features
 
