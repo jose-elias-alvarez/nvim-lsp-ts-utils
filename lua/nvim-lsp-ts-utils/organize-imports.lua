@@ -14,7 +14,7 @@ end
 local organize_imports = function(bufnr, post)
     bufnr = bufnr or api.nvim_get_current_buf()
 
-    lsp.buf_request(bufnr, METHOD, make_params(bufnr), function(err)
+    lsp.buf_request_all(bufnr, METHOD, make_params(bufnr), function(err)
         if not err and post then
             post()
         end
