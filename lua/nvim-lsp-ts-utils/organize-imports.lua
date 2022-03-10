@@ -22,10 +22,10 @@ local organize_imports = function(bufnr, post)
 end
 M.async = organize_imports
 
-local organize_imports_sync = function(bufnr)
+local organize_imports_sync = function(bufnr, timeout)
     bufnr = bufnr or api.nvim_get_current_buf()
 
-    lsp.buf_request_sync(bufnr, METHOD, make_params(bufnr), 500)
+    return lsp.buf_request_sync(bufnr, METHOD, make_params(bufnr), timeout)
 end
 M.sync = organize_imports_sync
 
