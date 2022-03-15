@@ -6,7 +6,37 @@ local api = vim.api
 
 local CODE_ACTION = "textDocument/codeAction"
 local APPLY_EDIT = "_typescript.applyWorkspaceEdit"
-local rel_path_pattern = "^[.]+/"
+
+local patterns = {
+    RELATIVE_PATH = "^[.]+/",
+    SRC = "^src",
+    MODULE = "import.*from (.+)[;\n]?",
+    -- Import 'useEffect' from module "React"
+    IMPORT_WITH_TARGET = [['(%S+)'.+"(%S+)"]],
+    NEW_IMPORT = "^Import",
+    -- Add import from "next/app"
+    IMPORT_WITHOUT_TARGET = [["(%S+)"]],
+    ADD_IMPORT = "Add.+import",
+    -- Update import from "next/app"
+    UPDATE_IMPORT = "Update.+import",
+}
+
+local can_handle_action = function(action)
+    return action.arguments
+        and action.arguments[1]
+        and action.arguments[1].documentChanges
+        and action.arguments[1].documentChanges[1]
+end
+
+local action_matches_pattern = function(action)
+    return action.title:match(patterns.NEW_IMPORT)
+        or action.title:match(patterns.ADD_IMPORT)
+        or action.title:match(patterns.UPDATE_IMPORT)
+end
+
+local source_is_local = function(source)
+    return source:match(patterns.RELATIVE_PATH) or source:match(patterns.SRC)
+end
 
 local get_diagnostics = function(bufnr, client_id)
     local diagnostics = u.diagnostics.to_lsp(vim.diagnostic.get(bufnr, {
@@ -51,16 +81,13 @@ local response_handler_factory = function(callback)
                 return false
             end
 
-            local arguments, title = action.arguments, action.title
             -- keep only actions that can be handled
-            if
-                not (arguments and arguments[1] and arguments[1].documentChanges and arguments[1].documentChanges[1])
-            then
+            if not can_handle_action(action) then
                 return false
             end
 
             -- keep only actions that look like imports
-            if not ((title:match("Add") and title:match("existing import")) or title:match("Import")) then
+            if not action_matches_pattern(action) then
                 return false
             end
 
@@ -86,19 +113,16 @@ local response_handler_factory = function(callback)
             end
 
             -- check if already imported in the same file
-            if title:match("Add") then
+            if title:match(patterns.ADD_IMPORT) or title:match(patterns.UPDATE_IMPORT) then
                 priority = priority + priorities.same_file
             end
 
-            local is_local
             -- attempt to determine if source is local from path (won't work when basePath is set in tsconfig.json)
-            if source:match(rel_path_pattern) or source:match("src") then
-                is_local = true
-            end
+            local is_local = source_is_local(source)
 
-            -- remove relative path patterns
-            while source:find(rel_path_pattern) do
-                source = source:gsub(rel_path_pattern, "")
+            -- remove relative path markers
+            while source:find(patterns.RELATIVE_PATH) do
+                source = source:gsub(patterns.RELATIVE_PATH, "")
             end
 
             -- check source against git files to determine if local
@@ -139,9 +163,15 @@ local response_handler_factory = function(callback)
             return priority
         end
 
-        local parse_action = function(action)
+        local parse_action = function(action, index)
             local title = action.title
-            local target, source = title:match([['(%S+)'.+"(%S+)"]])
+
+            local target, source = title:match(patterns.IMPORT_WITH_TARGET)
+            source = source or title:match(patterns.IMPORT_WITHOUT_TARGET)
+            if source and not target then
+                target = string.format("anonymous_target_%d", index)
+            end
+
             if not (target and source) then
                 return
             end
@@ -167,9 +197,9 @@ local response_handler_factory = function(callback)
             end
         end
 
-        for _, action in ipairs(responses or {}) do
+        for i, action in ipairs(responses or {}) do
             if should_handle_action(action) then
-                parse_action(action)
+                parse_action(action, i)
             end
         end
 
@@ -181,8 +211,7 @@ local should_reorder = function(edits)
     local modules = {}
     for _, edit in ipairs(edits) do
         if edit.newText then
-            local module = string.match(edit.newText, "import.*from (.+)[;\n]?")
-
+            local module = edit.newText:match(patterns.MODULE)
             if not module then
                 return
             end
