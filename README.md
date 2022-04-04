@@ -3,6 +3,13 @@
 Utilities to improve the TypeScript development experience for Neovim's
 built-in LSP client.
 
+**NOTE**: this plugin is in maintenance mode. I plan on continuing to fix bugs
+but will close other issues. I've shifted my focus to
+[typescript.nvim](https://github.com/jose-elias-alvarez/typescript.nvim), a
+minimal version that's focused on integrating with the language server (vs.
+adding / recreating features specifically for Neovim). It's also written in
+TypeScript to simplify maintenance and contribution, so check it out!
+
 ## Requirements
 
 - Neovim 0.6.0+
