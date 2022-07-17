@@ -1,14 +1,17 @@
+# ARCHIVAL NOTICE
+
+Please check out
+[typescript.nvim](https://github.com/jose-elias-alvarez/typescript.nvim), a
+minimal `typescript-language-server` integration plugin written in TypeScript.
+
+You are free to use nvim-lsp-ts-utils in its current state (or copy the
+functionality you need into your Neovim config) but it will no longer receive
+updates or bug fixes.
+
 # nvim-lsp-ts-utils
 
 Utilities to improve the TypeScript development experience for Neovim's
 built-in LSP client.
-
-**NOTE**: this plugin is in maintenance mode. I plan on continuing to fix bugs
-but will close other issues. I've shifted my focus to
-[typescript.nvim](https://github.com/jose-elias-alvarez/typescript.nvim), a
-minimal version that's focused on integrating with the language server (vs.
-adding / recreating features specifically for Neovim). It's also written in
-TypeScript to simplify maintenance and contribution, so check it out!
 
 ## Requirements
 
